@@ -1,0 +1,124 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/lib/toast";
+import { authAPI } from "@/lib/api";
+
+interface User {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = () => {
+      const savedUser = localStorage.getItem("admin_user");
+      const token = localStorage.getItem("admin_token");
+
+      if (savedUser && token) {
+        setUser(JSON.parse(savedUser));
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+
+    try {
+      const response = await authAPI.login(email, password);
+
+      if (response.data.success) {
+        const userData = response.data.user;
+        const token = response.data.token;
+
+        // Check if user is admin or super admin
+        if (userData.role !== 'admin' && userData.role !== 'super admin') {
+          toast.error("Access denied. Admin privileges required.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Transform user data to match interface
+        const formattedUser: User = {
+          _id: userData._id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          role: userData.role,
+          avatar: (typeof userData.cover === 'string' ? userData.cover : userData.cover?.url) || `https://ui-avatars.com/api/?name=${userData.firstName}+${userData.lastName}&background=0D8ABC&color=fff`,
+        };
+
+        localStorage.setItem("admin_user", JSON.stringify(formattedUser));
+        localStorage.setItem("admin_token", token);
+        setUser(formattedUser);
+        toast.success("Login successful");
+        navigate("/dashboard");
+      } else {
+        toast.error(response.data.message || "Login failed");
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "An error occurred during login";
+      toast.error(errorMessage);
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("admin_user");
+    localStorage.removeItem("admin_token");
+    setUser(null);
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export default AuthProvider;

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Order Placement</title>
+		<style>
+			body {
+				font-family: "Poppins", sans-serif;
+				background-color: #f7f7ff;
+				margin: 0;
+				padding: 0;
+				font-size: 12px;
+				color: #000;
+				line-height: 22px;
+			}
+
+			.container {
+				max-width: 600px;
+				margin: 20px auto;
+				padding: 20px;
+			}
+
+			.card {
+				background-color: #ffffff;
+				border-radius: 10px;
+				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+				padding: 20px;
+			}
+
+			.header {
+				text-align: center;
+				margin-bottom: 20px;
+			}
+
+			.logo {
+				max-width: 100px;
+				height: auto;
+			}
+
+			.user-info {
+				margin-bottom: 20px;
+			}
+
+			.order-details {
+				border-collapse: collapse;
+				width: 100%;
+				margin-bottom: 20px;
+				border: 8px solid #ffffff; /* Add border */
+				border-radius: 5px; /* Add border radius */
+				overflow: hidden; /* Hide overflowing content */
+			}
+
+			.order-details th,
+			.order-details td {
+				border: 1px solid #dddddd;
+				text-align: center;
+				padding: 8px;
+			}
+
+			.order-details th {
+				background-color: #B5223B;
+				color: #ffffff;
+			}
+
+			.order-total {
+				/* width: 100px; */
+				border-collapse: collapse;
+				text-align: right;
+				width: auto;
+				margin-right: 0px;
+				margin-left: auto;
+				gap: 8px;
+				padding-left: 30px;
+				font-weight: bold;
+			}
+
+			.order-total td:first-child {
+				font-weight: bold;
+				text-align: right;
+				margin-right: 12px; /* Add right margin to the label cells */
+			}
+
+			.order-total td:last-child {
+				text-align: left; /* Adjust text alignment of the value cells */
+			}
+
+			.order-total th {
+				text-align: right;
+			}
+			.text-right {
+				text-align: right; /* Aligns the content to the right */
+			}
+
+			@media only screen and (max-width: 600px) {
+				.container {
+					width: 100%;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="card">
+				<div class="header">
+					<!-- <img
+						src="https://i.ibb.co/r5SB9yQ/nextall-logo.png"
+						alt="Logo"
+						class="logo"
+					/> -->
+					<h2>Hello, {{recipientName}}</h2>
+					<p>
+						Thanks you for your purchase. We’ve received your order. When the
+						order ships, we will send you another email with tracking info.
+					</p>
+				</div>
+				<table class="order-details" border="0">
+					<thead>
+						<tr>
+							<th style="border-spacing: 0; border: 0">Image</th>
+							<th style="border-spacing: 0; border: 0">Product Name</th>
+							<th style="border-spacing: 0; border: 0">SKU</th>
+							<th style="border-spacing: 0; border: 0">Quantity</th>
+							<th style="border-spacing: 0; border: 0">Subtotal</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{items}}
+						<!-- <tr>
+        <td>Product 2</td>
+        <td>SKU002</td>
+        <td>1</td>
+        <td>$30.00</td>
+      </tr> -->
+					</tbody>
+				</table>
+
+				<table class="order-total">
+					{{trackingInfo}}
+					<tr>
+						<td style="border-spacing: 0; border: 0">Subtotal :</td>
+						<td style="border-spacing: 0; border: 0">{{subTotal}}</td>
+					</tr>
+					<tr>
+						<td style="border-spacing: 0; border: 0">Shipping :</td>
+						<td style="border-spacing: 0; border: 0">{{Shipping}}</td>
+					</tr>
+					<tr>
+						<td style="border-spacing: 0; border: 0">Grand Total :</td>
+						<td style="border-spacing: 0; border: 0">{{grandTotal}}</td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</body>
+</html>
