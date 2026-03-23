@@ -9,11 +9,13 @@ const MobileBottomNav = () => {
   const cartItems = useSelector((state) => state.cart.cartItems);
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
   const navItems = [
     { name: "Home", icon: "home", link: "/" },
     { name: "Shop", icon: "products", link: "/products" },
-    { name: "Wishlist", icon: "wishlist", link: "/wishlist" },
-    { name: "Account", icon: "user", link: "/account" },
+    { name: "Wishlist", icon: "wishlist", link: isAuthenticated ? "/wishlist" : "/login" },
+    { name: "Account", icon: "user", link: isAuthenticated ? "/account" : "/login" },
   ];
 
   return (
