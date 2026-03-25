@@ -390,10 +390,24 @@ const updateOrderByAdmin = async (req, res) => {
   try {
     const id = req.params.id;
     const data = await req.body;
-    const order = await Orders.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true,
-    });
+
+    // 🛡️ SECURITY: Whitelist only the fields admins are allowed to update.
+    // Passing raw req.body allows injection of Mongo operators ($set, $inc, etc.)
+    // or overwriting sensitive fields like paymentId, user._id, total.
+    const ALLOWED_ORDER_FIELDS = ['status', 'trackingUrl', 'deliveryStatus', 'note', 'deliveryId'];
+    const safeData = {};
+    for (const field of ALLOWED_ORDER_FIELDS) {
+      if (data[field] !== undefined) safeData[field] = data[field];
+    }
+
+    const order = await Orders.findByIdAndUpdate(
+      id,
+      { $set: safeData },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
     if (!order) {
       return res.status(404).json({
         success: false,

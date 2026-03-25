@@ -3,6 +3,7 @@ const BrandModel = require('../models/Brand');
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const { safeObjectId } = require('../utils/validators');
 
 const ALCOHOLIC_CATEGORIES = [
   '69bc40b76f0fa539b06ef96a', // TEQUILA
@@ -84,10 +85,11 @@ const getTopRatedProducts = async (req, res) => {
       },
     ]);
 
-    // ✅ Add isWishlisted field based on user_id
+    // 🛡️ Validate user_id as a real ObjectId before querying
     let wishlist = [];
-    if (query.user_id) {
-      const user = await User.findById(query.user_id).select('wishlist');
+    const safeUserId = safeObjectId(query.user_id);
+    if (safeUserId) {
+      const user = await User.findById(safeUserId).select('wishlist');
       if (user && user.wishlist && Array.isArray(user.wishlist)) {
         wishlist = user.wishlist.map(id => id.toString());
       }
@@ -174,10 +176,11 @@ const getBestSellerProducts = async (req, res) => {
       },
     ]);
 
-    // ✅ Add isWishlisted field based on user_id
+    // 🛡️ Validate user_id as a real ObjectId before querying
     let wishlist = [];
-    if (query.user_id) {
-      const user = await User.findById(query.user_id).select('wishlist');
+    const safeUserId = safeObjectId(query.user_id);
+    if (safeUserId) {
+      const user = await User.findById(safeUserId).select('wishlist');
       if (user && user.wishlist && Array.isArray(user.wishlist)) {
         wishlist = user.wishlist.map(id => id.toString());
       }
@@ -237,10 +240,11 @@ const getFeaturedProducts = async (req, res) => {
       },
     ]);
 
-    // ✅ Add isWishlisted field based on user_id
+    // 🛡️ Validate user_id as a real ObjectId before querying
     let wishlist = [];
-    if (query.user_id) {
-      const user = await User.findById(query.user_id).select('wishlist');
+    const safeUserId = safeObjectId(query.user_id);
+    if (safeUserId) {
+      const user = await User.findById(safeUserId).select('wishlist');
       if (user && user.wishlist && Array.isArray(user.wishlist)) {
         wishlist = user.wishlist.map(id => id.toString());
       }

@@ -12,6 +12,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 🛡️ SECURITY: Disable the `qs` bracket-object parser.
+// Without this, ?key[$ne]=x becomes { key: { $ne: 'x' } } — a direct NoSQL injection vector.
+// The 'simple' parser (Node's built-in querystring) treats all values as plain strings.
+app.set('query parser', 'simple');
+
 // Restrict CORS to known trusted origins — prevents cross-origin attacks
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
@@ -28,7 +33,7 @@ app.use(bodyParser.json({ limit: '1mb' }));
 // Relaxed rate limiter for development/testing
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // Increased to 10,000 for development
+  max: 100, // 100 requests per 15 minutes per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please try again after 15 minutes.' },

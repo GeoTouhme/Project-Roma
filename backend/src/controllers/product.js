@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const Brand = require('../models/Brand');
 const Product = require('../models/Product');
+const { safeString, safeObjectId, safeNumber } = require('../utils/validators');
 
 const Category = require('../models/Category');
 const SubCategory = require('../models/SubCategory');
@@ -58,19 +59,22 @@ const getProducts = async (req, res) => {
     }
 
     // 5. Handle Sizes & Colors
-    if (query.sizes && query.sizes.trim().length > 0 && query.sizes !== 'null') {
-      productSearchQuery.sizes = { $in: query.sizes.split('_') };
+    const safeSizes = safeString(query.sizes);
+    if (safeSizes) {
+      productSearchQuery.sizes = { $in: safeSizes.split('_') };
     }
-    if (query.colors && query.colors.trim().length > 0 && query.colors !== 'null') {
-      productSearchQuery.colors = { $in: query.colors.split('_') };
+    const safeColors = safeString(query.colors);
+    if (safeColors) {
+      productSearchQuery.colors = { $in: safeColors.split('_') };
     }
 
-    // 6. Handle Price Range
-    const minPrice = query.prices ? Number(query.prices.split('_')[0]) : 0;
-    const maxPrice = query.prices ? Number(query.prices.split('_')[1]) : 10000000;
+    // 6. Handle Price Range — safeNumber guards against NaN from object payloads
+    const safePrices = safeString(query.prices);
+    const minPrice = safePrices ? safeNumber(safePrices.split('_')[0], 0) : 0;
+    const maxPrice = safePrices ? safeNumber(safePrices.split('_')[1], 10000000) : 10000000;
     productSearchQuery.priceSale = { $gte: minPrice, $lte: maxPrice };
 
-    // 7. Handle Featured
+    // 7. Handle Featured — only accept literal string 'true'
     if (query.isFeatured === 'true') {
       productSearchQuery.isFeatured = true;
     }
@@ -135,10 +139,11 @@ const getProducts = async (req, res) => {
       { $limit: skip },
     ]);
 
-    // Add isWishlisted field based on user_id
+    // 🛡️ Add isWishlisted — validate user_id as a proper ObjectId before querying
     let wishlist = [];
-    if (query.user_id) {
-      const user = await User.findById(query.user_id).select('wishlist');
+    const safeUserId = safeObjectId(query.user_id);
+    if (safeUserId) {
+      const user = await User.findById(safeUserId).select('wishlist');
       if (user && user.wishlist) {
         wishlist = user.wishlist.map(id => id.toString());
       }
@@ -218,12 +223,19 @@ const getProductsByAdmin = async (request, response) => {
     let matchQuery = {};
 
     // 1. Parse 'filter' if it arrives as a JSON string (Common in React-Admin)
+    // 🛡️ SECURITY: Whitelist only known-safe string fields from the parsed JSON.
+    // Blindly spreading JSON.parse(filterQuery) into matchQuery allows operator injection.
     let parsedFilter = {};
     if (filterQuery && typeof filterQuery === 'string') {
       try {
-        parsedFilter = JSON.parse(filterQuery);
+        const rawFilter = JSON.parse(filterQuery);
+        // Only extract plain-string properties we actually use
+        if (typeof rawFilter.q === 'string') parsedFilter.q = rawFilter.q;
+        if (typeof rawFilter.name === 'string') parsedFilter.name = rawFilter.name;
+        if (typeof rawFilter.category === 'string') parsedFilter.category = rawFilter.category;
+        if (typeof rawFilter.subCategory === 'string') parsedFilter.subCategory = rawFilter.subCategory;
       } catch (e) {
-        console.log('Filter parse error, using raw query');
+        // Malformed JSON — silently ignore, proceed with empty filter
       }
     }
 
@@ -353,20 +365,26 @@ const createProductByAdmin = async (req, res) => {
 
 const getOneProductByAdmin = async (req, res) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug });
+    // 🛡️ Validate slug param as a plain string before querying
+    const slug = safeString(req.params.slug);
+    if (!slug) {
+      return res.status(400).json({ success: false, message: 'Invalid product slug.' });
+    }
+    const product = await Product.findOne({ slug });
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product Not Found' });
+    }
     const category = await Category.findById(product.category).select([
       'name',
       'slug',
     ]);
     const brand = await Brand.findById(product.brand).select('name');
 
-    if (!product) {
-      notFound();
-    }
     const getProductRatingAndReviews = () => {
       return Product.aggregate([
         {
-          $match: { slug: req.params.slug },
+          $match: { slug },
         },
         {
           $lookup: {
@@ -637,20 +655,26 @@ const relatedProducts = async (req, res) => {
 };
 const getOneProductBySlug = async (req, res) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug });
+    // 🛡️ Validate slug param as a plain string before querying
+    const slug = safeString(req.params.slug);
+    if (!slug) {
+      return res.status(400).json({ success: false, message: 'Invalid product slug.' });
+    }
+    const product = await Product.findOne({ slug });
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product Not Found' });
+    }
     const category = await Category.findById(product.category).select([
       'name',
       'slug',
     ]);
     const brand = await Brand.findById(product.brand).select('name');
 
-    if (!product) {
-      notFound();
-    }
     const getProductRatingAndReviews = () => {
       return Product.aggregate([
         {
-          $match: { slug: req.params.slug },
+          $match: { slug },
         },
         {
           $lookup: {
