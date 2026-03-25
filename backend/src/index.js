@@ -22,8 +22,21 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : [];
 
+// 🛡️ SECURITY: Restrict CORS to known origins — fixes VULN reported in pentest.
+// origin:true accepts ANY domain with credentials, enabling cross-site request forgery.
+// Now reads from ALLOWED_ORIGINS env var (comma-separated list).
+const CORS_ORIGINS = allowedOrigins.length > 0
+  ? allowedOrigins
+  : ['https://balportliquors.com', 'https://admin.balportliquors.com'];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow server-to-server requests (no Origin header) and known origins
+    if (!origin || CORS_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy: origin '${origin}' is not allowed.`));
+  },
   credentials: true,
 }));
 
