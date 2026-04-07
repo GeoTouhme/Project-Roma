@@ -17,6 +17,10 @@ const PORT = process.env.PORT || 3000;
 // The 'simple' parser (Node's built-in querystring) treats all values as plain strings.
 app.set('query parser', 'simple');
 
+// 🛡️ SECURITY: Enable trust proxy to support rate limiting behind Nginx.
+// Without this, express-rate-limit sees the local gateway IP for all users.
+app.set('trust proxy', true);
+
 // Restrict CORS to known trusted origins — prevents cross-origin attacks
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
