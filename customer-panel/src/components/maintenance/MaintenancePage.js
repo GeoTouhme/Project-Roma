@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./MaintenancePage.css";
+import Logo from "../../assets/images/Logo.png";
 
 const MaintenancePage = () => {
   const [loaded, setLoaded] = useState(false);
@@ -13,32 +14,11 @@ const MaintenancePage = () => {
     <div className="maintenance-page">
       <div className={`maintenance-content ${loaded ? "loaded" : ""}`}>
         <div className="logo-container">
-          <div className="logo-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="wine-icon"
-            >
-              <path
-                d="M12 2C12 2 8 6 8 10C8 12.5 9.5 14.5 12 15C14.5 14.5 16 12.5 16 10C16 6 12 2 12 2Z"
-                fill="#B5223B"
-              />
-              <path
-                d="M12 15V22"
-                stroke="#B5223B"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M9 19H15"
-                stroke="#B5223B"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <h1 className="logo-text">Bal-Port Liquors</h1>
+          <img
+            src={Logo}
+            alt="Bal-Port Liquors Logo"
+            className="logo-image"
+          />
         </div>
 
         <div className="divider"></div>
