@@ -14,6 +14,9 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { STRIPE_PUBLIC_KEY } from "./config/AppConfig";
 import MaintenancePage from "./components/maintenance/MaintenancePage";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { fetchStoreStatus } from "./redux/storeStatusSlice";
 
 const MAINTENANCE = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
@@ -30,6 +33,29 @@ const AppRoutes = () => {
   );
 };
 
+const AppContent = () => {
+  const dispatch = useDispatch();
+  const { isOpen, message } = useSelector((state) => state.storeStatus);
+
+  useEffect(() => {
+    dispatch(fetchStoreStatus());
+  }, [dispatch]);
+
+  return (
+    <>
+      {!isOpen && (
+        <div className="bg-red-600 text-white py-2 px-4 text-center text-sm font-medium z-50 relative">
+          {message || "The store is currently closed."}
+        </div>
+      )}
+      <AgeGate />
+      <ScrollToTop />
+      <Toaster />
+      <AppRoutes />
+    </>
+  );
+};
+
 function App() {
   if (MAINTENANCE) {
     return <MaintenancePage />;
@@ -39,10 +65,7 @@ function App() {
     <Provider store={store}>
       <Elements stripe={stripePromise}>
         <Router>
-          <AgeGate />
-          <ScrollToTop />
-          <Toaster />
-          <AppRoutes />
+          <AppContent />
         </Router>
       </Elements>
     </Provider>

@@ -9,6 +9,7 @@ const Cart = () => {
   const navigate = useNavigate();
   // Dummy cart data
   const cartItems = useSelector((state) => state.cart.cartItems);
+  const { isOpen: storeIsOpen } = useSelector((state) => state.storeStatus);
   const dispatch = useDispatch();
 
   // Handle quantity change
@@ -121,10 +122,11 @@ const Cart = () => {
               <p>${subtotal?.toFixed(2)}</p>
             </div>
             <button
-              className="w-full mt-6 bg-[#B5223B] text-white py-3 rounded-lg hover:bg-red-700"
+              className="w-full mt-6 bg-[#B5223B] text-white py-3 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               onClick={() => handleBillingNavigate()}
+              disabled={!storeIsOpen}
             >
-              Proceed to checkout
+              {!storeIsOpen ? "Store is Closed" : "Proceed to checkout"}
             </button>
           </div>}
         </div>

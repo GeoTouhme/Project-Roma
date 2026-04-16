@@ -53,10 +53,11 @@ const isStoreOpen = async () => {
             const openTime = moment(today_schedule.open, "HH:mm").format("h:mm A");
             message = `We are currently closed. We open at ${openTime}.`;
         } else {
-            const nextOpenDay = storeConfig.operatingHours.find((h, index) => index > dayOfWeek && h.isOpen) || storeConfig.operatingHours.find(h => h.isOpen);
+            const sortedHours = [...storeConfig.operatingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+            const nextOpenDay = sortedHours.find(h => h.dayOfWeek > dayOfWeek && h.isOpen) || sortedHours.find(h => h.isOpen);
             if(nextOpenDay) {
                 const openTime = moment(nextOpenDay.open, "HH:mm").format("h:mm A");
-                message = `We are closed today. We will be open on the next business day at ${openTime}.`;
+                message = `We are closed today. We will be open on ${nextOpenDay.day} at ${openTime}.`;
             }
         }
     }
@@ -67,14 +68,20 @@ const isStoreOpen = async () => {
 
 
 const checkStoreHours = async (req, res, next) => {
-    const { isOpen, message } = await isStoreOpen();
-    if (!isOpen) {
-        return res.status(400).json({
-            success: false,
-            message: message || "Sorry, the store is currently closed and cannot accept orders."
-        });
+    try {
+        const { isOpen, message } = await isStoreOpen();
+        if (!isOpen) {
+            return res.status(400).json({
+                success: false,
+                message: message || "Sorry, the store is currently closed and cannot accept orders."
+            });
+        }
+        next();
+    } catch (error) {
+        console.error('Store hours check failed:', error);
+        // Fail open: allow the order if the check itself fails
+        next();
     }
-    next();
 };
 
 module.exports = { checkStoreHours, isStoreOpen };

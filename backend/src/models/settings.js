@@ -27,7 +27,7 @@ settingsSchema.statics.findOneOrCreate = async function () {
             key: 'storeConfig',
             timezone: 'America/Los_Angeles',
             operatingHours: [
-                { dayOfWeek: 0, day: 'Sunday', isOpen: true, open: '07:00', close: '23:59' },
+                { dayOfWeek: 0, day: 'Sunday', isOpen: true, open: '07:00', close: '02:00' },
                 { dayOfWeek: 1, day: 'Monday', isOpen: true, open: '06:00', close: '02:00' },
                 { dayOfWeek: 2, day: 'Tuesday', isOpen: true, open: '06:00', close: '02:00' },
                 { dayOfWeek: 3, day: 'Wednesday', isOpen: true, open: '06:00', close: '02:00' },

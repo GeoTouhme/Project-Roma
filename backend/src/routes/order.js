@@ -8,7 +8,7 @@ const { checkStoreHours } = require('../middleware/checkStoreHours');
 
 //user routes
 router.post('/orders', checkStoreHours, orderRoutes.createOrder);
-router.post('/orders/delivery-quote', orderRoutes.getDeliveryQuote);
+router.post('/orders/delivery-quote', checkStoreHours, orderRoutes.getDeliveryQuote);
 router.get('/orders/:id', verifyToken, orderRoutes.getOrderById);
 
 //admin routes

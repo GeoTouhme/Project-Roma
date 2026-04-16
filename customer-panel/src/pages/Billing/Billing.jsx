@@ -25,6 +25,7 @@ const Billing = () => {
   const elements = useElements();
   const dispatch = useDispatch();
   const cartItems = useSelector((state) => state.cart.cartItems);
+  const { isOpen: storeIsOpen } = useSelector((state) => state.storeStatus);
   const subtotal = cartItems?.reduce((total, item) => total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity, 0);
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Stripe");
@@ -588,10 +589,10 @@ const Billing = () => {
               <div className="text-xs text-gray-500 mb-2 text-right max-w-[300px]">
                 By placing this order, you agree to our terms and that your personal data may be processed by DoorDash for the purpose of identity verification as required by law.
               </div>
-              <button 
-                disabled={processing || checkingQuote || !isZipSupported} 
-                onClick={handleSubmit} 
-                className={`mt-2 ${processing || checkingQuote || !isZipSupported ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B]"} text-white px-6 py-3 rounded-lg w-full md:w-auto font-bold uppercase tracking-wider`}
+              <button
+                disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}
+                onClick={handleSubmit}
+                className={`mt-2 ${processing || checkingQuote || !isZipSupported || !storeIsOpen ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B]"} text-white px-6 py-3 rounded-lg w-full md:w-auto font-bold uppercase tracking-wider`}
               >
                 {processing ? "Placing Order.." : checkingQuote ? "Verifying..." : !quoteVerified ? "Verify Delivery" : "Place Order"}
               </button>

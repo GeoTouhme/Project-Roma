@@ -148,7 +148,7 @@ All routes are mounted under `/api/`. Examples:
 - `GET /api/products`, `GET /api/products/:slug`
 - `POST /api/orders`, `GET /api/orders/:id`
 - `GET /api/dashboard/stats`
-- `GET /api/store/hours`
+- `GET /api/store/status` — returns `isOpen`, `message`, `schedule`
 - `GET /api/settings`
 
 ### DoorDash Drive Integration
@@ -266,7 +266,7 @@ Redux store with two slices:
 
 ## Security Notes
 
-A penetration test was conducted (March 2026, documented in `pentest.md`). Key findings & remediations:
+A security audit was conducted (March 2026). Key findings & remediations:
 
 ### Applied Fixes
 - ✅ Query parser set to `'simple'` to prevent NoSQL injection
@@ -279,6 +279,19 @@ A penetration test was conducted (March 2026, documented in `pentest.md`). Key f
 - ⚠️ Port 5001 should NOT be exposed directly to the internet — route through Nginx reverse proxy only
 - ⚠️ Google Maps API key must be restricted via HTTP referrers in Google Cloud Console
 - ⚠️ Admin panel relies on client-side route protection — server-side auth is enforced at the API level, but the static HTML loads without authentication
+
+---
+
+## AIDesigner Integration
+
+An `aidesigner` MCP server is configured (`.mcp.json`) for frontend design work. Key files:
+
+- `.mcp.json` — MCP server config pointing to `https://api.aidesigner.ai/api/v1/mcp`
+- `.claude/agents/aidesigner-frontend.md` — agent definition with design workflow rules
+- `.claude/commands/aidesigner.md` — slash command definition for `/aidesigner`
+- `.aidesigner/` — design output directory (`.aidesigner/DESIGN.md` for design briefs)
+
+Use `/aidesigner` in Claude Code to invoke AIDesigner for frontend page designs. The agent reads repo design context first (Tailwind tokens, existing components, route structure) before generating.
 
 ---
 
