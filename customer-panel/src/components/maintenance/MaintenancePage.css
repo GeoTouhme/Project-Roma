@@ -1,0 +1,152 @@
+.maintenance-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.background-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(181, 34, 59, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(181, 34, 59, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.maintenance-content {
+  text-align: center;
+  max-width: 600px;
+  padding: 60px 40px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.maintenance-content.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.logo-image {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.logo-text {
+  font-family: 'Jost', sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.divider {
+  width: 60px;
+  height: 2px;
+  background: #B5223B;
+  margin: 30px auto;
+}
+
+.heading {
+  font-family: 'Jost', sans-serif;
+  font-size: 36px;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0 0 20px 0;
+  line-height: 1.3;
+}
+
+.subtext {
+  font-family: 'Jost', sans-serif;
+  font-size: 18px;
+  color: #888888;
+  margin: 0 0 40px 0;
+  line-height: 1.6;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #aaaaaa;
+  font-family: 'Jost', sans-serif;
+  font-size: 16px;
+}
+
+.contact-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.footer-text {
+  margin-top: 20px;
+  padding-top: 30px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.footer-text p {
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .maintenance-content {
+    padding: 40px 20px;
+  }
+
+  .heading {
+    font-size: 28px;
+  }
+
+  .subtext {
+    font-size: 16px;
+  }
+
+  .logo-image {
+    max-width: 150px;
+  }
+}

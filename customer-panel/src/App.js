@@ -13,6 +13,9 @@ import AgeGate from "./components/age-gate/AgeGate";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { STRIPE_PUBLIC_KEY } from "./config/AppConfig";
+import MaintenancePage from "./components/maintenance/MaintenancePage";
+
+const MAINTENANCE = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
@@ -28,6 +31,10 @@ const AppRoutes = () => {
 };
 
 function App() {
+  if (MAINTENANCE) {
+    return <MaintenancePage />;
+  }
+
   return (
     <Provider store={store}>
       <Elements stripe={stripePromise}>
