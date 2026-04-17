@@ -42,13 +42,13 @@ const StoreSettings = () => {
 
     // Update local state when data is fetched
     useEffect(() => {
-        if (settings?.data?.operatingHours) {
+        if (settings?.data?.data?.operatingHours) {
             // Sort by dayOfWeek to ensure consistent order
-            const sortedHours = [...settings.data.operatingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+            const sortedHours = [...settings.data.data.operatingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
             setOperatingHours(sortedHours);
         }
-        if (settings?.data?.timezone) {
-            setTimezone(settings.data.timezone);
+        if (settings?.data?.data?.timezone) {
+            setTimezone(settings.data.data.timezone);
         }
     }, [settings]);
 
