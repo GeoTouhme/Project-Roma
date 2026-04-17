@@ -67,7 +67,7 @@ const MaintenancePage = () => {
                 strokeWidth="1.5"
               />
             </svg>
-            <span>(949) 642-1921</span>
+            <span>+1 949-200-9377</span>
           </div>
         </div>
 

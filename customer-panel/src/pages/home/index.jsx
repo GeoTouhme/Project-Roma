@@ -302,7 +302,7 @@ const Home = () => {
     prevArrow: <PrevArrow />,
   };
 
-  
+
   const heroSliderSettings = {
     dots: true,
     infinite: true,
@@ -365,36 +365,40 @@ const Home = () => {
             <img
               src={Slide1Wine}
               alt="Premium Wine"
-              className="w-full md:h-full h-[300px] object-cover"
+              className="w-full md:h-[600px] h-[350px] object-cover"
             />
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-2" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}>
-              <h1 className="md:text-[50px]/[60px] text-[32px]/[42px] font-semibold text-white drop-shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Premium Collection</p>
+              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
                 Natural & Premium Wines
               </h1>
-              <p className="text-white text-xl mt-4 font-medium drop-shadow-md">Curated Selection for Every Occasion</p>
+              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Curated Selection for Every Occasion</p>
               <Link
                 to="/products"
-                className="bg-primary mt-6 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px] shadow-lg hover:bg-opacity-90 transition-all"
+                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Wine
               </Link>
             </div>
           </div>
-          
+
           <div className="hero-inner relative">
             <img
               src={Slide2Cocktail}
               alt="Premium Cocktails"
-              className="w-full md:h-full h-[300px] object-cover"
+              className="w-full md:h-[600px] h-[350px] object-cover"
             />
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-2" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}>
-              <h1 className="md:text-[50px]/[60px] text-[32px]/[42px] font-semibold text-white drop-shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Top Shelf Selection</p>
+              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
                 Elevate Your Spirits
               </h1>
-              <p className="text-white text-xl mt-4 font-medium drop-shadow-md">Top-Shelf Tequila, Vodka & Premium Mixers</p>
+              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Premium Tequila, Vodka & Mixers</p>
               <Link
                 to="/products"
-                className="bg-primary mt-6 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px] shadow-lg hover:bg-opacity-90 transition-all"
+                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Spirits
               </Link>
@@ -405,39 +409,40 @@ const Home = () => {
             <img
               src={Slide3Beer}
               alt="Cold Beers"
-              className="w-full md:h-full h-[300px] object-cover"
+              className="w-full md:h-[600px] h-[350px] object-cover"
             />
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-2" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}>
-              <h1 className="md:text-[50px]/[60px] text-[32px]/[42px] font-semibold text-white drop-shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Ice Cold Selection</p>
+              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
                 Game Night Ready
               </h1>
-              <p className="text-white text-xl mt-4 font-medium drop-shadow-md">Ice Cold Beers & Your Favorite Snacks</p>
+              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Cold Beers & Your Favorite Snacks</p>
               <Link
                 to="/products"
-                className="bg-primary mt-6 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px] shadow-lg hover:bg-opacity-90 transition-all"
+                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Beer
               </Link>
             </div>
           </div>
 
-          
-
-          
           <div className="hero-inner relative">
             <img
               src={Slide4DeliveryNew}
               alt="Fast Delivery"
-              className="w-full md:h-full h-[300px] object-cover"
+              className="w-full md:h-[600px] h-[350px] object-cover"
             />
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-2" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}>
-              <h1 className="md:text-[50px]/[60px] text-[32px]/[42px] font-semibold text-white drop-shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Fast & Reliable</p>
+              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
                 Premium Drinks, Delivered Fast
               </h1>
-              <p className="text-white text-xl mt-4 font-medium drop-shadow-md">Your Favorite Liquor at Your Doorstep</p>
+              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Your Favorite Liquor at Your Doorstep</p>
               <Link
                 to="/products"
-                className="bg-primary mt-6 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px] shadow-lg hover:bg-opacity-90 transition-all"
+                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Order Now
               </Link>
@@ -448,16 +453,18 @@ const Home = () => {
             <img
               src={Slide5Summer}
               alt="Summer Drinks"
-              className="w-full md:h-full h-[300px] object-cover"
+              className="w-full md:h-[600px] h-[350px] object-cover"
             />
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-2" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}>
-              <h1 className="md:text-[50px]/[60px] text-[32px]/[42px] font-semibold text-white drop-shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Seasonal Picks</p>
+              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
                 Taste the Summer
               </h1>
-              <p className="text-white text-xl mt-4 font-medium drop-shadow-md">Ice-Cold Beers & Hard Seltzers</p>
+              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Ice-Cold Beers & Hard Seltzers</p>
               <Link
                 to="/products"
-                className="bg-primary mt-6 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px] shadow-lg hover:bg-opacity-90 transition-all"
+                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Refresh Now
               </Link>
@@ -531,7 +538,7 @@ const Home = () => {
         <div className="banner-inner relative">
           <img src={BannerImage} alt="banner" className="w-full md:h-full h-[400px] object-cover object-right" />
           <div
-            className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center 
+            className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center
                 max-w-[500px] w-full md:text-center"
           >
             <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-white font-medium md:mb-3 mb-2 uppercase">
@@ -620,7 +627,7 @@ const Home = () => {
         <img src={Shape1} alt="shape1" className="hidden lg:block shape1 w-[250px] absolute right-0 bottom-[-20px]" />
         <img src={Shape2} alt="shape1" className="hidden lg:block shape2 w-[300px] absolute left-0 bottom-[-50px]" />
       </section>
-      
+
     </div>
   );
 };
