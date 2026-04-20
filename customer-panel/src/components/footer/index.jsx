@@ -93,7 +93,7 @@ const Footer = () => {
                 </Link>
               </div>
             </div>
-            
+
             <div className="footer_menu min-w-[190px]">
               <h2 className="text-white uppercase text-[20px]/[20px] font-medium mb-5">Services</h2>
               <div className="footer_menu_links grid gap-3">
@@ -128,13 +128,13 @@ const Footer = () => {
                   <div className="min-w-4">
                     <Icons name="mobile" width={20} height={20} color="#FFFFFF" />
                   </div>
-                  <span className="text-white tracking-[0.5px] text-[16px]/[20px]">(+1) 949-200-9377</span>
+                  <span className="text-white tracking-[0.5px] text-[16px]/[20px]">(+1) 617-751-0412</span>
                 </Link>
                 <Link to="mailto:balport@gmail.com" className="flex items-start gap-2.5">
                   <div className="min-w-4">
                     <Icons name="email" width={20} height={20} color="#FFFFFF" />
                   </div>
-                  <span className="text-white tracking-[0.5px] text-[16px]/[20px]">balport@gmail.com</span>
+                  <span className="text-white tracking-[0.5px] text-[16px]/[20px]">balportliquorstore@gmail.com</span>
                 </Link>
               </div>
             </div>
