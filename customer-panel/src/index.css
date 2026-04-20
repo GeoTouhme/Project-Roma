@@ -72,16 +72,35 @@ code {
   animation: slideDown 0.3s ease-out;
 }
 
-/* Category bar scroll fade */
-.category-scroll::after {
-  content: '';
+/* Category bar scroll arrows */
+.category-arrow {
   position: absolute;
-  right: 0;
-  top: 0;
-  height: 100%;
-  width: 40px;
-  background: linear-gradient(to right, transparent, white);
-  pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.category-arrow:hover {
+  background: #f3f4f6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.category-arrow-left {
+  left: -4px;
+}
+.category-arrow-right {
+  right: -4px;
 }
 
 /* Hide scrollbar for category bar and other scrollable elements */
