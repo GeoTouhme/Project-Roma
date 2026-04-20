@@ -5,7 +5,7 @@ const ANNOUNCEMENT_KEY = "announcement_dismissed";
 const messages = [
   "Free delivery on orders over $75 | Newport Beach & surrounding areas",
   "🍷 New arrivals: Premium Bourbons & Tequilas now in stock!",
-  "📍 4521 W Coast Hwy, Newport Beach, CA 92663 | Open Mon-Sun 9AM-10PM",
+  "📍 4521 W Coast Hwy, Newport Beach, CA 92663 | Open Mon-Sun 6AM-2Am",
 ];
 
 const AnnouncementBar = () => {
@@ -55,7 +55,7 @@ const AnnouncementBar = () => {
           aria-label="Dismiss announcement"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       </div>
