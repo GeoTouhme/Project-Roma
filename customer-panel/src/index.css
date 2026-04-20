@@ -233,6 +233,23 @@ input[type="radio"] {
   opacity: 1;
 }
 
+/* Banner slider dot overrides */
+.banner-slider .slick-dots {
+  bottom: 20px;
+}
+.banner-slider .slick-dots li {
+  margin: 0 4px;
+}
+.banner-slider .slick-dots li button:before {
+  color: white;
+  opacity: 0.5;
+  font-size: 10px;
+}
+.banner-slider .slick-dots li.slick-active button:before {
+  color: #B5223B;
+  opacity: 1;
+}
+
 /* Custom checked state */
 input[type="radio"]:checked::before {
   content: "";

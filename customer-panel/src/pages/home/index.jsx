@@ -535,30 +535,69 @@ const Home = () => {
         </div>
       </section>
       <section className="banner md:mb-[100px] mb-[40px]">
-        <div className="banner-inner relative">
-          <img src={BannerImage} alt="banner" className="w-full md:h-full h-[400px] object-cover object-right" />
-          <div
-            className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center
-                max-w-[500px] w-full md:text-center"
-          >
-            <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-white font-medium md:mb-3 mb-2 uppercase">
-              Limited-Time Offer
-            </h6>
-            <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] text-white font-semibold mb-3">
-              Exclusive Online Offer: Free Shipping
-            </h2>
-            <p className="text-[18px]/[28px] text-white tracking-[-0.1px]">
-              Don't miss our Spring Clearance Sale! Enjoy incredible discounts on a wide selection of wines, including
-              popular varietals
-            </p>
-            <Link
-              to="/shop"
-              className="bg-primary mt-8 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px]"
-            >
-              Shop Now
-            </Link>
+        <Slider
+          dots={true}
+          infinite={true}
+          speed={800}
+          slidesToShow={1}
+          slidesToScroll={1}
+          autoplay={true}
+          autoplaySpeed={5000}
+          arrows={false}
+          fade={true}
+          className="banner-slider"
+        >
+          {/* ── Slide 1 ── */}
+          <div>
+            <div className="banner-inner relative">
+              <img src={BannerImage} alt="banner" className="w-full md:h-full h-[400px] object-cover object-right" />
+              <div
+                className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center
+                    max-w-[500px] w-full md:text-center"
+              >
+                <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-white font-medium md:mb-3 mb-2 uppercase">
+                  Limited-Time Offer
+                </h6>
+                <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] text-white font-semibold mb-3">
+                  Exclusive Online Offer: Free Shipping
+                </h2>
+                <p className="text-[18px]/[28px] text-white tracking-[-0.1px]">
+                  Don't miss our Spring Clearance Sale! Enjoy incredible discounts on a wide selection of wines, including
+                  popular varietals
+                </p>
+                <Link
+                  to="/shop"
+                  className="bg-primary mt-8 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px]"
+                >
+                  Shop Now
+                </Link>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* ── Slide 2 — Add your next banner here ── */}
+          {/* 
+          <div>
+            <div className="banner-inner relative">
+              <img src={YourNewImage} alt="banner" className="w-full md:h-full h-[400px] object-cover object-right" />
+              <div className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center max-w-[500px] w-full md:text-center">
+                <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-white font-medium md:mb-3 mb-2 uppercase">
+                  Your Subtitle
+                </h6>
+                <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] text-white font-semibold mb-3">
+                  Your Headline
+                </h2>
+                <p className="text-[18px]/[28px] text-white tracking-[-0.1px]">
+                  Your description text here
+                </p>
+                <Link to="/shop" className="bg-primary mt-8 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px]">
+                  Shop Now
+                </Link>
+              </div>
+            </div>
+          </div>
+          */}
+        </Slider>
       </section>
       <section className="popular_products md:mb-[100px] mb-[40px]">
         <div className="container">
