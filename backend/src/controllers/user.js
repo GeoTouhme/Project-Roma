@@ -77,7 +77,7 @@ const updateUser = async (req, res) => {
     }
 
     // Whitelist only fields a user is allowed to update — prevents role escalation via mass assignment
-    const ALLOWED_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'cover', 'address', 'city', 'country', 'zip'];
+    const ALLOWED_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'cover'];
     const safeData = {};
     for (const field of ALLOWED_FIELDS) {
       if (data[field] !== undefined) {

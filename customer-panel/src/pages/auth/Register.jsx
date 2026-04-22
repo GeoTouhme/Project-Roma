@@ -12,14 +12,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    gender: "",
     phone: "",
-    address: "",
-    city: "",
-    zip: "",
-    country: "",
-    state: "",
-    about: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -50,7 +43,6 @@ const Register = () => {
 
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
 
-    if (!formData.gender) newErrors.gender = "Gender is required";
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
 
     return newErrors;
@@ -212,143 +204,6 @@ const Register = () => {
                   placeholder="********"
                 />
                 {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
-              </div>
-
-              {/* Gender */}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">Gender *</label>
-                <div className="flex gap-4 mt-2">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={formData.gender === "male"}
-                      onChange={handleChange}
-                      className="form-radio h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-2 text-gray-700">Male</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={formData.gender === "female"}
-                      onChange={handleChange}
-                      className="form-radio h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-2 text-gray-700">Female</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="other"
-                      checked={formData.gender === "other"}
-                      onChange={handleChange}
-                      className="form-radio h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-2 text-gray-700">Other</span>
-                  </label>
-                </div>
-                {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
-              </div>
-
-              {/* Address - Optional but included in form */}
-              <div className="md:col-span-2">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
-                  Address
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="address"
-                  name="address"
-                  type="text"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="123 Main St"
-                />
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="city">
-                  City
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="city"
-                  name="city"
-                  type="text"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="New York"
-                />
-              </div>
-
-              {/* State */}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="state">
-                  State
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="state"
-                  name="state"
-                  type="text"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="NY"
-                />
-              </div>
-
-              {/* Zip */}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="zip">
-                  ZIP Code
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="zip"
-                  name="zip"
-                  type="text"
-                  value={formData.zip}
-                  onChange={handleChange}
-                  placeholder="10001"
-                />
-              </div>
-
-              {/* Country */}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="country">
-                  Country
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="country"
-                  name="country"
-                  type="text"
-                  value={formData.country}
-                  onChange={handleChange}
-                  placeholder="United States"
-                />
-              </div>
-
-              {/* About */}
-              <div className="md:col-span-2">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="about">
-                  About
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="about"
-                  name="about"
-                  rows="3"
-                  value={formData.about}
-                  onChange={handleChange}
-                  placeholder="Tell us a bit about yourself..."
-                />
               </div>
             </div>
 

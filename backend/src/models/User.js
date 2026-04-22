@@ -22,11 +22,6 @@ const UserSchema = new mongoose.Schema(
       required: [true, 'Please enter a password'],
       minlength: 8,
     },
-    gender: {
-      type: String,
-      enum: ['male', 'female', 'other'],
-      required: [true, 'Please enter a gender'],
-    },
     cover: {
       _id: {
         type: String,
@@ -62,24 +57,6 @@ const UserSchema = new mongoose.Schema(
     },
 
     status: {
-      type: String,
-    },
-    address: {
-      type: String,
-    },
-    city: {
-      type: String,
-    },
-    zip: {
-      type: String,
-    },
-    country: {
-      type: String,
-    },
-    state: {
-      type: String,
-    },
-    about: {
       type: String,
     },
     isVerified: {
