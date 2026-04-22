@@ -1,0 +1,161 @@
+  1|Tajin, Ssnng Fruit Chili Pwdr, 5 Oz(Case of 24)|$5.99|69bc5ec76f0fa539b06f0876
+  2|Oat Milk|$7.99|69bc5c7e6f0fa539b06f0757
+  3|Louisiana Hot Sauce|$2.99|69bc5c7c6f0fa539b06f0756
+  4|Panda Ultra Premium Soft & Strong Toilet Paper 4ct|$4.99|69bc5c586f0fa539b06f0746
+  5|Unsalted Sweet Cream Butter|$5.99|69bc5c186f0fa539b06f0720
+  6|Butter|$5.99|69bc5c176f0fa539b06f071f
+  7|Organic Low Fat Milk|$5.99|69bc5c156f0fa539b06f071e
+  8|Lactose Free 2% Reduced Fat Milk|$6.99|69bc5c146f0fa539b06f071d
+  9|Organic Whole Milk|$7.99|69bc5c106f0fa539b06f071c
+ 10|Organic Whole Milk|$6.99|69bc5c0e6f0fa539b06f071b
+ 11|STARKIST TUNA OIL 4 OZ|$2.99|69bc53246f0fa539b06f0287
+ 12|Rock View 2% Reduced Fat Milk (1.89 L)|$1.99|69bc52c46f0fa539b06f0252
+ 13|TAPATIO HOT SAUCE|$4.99|69bc52236f0fa539b06f0209
+ 14|Tapatio (5 oz)|$2.49|69bc52216f0fa539b06f0208
+ 15|Ben & Jerry's Coffee Caramel Fudge Non-Dairy (16 oz)|$7.99|69bc51fb6f0fa539b06f01f3
+ 16|Ben & Jerry's Peanut Butter Half Baked Ice Cream (16 oz)|$8.99|69bc51ac6f0fa539b06f01d0
+ 17|LOACKER HAZELNUT 45 GR|$1.99|69bc51986f0fa539b06f01c5
+ 18|Act II Pop Corn|$2.99|69bc515e6f0fa539b06f01a9
+ 19|Act Il Butter Lovers Microwave Popcorn|$2.49|69bc515c6f0fa539b06f01a8
+ 20|KL Giant Original Bar|$3.5|69bc51536f0fa539b06f01a3
+ 21|Klondike Original Ice Cream Bars (2 oz)|$4.99|69bc51516f0fa539b06f01a2
+ 22|Haagen-Dazs Pistachio Ice Cream (14 oz)|$9.99|69bc51256f0fa539b06f0185
+ 23|Haagen-Dazs Green Tea Ice Cream (14 oz)|$8.99|69bc511f6f0fa539b06f0182
+ 24|Haagen-Dazs Cherry Vanilla Ice Cream (14 oz)|$8.99|69bc51176f0fa539b06f017e
+ 25|Haagen-Dazs Mango Ice Cream (14 oz)|$8.99|69bc51126f0fa539b06f017c
+ 26|Haagen-Dazs Butter Pecan Ice Cream (14 oz)|$8.99|69bc510c6f0fa539b06f0179
+ 27|Haagen-Dazs Vanilla Swiss Almond Ice Cream (14 oz)|$8.99|69bc51096f0fa539b06f0178
+ 28|Haagen-Dazs Vanilla Milk Chocolate Almond Ice Cream (32 oz)|$3.99|69bc50fe6f0fa539b06f0172
+ 29|Bimbo Pecan Mini Muffins|$3.99|69bc50ef6f0fa539b06f0169
+ 30|BIMBO MINI MAFFINS 4.4 OZ|$2.99|69bc50ee6f0fa539b06f0168
+ 31|Sweet Baked Goods:Submarinos Strawberry 2 Ct|$3.99|69bc50e26f0fa539b06f0164
+ 32|BIMBO PASTITAS BUTTER|$2.99|69bc50db6f0fa539b06f0160
+ 33|Napolitano 1|$3.99|69bc50d86f0fa539b06f015f
+ 34|BIMBO REBANADAS 3.88 OZ|$3.49|69bc50d46f0fa539b06f015d
+ 35|BIMBO STRAWBERRY|$2.99|69bc50d16f0fa539b06f015c
+ 36|Sweet Baked Goods:Principe Sandwich 8 Ct|$3.99|69bc50ce6f0fa539b06f015a
+ 37|MARINELA PRICIP LIME FILLING|$1.99|69bc50cc6f0fa539b06f0159
+ 38|POLVORONES ORANGE 9.88 OZ|$3.99|69bc50cb6f0fa539b06f0158
+ 39|BIMBO POUND CAKE 9.88 OZ|$4.99|69bc50c96f0fa539b06f0157
+ 40|BIMBO CAKE PASA 9 OZ|$4.99|69bc50c76f0fa539b06f0156
+ 41|BIMBO DORADITAS 3.88 OZ|$3.49|69bc50c56f0fa539b06f0155
+ 42|Bimbo Cinnamon Rolls with Raisins|$3.99|69bc50c46f0fa539b06f0154
+ 43|CUERNITOS 3.53 OZ|$3.99|69bc50c26f0fa539b06f0153
+ 44|Bimbo Vanilla Fine Pastry|$3.99|69bc50c16f0fa539b06f0152
+ 45|BIMBO MINI MANTECADAS|$2.99|69bc50bf6f0fa539b06f0151
+ 46|Bimbo Sugared Donuts|$3.99|69bc50ba6f0fa539b06f014f
+ 47|BIMBO BIMBUNUELOS 2.33 OZ|$2.99|69bc50b86f0fa539b06f014e
+ 48|BIMBO CAKE CAS 9 0Z|$4.99|69bc50b36f0fa539b06f014b
+ 49|Bimbo Pecan Mini Muffins|$3.99|69bc50b16f0fa539b06f014a
+ 50|HOT DOG BUNS|$9.99|69bc50af6f0fa539b06f0149
+ 51|POLAR PANCAKE SYRUP|$2.99|69bc50a86f0fa539b06f0146
+ 52|Mezzetta:Imported Cocktail Onions, Sweet & Crisp|$9.99|69bc50456f0fa539b06f0112
+ 53|YOGURT 6OZ|$1.29|69bc4f506f0fa539b06f009d
+ 54|NISSIN TERYAKI CHICKEN 4 OZ|$2.99|69bc4ef56f0fa539b06f0078
+ 55|Nissin:Teriyaki Beef Flavor|$4.99|69bc4ef36f0fa539b06f0077
+ 56|Nissin Cup Noodles with Shrimp (2.25 oz)|$1.25|69bc4ef16f0fa539b06f0076
+ 57|Chef Boyardee Spaghetti & Meatballs|$3.99|69bc4e9d6f0fa539b06f0048
+ 58|Chef Boyardee Beef Ravioli|$3.99|69bc4e9b6f0fa539b06f0047
+ 59|Chef Boyardee Lasagna|$3.99|69bc4e996f0fa539b06f0046
+ 60|Jif:Creamy|$5.99|69bc4ddf6f0fa539b06effe9
+ 61|SMUCKER'S SQUEEZE STRAWBERRY JELLY|$6.99|69bc4ddd6f0fa539b06effe8
+ 62|SMUCKER'S SQUEEZE GRAPE JELLY|$5.99|69bc4ddc6f0fa539b06effe7
+ 63|Campbell's Condensed Chicken Noodle Soup (10.8 oz)|$1.99|69bc4dd56f0fa539b06effe3
+ 64|Coffee-mate:Coconut Crème|$9.99|69bc4dc46f0fa539b06effda
+ 65|Coffee-mate:Original|$8.99|69bc4db76f0fa539b06effd1
+ 66|NESTLE COFFEE MATE THE ORIGINAL|$8.99|69bc4db46f0fa539b06effd0
+ 67|BEST FOODS REAL MAYONNAISE|$5.99|69bc4d176f0fa539b06eff86
+ 68|Sweet 'N Low Sweetener (1.75 oz)|$2.89|69bc4cf86f0fa539b06eff73
+ 69|SWEETN LOW ZERO CALORIE 1.75 OZ|$3.99|69bc4cf66f0fa539b06eff72
+ 70|LANCHABLES|$5.99|69bc4cf26f0fa539b06eff70
+ 71|Lunchables FUN PACK|$6.99|69bc4cf06f0fa539b06eff6f
+ 72|Kingsford Match Light Charcoal (4 lb)|$7.99|69bc4ce96f0fa539b06eff6b
+ 73|Rosarita Traditional Refried Beans Can (16 oz)|$2.5|69bc4ce76f0fa539b06eff6a
+ 74|OREO GOLDEN DOUBLE STUF|$3.99|69bc4ce56f0fa539b06eff69
+ 75|Golden Oreo Mini|$3.99|69bc4cc86f0fa539b06eff59
+ 76|LORNA DOONE 4.5 OZ|$3.99|69bc4cbc6f0fa539b06eff54
+ 77|NUTTER BUTTER 1.9 OZ|$1.99|69bc4cb76f0fa539b06eff51
+ 78|Nabisco: Fig Newtons|$1.99|69bc4cb66f0fa539b06eff50
+ 79|RITZ  PENUT BUTTER 1.38 OZ|$1.49|69bc4c936f0fa539b06eff42
+ 80|Maruchan Instant Lunch:Hot & Spicy Beef|$1.49|69bc4c386f0fa539b06eff0e
+ 81|MARUCHAN INSTANT LUNCH WITH SHRIMP|$1.99|69bc4c366f0fa539b06eff0d
+ 82|MARUCHAN INSTANT LUNCH BEEF|$1.99|69bc4c336f0fa539b06eff0c
+ 83|MARUCHAN INSTANT LUNCH CHICKEN FLAVOR|$1.99|69bc4c306f0fa539b06eff0b
+ 84|Maruchan instant lunch lime chili|$1.99|69bc4c2f6f0fa539b06eff0a
+ 85|Nestle Dibs Crunch Bite Sized Frozen Dairy Dessert Snacks (4 oz)|$4.99|69bc4c036f0fa539b06efef0
+ 86|FRENCH'S CLASSIC YELLOW MUSTARD|$3.99|69bc4bf86f0fa539b06efee9
+ 87|French's Classic Yellow (8 oz)|$1.99|69bc4bf66f0fa539b06efee8
+ 88|KIKKOMAN TERIYAKI 5|$1.79|69bc4bde6f0fa539b06efedc
+ 89|KIKKOMAN SOY SAUCE 5|$1.99|69bc4bdd6f0fa539b06efedb
+ 90|Wish-Bone Ranch Dressing (12 oz)|$5.59|69bc4ba86f0fa539b06efebe
+ 91|TOOTHPICKS|$2.99|69bc4ba56f0fa539b06efebd
+ 92|EE EX VIRGN OLIVE OIL|$15.99|69bc4ba46f0fa539b06efebc
+ 93|MANZANILLA OLIVES|$4.99|69bc4ba26f0fa539b06efebb
+ 94|LIPTON TEA BAGS 20 BAGS TEA|$3.99|69bc4b786f0fa539b06efeab
+ 95|Island Snacks Japanese Peanuts (6 oz)|$3.99|69bc4b5c6f0fa539b06efe9b
+ 96|Libby's: Vienna Sausage|$1.99|69bc4ae66f0fa539b06efe5d
+ 97|Van Holten's Hot Mama:One Sassy Pickle|$5.99|69bc4adb6f0fa539b06efe57
+ 98|Van Holten's Big Papa Hearty Dill Pickle (2 oz)|$2.49|69bc4ad96f0fa539b06efe56
+ 99|TAPATIO PICKLE|$3.99|69bc4ad86f0fa539b06efe55
+100|RICE KRISPIES ORIGINAL 1.3 OZ|$1.99|69bc4ace6f0fa539b06efe4f
+101|FROOT LOOPS 1.5 OZ|$2.49|69bc4acc6f0fa539b06efe4e
+102|RICEKRISPIES TREAT ORIGINAL 2.2 OZ|$2.99|69bc4acb6f0fa539b06efe4d
+103|POP TARTS SMORES 3.3 OZ|$2.49|69bc4ac76f0fa539b06efe4b
+104|NUTRI-GRAIN|$1.49|69bc4ac56f0fa539b06efe4a
+105|NUTRI GRAIN RASPBERY 1.3 OZ|$1.49|69bc4ac36f0fa539b06efe49
+106|NUTRI GRAIN APPLE|$1.49|69bc4ac06f0fa539b06efe47
+107|Kellogg's Pop Tarts Frosted Strawberry|$2.49|69bc4abc6f0fa539b06efe45
+108|POP TART BRWN SUGAR CINAMON 3.3 OZ `|$2.49|69bc4aba6f0fa539b06efe44
+109|POP TART BLUEBERRY 3.3  OZ|$2.49|69bc4ab86f0fa539b06efe43
+110|POP TARTS STRAWBERRY CRUNCH 2.1 OZ|$2.99|69bc4ab26f0fa539b06efe3f
+111|RICEKRISES|$1.99|69bc4aaa6f0fa539b06efe3b
+112|CORN POPS 0.95 OZ|$1.99|69bc4aa66f0fa539b06efe39
+113|RAISIN BRAIN 2.8 OZ CRUNCH|$2.49|69bc4a916f0fa539b06efe2e
+114|SPAM CLASSIC 12 OZ|$6.99|69bc4a8d6f0fa539b06efe2c
+115|Spam:25% Less Sodium|$5.99|69bc4a8a6f0fa539b06efe2b
+116|Skippy Creamy Peanut Butter Jar (16.3 oz)|$5.99|69bc4a876f0fa539b06efe2a
+117|Febreze Air Hawaiian Aloha Air Freshener (8.8 oz)|$3.99|69bc4a816f0fa539b06efe27
+118|TIDE ORIGINAL 25 OZ|$11.99|69bc4a6b6f0fa539b06efe1b
+119|GAIN ORIGINAL 25 OZ.|$9.99|69bc4a696f0fa539b06efe1a
+120|TIDE ORIGINAL 10 OZ|$3.99|69bc4a606f0fa539b06efe16
+121|RAGUNB MUSHROOM SAUCE 23.9 OZ|$5.99|69bc4a556f0fa539b06efe10
+122|RAGU TRADITION SAUCE 24 OZ|$6.99|69bc4a536f0fa539b06efe0f
+123|BON APPETIT|$3.49|69bc4a4b6f0fa539b06efe0c
+124|BLUEBERRY CREAM|$3.99|69bc4a476f0fa539b06efe0a
+125|Hershey's:Strawberry Syrup|$6.99|69bc49876f0fa539b06efdae
+126|Nong Shim:Spicy Shrimp|$2.99|69bc48a26f0fa539b06efd4a
+127|Nongshim Bowl Noodle Soup Spicy Chicken (3 oz)|$1.99|69bc48a06f0fa539b06efd49
+128|Nong Shim:Spicy Kimchi|$2.99|69bc489d6f0fa539b06efd47
+129|Nongshim Shin Ramyun Spicy Beef Ramen Noodle Soup (3.03 oz)|$1.79|69bc48986f0fa539b06efd45
+130|DAWN ULTRA|$5.99|69bc48916f0fa539b06efd41
+131|DAWN ULTRA|$3.99|69bc488d6f0fa539b06efd3f
+132|ALLEGRA MACARONI 1 LB|$3.99|69bc48666f0fa539b06efd35
+133|SPAGHETTI NO 8 1 LB|$3.99|69bc48656f0fa539b06efd34
+134|HUNTS TOMATO SAUCE 8 OZ|$2.49|69bc46996f0fa539b06efc4c
+135|Hunt's Tomato Ketchup (20 oz)|$1.99|69bc46976f0fa539b06efc4b
+136|ZIPLOC 50 SAD|$5.99|69bc46656f0fa539b06efc31
+137|Morton Salt|$4.99|69bc463d6f0fa539b06efc1e
+138|Tuong Ot Sriracha (17 oz)|$15.99|69bc463b6f0fa539b06efc1d
+139|Del Monte Fresh Cut Whole Kernel Corn (15.3 oz)|$1.99|69bc46216f0fa539b06efc10
+140|Lime salt|$1.99|69bc461b6f0fa539b06efc0b
+141|Twang:Lemon-Lime|$2.99|69bc461a6f0fa539b06efc0a
+142|SCOTCH TAPE|$2.99|69bc44fc6f0fa539b06efb7b
+143|Scotch Magic 3M|$2.99|69bc44fb6f0fa539b06efb7a
+144|Kraft Original Macaroni & Cheese Dinner Box (7.25 oz)|$1.99|69bc44da6f0fa539b06efb65
+145|KRAFT ORIGINAL BBQ SAUCE|$4.99|69bc44d76f0fa539b06efb64
+146|Kraft:Original|$2.99|69bc44d36f0fa539b06efb63
+147|KRAFT EASY MAC 2.05 OZ|$2.99|69bc44d26f0fa539b06efb62
+148|Windex: Original w/ Ammonia|$8.99|69bc44bb6f0fa539b06efb57
+149|LORNA DOONE|$0.99|69bc44b76f0fa539b06efb55
+150|SUE BEE PREMIUM PURE HONEY|$7.99|69bc44a16f0fa539b06efb49
+151|MAHATMA LG RICE 2LBS|$6.99|69bc43056f0fa539b06efaa6
+152|Lucky Charms:with Marshmallows|$2.99|69bc42706f0fa539b06efa5a
+153|C&H CANE SUGAR 1LB|$5.99|69bc425f6f0fa539b06efa55
+154|REAL LEMON 8 OZ|$2.99|69bc42596f0fa539b06efa52
+155|REAL LIME 8 OZ|$3.49|69bc42556f0fa539b06efa4e
+156|Heinz Sweet Relish|$4.99|69bc421b6f0fa539b06efa2f
+157|Heinz Tomato Ketchup|$5.99|69bc42196f0fa539b06efa2e
+158|SALSA HUICHOL|$1.99|69bc42146f0fa539b06efa2b
+159|1.2.3. VEGTBL OIL 16.91 OZ|$4.99|69bc41b16f0fa539b06efa08
+160|Tabasco Original Flavor (2 oz)|$3.99|69bc410c6f0fa539b06ef9b8
+161|Pica limon|$0.1|69bc40c46f0fa539b06ef97b

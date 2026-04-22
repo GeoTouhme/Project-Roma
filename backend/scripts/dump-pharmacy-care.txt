@@ -1,0 +1,80 @@
+  1|PURE EYES Maximum Redness Relief Sterile Eye Drops 0.24oz EXP08/2021|$2.99|69bc5dd76f0fa539b06f07f8
+  2|Johnson's Moisturizing Mild Pink Baby Body Lotion, Coconut Oil for Delicate Skin, Hypoallergenic - 3.4 Fl Oz|$4.99|69bc5d3b6f0fa539b06f07b5
+  3|Aveeno, Active Naturals Daily Moisturizing Lotion, Fragrance Free 2.5 Oz|$5.99|69bc5d356f0fa539b06f07b2
+  4|Lil Drug Store, Anti-Diarrheal 18 Boxes, 4 Caplets/Box 72 Caplets Total, 03/2024|$3.99|69bc5d326f0fa539b06f07b0
+  5|Mclane Company Lil Drug Midol|$3.99|69bc5d296f0fa539b06f07ab
+  6|Pain Relief, 4 CT, Caplet|$3.99|69bc5d276f0fa539b06f07aa
+  7|Claritin Lil Drugstore Allergy Relief 1 Ct (Pack of 6)|$3.99|69bc5d256f0fa539b06f07a9
+  8|Digestive Relief, 4, Tablet|$4.99|69bc5d216f0fa539b06f07a7
+  9|Tylenol 9005022 Pain Reliever & Nightime Sleep Aid - 4 Count & Pack of 6|$4.99|69bc5d206f0fa539b06f07a6
+ 10|Motrin Ib Ibuprofen USP 200mg Tablets  Pain Reliever & Fever Reducer  4 Cap|$3.99|69bc5d1e6f0fa539b06f07a5
+ 11|Pain Reliever, 4 CT, Tablet|$3.99|69bc5d1b6f0fa539b06f07a3
+ 12|Benadryl Allergy Relief Ultratabs Tablets 4 Ea  6 Pack|$3.99|69bc5d186f0fa539b06f07a1
+ 13|Vicks NyQuil VapoCOOL Green Cold & Flu Relief (Pack of 6)|$4.99|69bc5d156f0fa539b06f07a0
+ 14|Tablet|$4.99|69bc5d136f0fa539b06f079f
+ 15|Advil 200 Mg Orange Pain Reliever/Fever Reducer (Pack of 6)|$3.99|69bc5d0f6f0fa539b06f079d
+ 16|Advil Single Dose Tablets | by West Marine|$4.99|69bc5d0e6f0fa539b06f079c
+ 17|4x Vicks NyQuil Cold & Flu Nighttime Relief Liquid - 4oz Cherry Flavor Liquid|$15.49|69bc5d0a6f0fa539b06f079a
+ 18|Vicks NyQuil Severe Shots Cold and Flu Nighttime Relief Liquid, 1 Fl Oz (Pack of 4)|$4.99|69bc5d086f0fa539b06f0799
+ 19|PFY04208 10 Oz Dayquil Severe Cold & Flu Relief Liquid Supplement|$4.99|69bc5d066f0fa539b06f0798
+ 20|DayQuil Kids' Syrup - Guaifenesin - Berry - 8 Fl Oz|$14.99|69bc5d056f0fa539b06f0797
+ 21|Vicks, Dayquil Cold Flu Multi-Symptom Relief Liquid, 8 Oz|$15.99|69bc5d026f0fa539b06f0796
+ 22|Vicks, Childrens Nyquil Cold Cough Multi-Symptom Relief Liquid, Cherry 8 Oz|$14.99|69bc5d016f0fa539b06f0795
+ 23|Vicks, Cold Flu Nighttime Relief Liquid Cherry, 8 Oz|$15.99|69bc5cff6f0fa539b06f0794
+ 24|Vicks, Cold and Flu Nighttime Relief Liquid Original Flavor, 8 Oz|$14.99|69bc5cfe6f0fa539b06f0793
+ 25|Bayer, Genuine Aspirin, 325Mg, 24 Tabs|$6.99|69bc5cfc6f0fa539b06f0792
+ 26|Listerine Freshburst Antiseptic Mouthwash  Mint  8.5 Fl. Oz (250 ML)|$6.99|69bc5cf76f0fa539b06f078f
+ 27|Listerine, Listerine Antiseptic Mouthwash, 3.2 Oz|$2.99|69bc5cf46f0fa539b06f078e
+ 28|Listerine, Cool Mint Antiseptic Mouthwash, 8.33 Oz|$6.99|69bc5cf26f0fa539b06f078d
+ 29|Renu Travel Size Contact Solution for Advanced Lens Care - 2 Fl Oz|$6.99|69bc5ce66f0fa539b06f0787
+ 30|First Aid Kit Rubbing Alcohol, Isopropyl Alcohol, 16 Oz Bottle|$3.99|69bc5ce26f0fa539b06f0785
+ 31|Tums Ultra Strength 1000 Shelf|$3.49|69bc5cdf6f0fa539b06f0783
+ 32|Classic Medicated Lip Balm Tube  Chapped Lips Treatment|$3.99|69bc5cda6f0fa539b06f0780
+ 33|ChapStick Moisturizer Original Lip Balm Tube  0.15 Oz|$3.49|69bc5cd86f0fa539b06f077f
+ 34|ChapStick Classic Strawberry Lip Balm Tube  0.15 Oz|$3.49|69bc5cd76f0fa539b06f077e
+ 35|ChapStick Classic (Spearmint Flavor  0.15 Ounce) Lip Balm Tube  Skin Protectant  Lip Care  (1 Blister Card)|$3.49|69bc5cd66f0fa539b06f077d
+ 36|ChapStick Classic Moisturizer and Skin Protectant Cherry Lip Balm  0.15 Oz|$3.49|69bc5cd46f0fa539b06f077c
+ 37|Chapstick Regular Lip Balm, 0.32Oz|$3.49|69bc5cd26f0fa539b06f077b
+ 38|Vaseline, Petroleum Jelly Jar, 7.5 Oz|$5.49|69bc5cca6f0fa539b06f0778
+ 39|Pepto-Bismol, Maximum Strength Liquid Upset Stomach Reliever Antidiarrheal, 4 Oz|$10.99|69bc5cc76f0fa539b06f0776
+ 40|Pepto-Bismol, Maximum Strength Liquid Relives Upset Stomach, 8 Oz|$14.99|69bc5cc56f0fa539b06f0775
+ 41|Pepto-Bismol, Upset Stomach Reliever Antidiarrheal Original Liquid, 4 Oz|$6.99|69bc5cc36f0fa539b06f0774
+ 42|Motrin, Pm Coated Caplets, 20 Caplets|$9.99|69bc5cc06f0fa539b06f0772
+ 43|Motrin, Children's Ibuprofen Oral Suspension, 100 Mg, Original Berry Flavor 4 Oz|$13.99|69bc5cb76f0fa539b06f0770
+ 44|Wish Hand Sanitizer Spray 1.2 Fl Oz 4Pk(35ml) Holder PDQ with 1 Carabiner Clips|$3.99|69bc5c846f0fa539b06f075b
+ 45|Wish Hand Sanitizer Spray 1.2 Fl Oz 4Pk(35ml) Holder PDQ with 1 Carabiner Clips|$4.99|69bc5c826f0fa539b06f075a
+ 46|Carmex, Classic Lip Balm Medicated Original, 0.35 Oz|$3.99|69bc55e16f0fa539b06f0405
+ 47|Carmex, Daily Care, Moisturizing Lip Balm, Strawberry, SPF 15, 0.35 Oz (10 G)|$3.99|69bc55dc6f0fa539b06f0404
+ 48|ALOE 8 OZ|$7.99|69bc53196f0fa539b06f0281
+ 49|Axe:Anarchy Invisible Solid|$9.99|69bc53016f0fa539b06f0272
+ 50|FIXODENT ORIGINAL|$3.99|69bc519e6f0fa539b06f01c9
+ 51|BIC SENSITIVE 2|$2.99|69bc4eb46f0fa539b06f0058
+ 52|DENTEK ADVANCED CLEAN|$2.99|69bc4d066f0fa539b06eff7b
+ 53|Medicated Lip Balm|$5.99|69bc4bdb6f0fa539b06efeda
+ 54|Blistex:Medicated Lip Ointment|$4.99|69bc4bd66f0fa539b06efed8
+ 55|CREST-SCOPE CLSC 36 ml|$1.99|69bc4a7e6f0fa539b06efe23
+ 56|ChapStick Lip Moisturizer|$2.77|69bc4a5a6f0fa539b06efe13
+ 57|ChapStick Strawberry|$2.31|69bc4a586f0fa539b06efe12
+ 58|ChapStick Cherry|$2.31|69bc4a566f0fa539b06efe11
+ 59|Colgate Extra Clean Toothbrush|$2.99|69bc4a3e6f0fa539b06efe04
+ 60|Colgate 4.0 oz|$6.99|69bc4a386f0fa539b06efe01
+ 61|Colgate Triple Action Original Mint|$4.99|69bc4a346f0fa539b06efdfd
+ 62|Colgate Cavity Protection Fluoride Toothpaste (2.5 oz)|$4.99|69bc4a336f0fa539b06efdfc
+ 63|COLGATE TOTAL ACTIVE PREVENTION|$7.99|69bc4a2d6f0fa539b06efdf8
+ 64|ALWAYS MAXI|$9.99|69bc488a6f0fa539b06efd3d
+ 65|Trojan Condoms:Sensations Premium Lubricated|$6.99|69bc45f66f0fa539b06efbf2
+ 66|Trojan Fire & Ice Dual Action Lubricated Condoms 3 CT|$6.99|69bc45f36f0fa539b06efbf1
+ 67|Trojan Bareskin Latex Condoms - 3CT|$6.99|69bc45f06f0fa539b06efbf0
+ 68|Trojan Charged Orgasmic Pleasure Lubricant Condoms|$6.99|69bc45ec6f0fa539b06efbef
+ 69|Trojan Pleasure Pack Lubricated Latex Condoms 3ct|$6.99|69bc45ea6f0fa539b06efbee
+ 70|Trojan Condoms:Ecstasy Stimulations Ultrasmooth Lubricant|$6.99|69bc45e86f0fa539b06efbed
+ 71|Trojan Stimulations Ultra Ribbed Lubricated Latex Condoms 3ct|$6.99|69bc45e76f0fa539b06efbec
+ 72|Trojan Condoms:Armor Spermicidal Lubricant|$6.99|69bc45e46f0fa539b06efbeb
+ 73|Trojan-Enz Lubricated Latex Condoms 3ct|$6.99|69bc45e26f0fa539b06efbea
+ 74|TORJAN Ultra thin|$6.99|69bc45e06f0fa539b06efbe9
+ 75|Trojan Condoms:Ultra Thin Premium Lubricant|$7.99|69bc45de6f0fa539b06efbe8
+ 76|Trojan Condoms:Non-Lubricated|$6.99|69bc45db6f0fa539b06efbe7
+ 77|Trojan Charged Orgasmic Pleasure Lubricant Condoms|$6.99|69bc45d96f0fa539b06efbe6
+ 78|Trojan Condoms:Large Size Thin Ultrasmooth Lubricant|$7.99|69bc45d76f0fa539b06efbe5
+ 79|Trojan Condoms:Large Size Lubricated|$6.99|69bc45d56f0fa539b06efbe4
+ 80|SPEED STICK POWER 3.oz|$4.99|69bc45c06f0fa539b06efbd7

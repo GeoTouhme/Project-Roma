@@ -1,0 +1,137 @@
+  1|Four Loko Watermelon Singles|$4.69|69bc65ca6f0fa539b06f0c22
+  2|MONACO WATERMELON CRUSH C12 12OZ LSE|$3.49|69bc65b76f0fa539b06f0c1b
+  3|CAMPARI NEGRONI|$12.99|69bc658b6f0fa539b06f0c09
+  4|BuzzBallz Watermelon Smash (200 ml)|$4.35|69bc64786f0fa539b06f0b87
+  5|BEATBOX FRESH WATERMELON 12/500ML TETRA|$4.14|69bc63fa6f0fa539b06f0b47
+  6|SURFSIDE HALF AND HALF ICED TEA LEMO|$6.99|69bc63cc6f0fa539b06f0b2e
+  7|SURFSIDE  LEMONADE 8 PK 12 OZ|$22.99|69bc63cb6f0fa539b06f0b2d
+  8|HAPPY DAD HARD SELTZER DEATH ROW BP GRAPE 12/24 CAN|$4.99|69bc63c56f0fa539b06f0b29
+  9|SURFSIDE 8PK 12 OZ|$23.99|69bc63a46f0fa539b06f0b16
+ 10|SURFSIDE half and half ice tea 4 PACK|$12.99|69bc63a36f0fa539b06f0b15
+ 11|CUTWATER LEMON DROP MARTINI 4 PK 12 OZ|$16.99|69bc62f76f0fa539b06f0ab2
+ 12|CUTWATER ESPRESSO MARTINI 4 PK 12 OZ|$15.99|69bc62f66f0fa539b06f0ab1
+ 13|CUTWATER MARGARITA PINEAPPLE 4-PK 12 OZ|$15.99|69bc62f56f0fa539b06f0ab0
+ 14|CUTWATER VOD TRANSFUSION14CAN6/4P 12Z|$15.38|69bc62f26f0fa539b06f0aaf
+ 15|CUTWATER PINA COLADA 26 CAN 6/4P 12Z|$15.99|69bc62f16f0fa539b06f0aae
+ 16|CUTWATER MARG STRAWBERRY 20 6/4P 12Z|$14.92|69bc62ef6f0fa539b06f0aad
+ 17|CUTWATER STRAWBERRY MARGARITA|$4.59|69bc62ed6f0fa539b06f0aac
+ 18|CUTWATER MARG PEACH 20 CAN 6/4PK 12Z|$14.92|69bc62ec6f0fa539b06f0aab
+ 19|Cutwater Mango Margarita Cans (12 oz x 4 ct)|$15.99|69bc62e76f0fa539b06f0aaa
+ 20|CUTWATER MANGO MARGARITA|$4.57|69bc62e66f0fa539b06f0aa9
+ 21|CUTWATER WHITE RUSSIAN 4 OK 12 OZ|$15.99|69bc62e36f0fa539b06f0aa8
+ 22|CUTWATER LONG ISLAND 26 CAN 6/4PK 12Z|$15.38|69bc62e16f0fa539b06f0aa7
+ 23|Cutwater mia tai|$4.57|69bc62e06f0fa539b06f0aa6
+ 24|CUTWATER MILD BLOODY MARY MIX 1.0L|$8.99|69bc62de6f0fa539b06f0aa5
+ 25|Cutwater Spicy Bloody Mary Bottles (12 oz x 4 ct)|$8.99|69bc62dc6f0fa539b06f0aa4
+ 26|CUTWATER TEQ PALOMA 14 CAN 4P 12Z|$16.99|69bc62da6f0fa539b06f0aa3
+ 27|CUTWATER VOD MULE 14 CAN 6/4PK 12Z|$15.99|69bc62d96f0fa539b06f0aa2
+ 28|CUTWATER CKTL BL MARY SPICY20CAN4P 12Z|$15.99|69bc62d66f0fa539b06f0aa1
+ 29|Cutwater Spirits Spicy Bloody Mary Cans (12 oz x 4 ct)|$4.47|69bc62d46f0fa539b06f0aa0
+ 30|SURFSIDE GREEN TEA VARIETY 8 PK 12 OZ|$22.99|69bc623f6f0fa539b06f0a4a
+ 31|FROZEN WATERMELON|$24.99|69bc62266f0fa539b06f0a3c
+ 32|TOPO CHICO MARGARITA VARIETY C24 12O|$13.99|69bc621d6f0fa539b06f0a37
+ 33|TOPO CHICO STRAWBERRY GUAVA B24 12OZ|$23.99|69bc621b6f0fa539b06f0a36
+ 34|TOPO CHICO RANCH WATER 24 OZ|$4.49|69bc62196f0fa539b06f0a35
+ 35|TOPO CHICO RANCH WATER C24 12OZ 12P|$25.99|69bc62186f0fa539b06f0a34
+ 36|White Claw Hard Seltzer Clawtails Variety Pack 12oz|$24.99|69bc5f2d6f0fa539b06f08a8
+ 37|White Claw Grape 12oz|$13.49|69bc5f2a6f0fa539b06f08a7
+ 38|White Claw Hard Seltzer Surge Variety Pack 12oz|$24.99|69bc5f286f0fa539b06f08a6
+ 39|White Claw Strawberry 19oz|$4.49|69bc5f266f0fa539b06f08a5
+ 40|White Claw Ruby Grapefruit 19oz|$4.49|69bc5f266f0fa539b06f08a4
+ 41|White Claw Hard Seltzer Mango 19oz|$4.49|69bc5f246f0fa539b06f08a3
+ 42|WHITE CLAW WATERMELON 19.20 OZ|$4.49|69bc5f216f0fa539b06f08a0
+ 43|White Claw Black Cherry 19oz|$4.38|69bc5f206f0fa539b06f089f
+ 44|White Claw Hard Seltzer Blackberry 12oz|$13.99|69bc5f1e6f0fa539b06f089e
+ 45|White Claw Peach Cans 12oz|$13.49|69bc5f1c6f0fa539b06f089d
+ 46|White Claw Surf Variety Pack 12oz|$23.99|69bc5f196f0fa539b06f089c
+ 47|White Claw Surge Variety 12pk 12oz|$24.99|69bc5f156f0fa539b06f089a
+ 48|White Claw Watermelon Cans 12oz|$13.49|69bc5f146f0fa539b06f0899
+ 49|White Claw Variety #3 12oz|$24.99|69bc5f116f0fa539b06f0898
+ 50|Mikes Harder Pineapple Mandarin|$4.99|69bc5f106f0fa539b06f0897
+ 51|White Claw Variety Pack #2 12oz|$24.99|69bc5f0e6f0fa539b06f0896
+ 52|White Claw Variety #1 12oz|$24.99|69bc5f0c6f0fa539b06f0895
+ 53|White Claw Black Cherry 12oz|$24.99|69bc5f096f0fa539b06f0894
+ 54|White Claw Mango 12oz|$13.49|69bc5f076f0fa539b06f0893
+ 55|White Claw Raspberry 12oz|$13.49|69bc5f046f0fa539b06f0892
+ 56|White Claw Mango|$4.07|69bc5f026f0fa539b06f0891
+ 57|White Claw Hard Seltzer - Raspberry|$2.5|69bc5eff6f0fa539b06f0890
+ 58|Mike’s Harder Lemonade|$3.19|69bc5efb6f0fa539b06f088e
+ 59|Mike's Harder Cranberry 23.5oz Can 23.5oz|$4.99|69bc5efa6f0fa539b06f088d
+ 60|Mike's Harder Lemonade 24oz|$4.99|69bc5ef66f0fa539b06f088b
+ 61|White Claw Ruby Grapefruit - 6pk/12 Fl Oz Cans|$13.49|69bc5ef16f0fa539b06f0889
+ 62|Mike's Harder Strawberry Pineapple 23.5oz Can 23.5oz|$4.99|69bc5ee76f0fa539b06f0885
+ 63|Mike's Harder Black Cherry 24oz Cans 23.5oz|$4.99|69bc5ee46f0fa539b06f0884
+ 64|Mike's Hard Lemonade Variety Pack 12oz|$15.99|69bc5ee16f0fa539b06f0883
+ 65|Mike’s Hard Leomonade|$13.99|69bc5ede6f0fa539b06f0882
+ 66|White Claw Mango 12oz|$24.99|69bc5edc6f0fa539b06f0881
+ 67|Mike's Hard Mango Punch 12oz|$13.99|69bc5ed56f0fa539b06f087e
+ 68|Arizona Hard Iced Tea with Peach|$19.99|69bc5e7a6f0fa539b06f0849
+ 69|Arizona Hard Lemon Tea 12 Pk|$21.96|69bc5e786f0fa539b06f0848
+ 70|Arizona Hard Tea Variety Pack|$19.99|69bc5e766f0fa539b06f0847
+ 71|Arizona Hard Green Tea|$22.99|69bc5e746f0fa539b06f0846
+ 72|Tanqueray Negroni Cocktail 375ml|$15.99|69bc5ac46f0fa539b06f0668
+ 73|Simple Paloma|$6.92|69bc5a6a6f0fa539b06f063a
+ 74|Club Cocktails the Long Island Iced Tea Ready-to-drink - 200ml Can|$3.49|69bc5a556f0fa539b06f062d
+ 75|TWISTED TEA RASPBERRY 24 oz|$4.49|69bc59e16f0fa539b06f05f1
+ 76|Twisted Tea Pineapple Hard Iced Tea (24 oz)|$4.49|69bc59e06f0fa539b06f05f0
+ 77|TWISTED TEA ORIGNAL 12PK 12 Oz|$24.99|69bc59de6f0fa539b06f05ef
+ 78|TWISTED TEA HALF AND HALF 24 OZ|$4.99|69bc59d96f0fa539b06f05ed
+ 79|TWITED TEA HALF AND HALF 12 PK 12 OZ|$24.99|69bc59d86f0fa539b06f05ec
+ 80|TWISTED TEA MANGO 24 OZ|$4.99|69bc59d56f0fa539b06f05eb
+ 81|SUN CRUISER LEMONADE VARIETY 8 PK|$21.99|69bc59d36f0fa539b06f05ea
+ 82|SUN CRUISER PEACH ICE TEA 4 PK 12 oz|$12.99|69bc59cb6f0fa539b06f05e9
+ 83|SUN CRUISER CLASIC ICE TEA 4 PK 12 oz|$12.99|69bc59c86f0fa539b06f05e7
+ 84|Truly Party Pack Variety|$24.99|69bc59c46f0fa539b06f05e5
+ 85|TWISTED XTREME LEMON C12 24OZ|$4.27|69bc59be6f0fa539b06f05e2
+ 86|TWISTED TEA PINEAPPLE C12 24OZ|$4.49|69bc59bb6f0fa539b06f05e0
+ 87|TRULY Hard Seltzer Punch Variety Pack 12oz|$25.99|69bc59b46f0fa539b06f05dc
+ 88|TRULY Hard Seltzer Lemonade Variety Pack 12oz|$24.99|69bc59b06f0fa539b06f05d9
+ 89|TRULY Hard Seltzer Wild Berry 24oz|$4.49|69bc59ac6f0fa539b06f05d7
+ 90|Twisted Tea Peach Can (24 oz)|$4.49|69bc59a56f0fa539b06f05d3
+ 91|TWISED TEA PARTY PACK 12 PK 12 OZ|$24.99|69bc59a16f0fa539b06f05d1
+ 92|TWISTED TEA LITE C12 24OZ|$4.27|69bc599f6f0fa539b06f05d0
+ 93|High Noon Lemon Vodka Hard Seltzer 335ml|$11.99|69bc58106f0fa539b06f0515
+ 94|High Noon Mango Vodka Hard Seltzer 335ml|$11.99|69bc580e6f0fa539b06f0513
+ 95|High Noon Peach Vodka Hard Seltzer 335ml|$11.99|69bc580c6f0fa539b06f0512
+ 96|Barefoot Hard Seltzer Peach & Nectarine - Wine Spritzer from United States - 4x 250ml Cans|$7.99|69bc580a6f0fa539b06f0511
+ 97|High Noon Lime Vodka Hard Seltzer Ready-to-drink - 4x 12oz Cans|$11.99|69bc58096f0fa539b06f0510
+ 98|High Noon Black Cherry Vodka Hard Seltzer Fruit Cocktail Ready-to-drink - 4x 12oz Cans|$11.99|69bc58076f0fa539b06f050f
+ 99|High Noon Pineapple Vodka Hard Seltzer Ready-to-drink - 4x 12oz Cans|$11.99|69bc58056f0fa539b06f050e
+100|High Noon Watermelon Vodka Hard Seltzer Ready-to-drink - 4x 12oz Cans|$11.99|69bc58036f0fa539b06f050d
+101|High Noon Grapefruit Vodka Hard Seltzer Ready-to-drink - 4x 12oz Cans|$11.99|69bc58006f0fa539b06f050c
+102|High Noon Beach Pack Vodka Hard Seltzer 355ml|$29.99|69bc57eb6f0fa539b06f0501
+103|High Noon Peach Vodka Seltzer 700ml|$5.99|69bc57d66f0fa539b06f04f7
+104|High Noon Pineapple Vodka Hard Seltzer 700ml|$5.99|69bc57d46f0fa539b06f04f6
+105|High Noon Tropical Pack Vodka Hard Seltzer Variety Pack 8 355ml|$21.99|69bc57d16f0fa539b06f04f4
+106|High Noon Vodka Hard Seltzer Variety Pack 12 355ml|$29.99|69bc57be6f0fa539b06f04e8
+107|SMIRONOFF BLUE RASPBERRY LEMONADE|$15.99|69bc55656f0fa539b06f03c6
+108|Smirnoff Ice Pink Lemonade Malt Liquor - Beer - 24oz Bottle|$4.57|69bc55656f0fa539b06f03c5
+109|Smirnoff Ice Pink Lemonade Malt Liquor - Beer - 23.5oz Can|$4.49|69bc55656f0fa539b06f03c4
+110|SMIRNOFF PINK LEMONADE|$15.99|69bc555e6f0fa539b06f03bf
+111|Smirnoff Ice Smash Peach + Mango Can (23.5 oz)|$4.49|69bc554e6f0fa539b06f03b6
+112|Smirnoff Ice Red White and Berry 12oz|$13.99|69bc55466f0fa539b06f03b2
+113|Smirnoff Ice Smash Screwdriver 24oz RTD Cocktail Cans 23.5oz|$4.99|69bc55446f0fa539b06f03b1
+114|Smirnoff Ice Pink Lemonade Bottles 12oz|$13.99|69bc55366f0fa539b06f03aa
+115|Smirnoff Ice Screwdriver Bottles 12oz|$13.99|69bc552c6f0fa539b06f03a5
+116|Smirnoff Ice Green Apple Malt Liquor - Beer - 6x 11.2oz Bottles|$13.99|69bc551f6f0fa539b06f039e
+117|Smirnoff Ice|$4.57|69bc551e6f0fa539b06f039d
+118|Smirnoff Ice Original 12oz|$13.99|69bc551c6f0fa539b06f039c
+119|ON THE ROCK COSMOPOLITAN|$13.99|69bc540d6f0fa539b06f0304
+120|ON THE ROCK BLUE HAWAIIAN|$13.99|69bc540c6f0fa539b06f0303
+121|ON THE ROCK STRAWBERRY DAIQUIRI|$24.99|69bc540a6f0fa539b06f0302
+122|ON THE ROCK STRAMBERRY DAIQUIRI|$13.99|69bc54076f0fa539b06f0301
+123|High Noon Hard Seltzer Black Cherry Cans (355 ml x 4 ct)|$3.49|69bc4fb96f0fa539b06f00cf
+124|SUNNYD VODKA SELTZER VARIETY C24 12O|$23.18|69bc4dce6f0fa539b06effdf
+125|SUNNYD VODKA SELTZER TANGY ORANGE C2|$11.59|69bc4dcc6f0fa539b06effde
+126|High Noon Hard Seltzer Pineapple Can (355 ml)|$10.99|69bc49ed6f0fa539b06efdde
+127|TOPO CHICO TROPICAL MANGO|$19.99|69bc44f76f0fa539b06efb76
+128|TOPO CHICO RASPBERRY WITH LEMON|$19.99|69bc44f66f0fa539b06efb75
+129|TAPO CHICO TANGERINE|$19.99|69bc44f46f0fa539b06efb74
+130|TOPO CHICO LIME WITH MINT|$19.99|69bc44f36f0fa539b06efb73
+131|TOPO CHICO BLUE BERRY|$19.99|69bc44f16f0fa539b06efb72
+132|TOPO CHICO VARIETY PACK C24 12OZ 12P|$25.99|69bc44e96f0fa539b06efb6e
+133|NUTRL VODKA SELTZER BLACK CHERRY 24/12 CAN 6/4|$10.99|69bc43e36f0fa539b06efb00
+134|NUTRL VODKA SELTZER ORANGE 24/12 CAN 6/4|$10.99|69bc43e16f0fa539b06efaff
+135|NUTRL VODKA SELTZER WATERMELON 24/12 CAN 6/4|$10.64|69bc43dc6f0fa539b06efafe
+136|NUTRL FRUIT VARIETY PZCK  CAN 3/8PK 12Z|$20.99|69bc43d96f0fa539b06efafd
+137|NUTRL VODKA SELTZER PINEAPPLE 24/12 CAN 6/4|$10.64|69bc43d56f0fa539b06efaf9
