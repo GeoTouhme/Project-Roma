@@ -35,15 +35,22 @@ const Register = () => {
     // Required fields validation
     if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid";
 
+    // Email validation
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(formData.email)) newErrors.email = "Please enter a valid email address";
+
+    // Password validation
     if (!formData.password) newErrors.password = "Password is required";
     else if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters";
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) newErrors.password = "Password must include uppercase, lowercase, and a number";
 
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    if (!formData.confirmPassword) newErrors.confirmPassword = "Please confirm your password";
+    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
 
+    // Phone validation
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    else if (!/^[0-9+\s()-]{7,15}$/.test(formData.phone)) newErrors.phone = "Please enter a valid phone number";
 
     return newErrors;
   };
@@ -55,7 +62,8 @@ const Register = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
 
-      AuthService.register(formData)
+      const { confirmPassword, ...submitData } = formData;
+      AuthService.register(submitData)
         .then((response) => {
           if (response.success) {
             toast.success("Account created! Please check your email to verify.", { duration: 5000 });

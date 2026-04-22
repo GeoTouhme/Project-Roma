@@ -24,7 +24,6 @@ const registerUser = async (req, res) => {
 
     if (existingUser) {
       return res.status(400).json({
-        UserCount,
         success: false,
         message: 'User With This Email Already Exists',
       });
@@ -37,10 +36,15 @@ const registerUser = async (req, res) => {
       digits: true,
     });
     // Create user with the generated OTP
+    // SECURITY: Whitelist only allowed fields — prevents role escalation and field injection
     const user = await User.create({
-      ...request,
+      firstName: request.firstName,
+      lastName: request.lastName,
+      email: safeEmail,
+      password: request.password,
+      phone: request.phone,
       otp,
-      role: Boolean(UserCount) ? request.role || 'user' : 'super admin',
+      role: UserCount > 0 ? 'user' : 'super admin',
       isVerified: false,
     });
 
@@ -72,7 +76,7 @@ const registerUser = async (req, res) => {
       htmlContent = htmlContent.replace(/usingyourmail@gmail\.com/g, user.email);
       
       // Add verification link
-      const verificationLink = `${request.origin || 'http://151.145.90.89'}/verify-otp?email=${encodeURIComponent(user.email)}&otp=${otp}`;
+      const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-otp?email=${encodeURIComponent(user.email)}&otp=${otp}`;
       htmlContent = htmlContent.replace(/<\/tbody>/, `
         <tr>
           <td align="center" style="padding-top: 20px;">
