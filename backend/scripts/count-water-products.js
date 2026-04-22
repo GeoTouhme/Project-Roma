@@ -1,6 +1,3 @@
-/**
- * Dump ALL Water products to a text file for analysis 
- */
 const fs = require('fs');
 
 async function main() {
@@ -9,7 +6,7 @@ async function main() {
     const limit = 100;
     
     while (true) {
-        const res = await fetch(`https://balportliquors.com/api/products?category=water&limit=${limit}&page=${page}`);
+        const res = await fetch(`https://balportliquors.com/api/products?category=gin&limit=${limit}&page=${page}`);
         const data = await res.json();
         allProducts = allProducts.concat(data.data);
         if (allProducts.length >= data.total) break;
@@ -20,8 +17,8 @@ async function main() {
         `${(i+1).toString().padStart(3)}|${p.name}|$${p.priceSale}|${p._id}`
     );
     
-    fs.writeFileSync('scripts/water-products-dump.txt', lines.join('\n'), 'utf8');
-    console.log(`Wrote ${allProducts.length} products to water-products-dump.txt`);
+    fs.writeFileSync('scripts/gin-products-dump.txt', lines.join('\n'), 'utf8');
+    console.log(`Wrote ${allProducts.length} products to gin-products-dump.txt`);
 }
 
 main().catch(e => console.error(e));
