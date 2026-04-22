@@ -1,0 +1,62 @@
+[
+  {
+    "name": "GUM & MINTS",
+    "slug": "gum-mints",
+    "count": 310,
+    "id": "69bd4c23013d204dfbd805db"
+  },
+  {
+    "name": "CANDY",
+    "slug": "candy",
+    "count": 229,
+    "id": "69bc457f6f0fa539b06efbb7"
+  },
+  {
+    "name": "COCKTAILS & SELTZERS",
+    "slug": "cocktails-seltzers",
+    "count": 137,
+    "id": "69bd4c23013d204dfbd805e3"
+  },
+  {
+    "name": "JUICE & DRINKS",
+    "slug": "juice-drinks",
+    "count": 91,
+    "id": "69bd4c23013d204dfbd805df"
+  },
+  {
+    "name": "PHARMACY & CARE",
+    "slug": "pharmacy-care",
+    "count": 80,
+    "id": "69bd4c23013d204dfbd805e1"
+  },
+  {
+    "name": "LIQUEUR & SPIRITS",
+    "slug": "liqueur-spirits",
+    "count": 65,
+    "id": "69bd4c23013d204dfbd805e5"
+  },
+  {
+    "name": "TEA & COFFEE",
+    "slug": "tea-coffee",
+    "count": 53,
+    "id": "69bd4c23013d204dfbd805dd"
+  },
+  {
+    "name": "ICE CREAM",
+    "slug": "ice-cream",
+    "count": 45,
+    "id": "69bd42ae120faa89c7d805db"
+  },
+  {
+    "name": "NONALCOHOL",
+    "slug": "nonalcohol",
+    "count": 2,
+    "id": "69bc5e626f0fa539b06f083d"
+  },
+  {
+    "name": "TORCH",
+    "slug": "torch",
+    "count": 1,
+    "id": "69bc4eaf6f0fa539b06f0054"
+  }
+]

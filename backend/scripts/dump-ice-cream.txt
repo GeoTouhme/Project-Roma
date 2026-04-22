@@ -1,0 +1,45 @@
+  1|Talenti Confetti Cookie Layers|$11.99|69bc5c6c6f0fa539b06f074e
+  2|Talenti Layer Salted Carm Truf|$11.99|69bc5c6a6f0fa539b06f074d
+  3|Talenti Layers Van Fudge Cooki|$9.99|69bc5c686f0fa539b06f074c
+  4|Talenti Mango Sorbet|$8.99|69bc5c666f0fa539b06f074b
+  5|Talenti Roman Raspberry|$8.99|69bc5c616f0fa539b06f074a
+  6|Talenti Pacific Coast Pistacho|$8.99|69bc5c606f0fa539b06f0749
+  7|Talenti Mediterranean Mint|$8.99|69bc5c5d6f0fa539b06f0748
+  8|Talenti Caramel Cookie Crunch|$8.99|69bc5c5b6f0fa539b06f0747
+  9|Magnum Dbl Caramel|$4.49|69bc521f6f0fa539b06f0207
+ 10|Magnum Almond|$3.99|69bc521d6f0fa539b06f0206
+ 11|Giant Vanilla Sandwich|$2.99|69bc52176f0fa539b06f0202
+ 12|Sponge Bob Face|$2.99|69bc52156f0fa539b06f0201
+ 13|PS Spiderman|$2.99|69bc52146f0fa539b06f0200
+ 14|BJ Strawberry Cheesecake|$7.99|69bc51f26f0fa539b06f01ee
+ 15|B&J Vanilla Caramel Fdg Swirl|$7.99|69bc51ef6f0fa539b06f01ed
+ 16|B&J Vanilla|$7.99|69bc51ed6f0fa539b06f01ec
+ 17|Salted Caramel|$7.99|69bc51eb6f0fa539b06f01eb
+ 18|Coffee Coffee BuzzBuzzBuzz|$7.99|69bc51e96f0fa539b06f01ea
+ 19|Americone Dream|$7.99|69bc51e56f0fa539b06f01e8
+ 20|Karamel Sutra|$7.99|69bc51e36f0fa539b06f01e7
+ 21|Everything But The|$7.99|69bc51e16f0fa539b06f01e6
+ 22|Pistachio Pistachio|$7.99|69bc51dc6f0fa539b06f01e4
+ 23|Peanut Butter Cup|$7.99|69bc51d86f0fa539b06f01e2
+ 24|Chunky Monkey|$7.99|69bc51d26f0fa539b06f01df
+ 25|NY Super Fdg Chunk|$7.99|69bc51ce6f0fa539b06f01dd
+ 26|Chubby Hubby|$7.99|69bc51cc6f0fa539b06f01dc
+ 27|BJ Milk & Cookies|$7.99|69bc51c46f0fa539b06f01d9
+ 28|ND Oatmeal Dream Pie|$8.99|69bc51c36f0fa539b06f01d8
+ 29|Topp'd Raspberry Cheesecake|$7.99|69bc51c16f0fa539b06f01d7
+ 30|PB Over the topped|$7.99|69bc51bc6f0fa539b06f01d4
+ 31|Netflix & Chill  PT|$7.99|69bc51ae6f0fa539b06f01d1
+ 32|B&J Cookie Dough Chunks|$8.99|69bc51a76f0fa539b06f01ce
+ 33|Haagen-Dazs Chocolate Peanut Butter Ice Cream (14 oz)|$8.99|69bc51266f0fa539b06f0186
+ 34|Ice cream|$8.99|69bc51236f0fa539b06f0184
+ 35|HAAGEN - DAZS|$8.99|69bc51186f0fa539b06f017f
+ 36|Haagen-Dazs Vanilla Chocolate Chip (14 oz)|$7.5|69bc51146f0fa539b06f017d
+ 37|HAAGEN - DAZS|$8.99|69bc51106f0fa539b06f017b
+ 38|Haagen-Dazs Coffee Almond Crunch Ice Cream Bar (3.67 oz)|$5|69bc510e6f0fa539b06f017a
+ 39|Haagen Daz Chocolate Chocolate Chip Ice Cream Container (14 oz)|$8.99|69bc51086f0fa539b06f0177
+ 40|Haagen Dazs Ice Cream, Vanilla - 3.6 Fl Oz|$1.49|69bc51066f0fa539b06f0176
+ 41|Haagen-Dazs Ice Cream Rocky Road Pint|$8.99|69bc51046f0fa539b06f0175
+ 42|Haagen-Dazs:Vanilla & Milk Chocolate|$4.99|69bc50f96f0fa539b06f0170
+ 43|Haagen Dazs Ice Cream, Chocolate Pint|$8.99|69bc50f76f0fa539b06f016f
+ 44|Haagen-Dazs Vanilla Milk Chocolate Ice Cream Bar (2 oz)|$3.99|69bc50f56f0fa539b06f016e
+ 45|Haagen-Dazs:Vanilla|$8.99|69bc50f36f0fa539b06f016d
