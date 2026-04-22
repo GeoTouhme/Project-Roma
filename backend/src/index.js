@@ -18,8 +18,8 @@ const PORT = process.env.PORT || 3000;
 app.set('query parser', 'simple');
 
 // 🛡️ SECURITY: Enable trust proxy to support rate limiting behind Nginx.
-// Without this, express-rate-limit sees the local gateway IP for all users.
-app.set('trust proxy', true);
+// Set to 1 = trust exactly one proxy (Nginx). Using `true` is rejected by express-rate-limit v7+.
+app.set('trust proxy', 1);
 
 // Restrict CORS to known trusted origins — prevents cross-origin attacks
 const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -58,10 +58,7 @@ const authLimiter = rateLimit({
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
   })
