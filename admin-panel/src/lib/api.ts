@@ -112,6 +112,9 @@ export const customersAPI = {
 
     updateCustomerRole: (id: string) =>
         api.put(`/api/admin/users/${id}/role`),
+
+    deleteCustomer: (id: string) =>
+        api.delete(`/api/admin/users/${id}`),
 };
 
 export const categoriesAPI = {
@@ -173,7 +176,7 @@ export const uploadAPI = {
             },
         }),
     deleteImage: (id: string) =>
-        api.delete(`/api/delete-file/${id}`),
+        api.delete(`/api/delete-file/${encodeURIComponent(id)}`),
 };
 
 export const getSettings = () => api.get('/api/settings');

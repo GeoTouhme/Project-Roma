@@ -10,6 +10,7 @@ import Cart from "../pages/cart/Cart";
 import Billing from "../pages/Billing/Billing";
 import Register from "../pages/auth/Register";
 import Login from "../pages/auth/Login";
+import VerifyEmail from "../pages/auth/VerifyEmail";
 import Terms from "../pages/Terms/Terms";
 import Privacy from "../pages/Privacy/Privacy";
 import { useSelector } from "react-redux";
@@ -30,6 +31,7 @@ const PublicRoutes = () => {
         <Route path="/products/*" element={<Collection />} />
         <Route path="/product/*" element={<ProductPage />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/verify-otp" element={<VerifyEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Footer />

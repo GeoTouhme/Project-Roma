@@ -421,22 +421,44 @@ const getOneProductByAdmin = async (req, res) => {
 const updateProductByAdmin = async (req, res) => {
   try {
     const admin = await getAdmin(req, res);
-    const { slug } = req.params;
-    const { images, ...body } = req.body;
+    const slug = safeString(req.params.slug);
+    if (!slug) {
+      return res.status(400).json({ success: false, message: 'Invalid product slug.' });
+    }
 
-    const updatedImages = await Promise.all(
-      images.map(async (image) => {
-        const blurDataURL = await blurDataUrl(image.url);
-        return { ...image, blurDataURL };
-      })
-    );
+    const { images = [], category, subCategory, ...body } = req.body;
+
+    const updateFields = { ...body };
+
+    if (category) {
+      const safeCat = safeObjectId(category);
+      if (!safeCat) {
+        return res.status(400).json({ success: false, message: 'Invalid category ID.' });
+      }
+      updateFields.category = safeCat;
+    }
+
+    if (subCategory) {
+      const safeSub = safeObjectId(subCategory);
+      if (!safeSub) {
+        return res.status(400).json({ success: false, message: 'Invalid subCategory ID.' });
+      }
+      updateFields.subCategory = safeSub;
+    }
+
+    if (images.length > 0) {
+      const updatedImages = await Promise.all(
+        images.map(async (image) => {
+          const blurDataURL = await blurDataUrl(image.url);
+          return { ...image, blurDataURL };
+        })
+      );
+      updateFields.images = updatedImages;
+    }
 
     const updated = await Product.findOneAndUpdate(
-      { slug: slug },
-      {
-        ...body,
-        images: updatedImages,
-      },
+      { slug },
+      updateFields,
       { new: true, runValidators: true }
     );
 

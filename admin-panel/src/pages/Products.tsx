@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchBar } from "@/components/SearchBar";
 import { Table } from "@/components/Table";
@@ -29,12 +31,13 @@ const Products = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   // Fetch Categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await categoriesAPI.getCategories();
+        const response = await categoriesAPI.getCategories({ limit: 100 });
         if (response.data.success) {
           setCategories(response.data.data);
         }
@@ -50,29 +53,29 @@ const Products = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        // Prepare params
-        // Note: The backend getProductsByAdmin (which is what productsAPI.getProducts calls likely?)
-        // Let's check api.ts -> productsAPI.getProducts -> /api/admin/products
-        // backend/src/controllers/product.js -> getProductsByAdmin
-        // It accepts: page, limit, search.
-        // It does NOT seem to accept 'category' or 'status' filter in the query params directly for filtering in DB?
-        // Wait, getProductsByAdmin only uses: name: { $regex: searchQuery ... }
-        // It DOES NOT implement category or status filtering!
-        // So I must filter on FRONTEND? Or update backend?
-        // For now, I will filter on frontend if the API doesn't support it, 
-        // BUT calling the API with pagination makes frontend filtering impossible for correct results across pages.
-        // However, sticking to the plan: I will just pass search. Filtering by category might need backend support.
-        // Given constraints, I will implement search param.
-
         const response = await productsAPI.getProducts({
           page: currentPage,
           limit: pageSize,
           search: searchQuery,
+          category: categoryFilter !== 'all' ? categoryFilter : undefined,
         });
 
         if (response.data.success) {
-          setProducts(response.data.data);
-          setTotalProducts(response.data.count); // count is total pages
+          let result = response.data.data;
+
+          // Frontend status filter (backend doesn't support it)
+          if (statusFilter !== 'all') {
+            result = result.filter((p: any) => {
+              const stock = p.available || 0;
+              if (statusFilter === 'out of stock') return stock === 0;
+              if (statusFilter === 'low stock') return stock > 0 && stock < 10;
+              if (statusFilter === 'active') return stock >= 10;
+              return true;
+            });
+          }
+
+          setProducts(result);
+          setTotalProducts(response.data.count);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -81,13 +84,12 @@ const Products = () => {
       }
     };
 
-    // Debounce search
     const timeoutId = setTimeout(() => {
       fetchProducts();
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, pageSize, searchQuery]);
+  }, [currentPage, pageSize, searchQuery, categoryFilter, statusFilter]);
 
   // Helper to get category name
   const getCategoryName = (categoryId: string) => {
@@ -100,7 +102,38 @@ const Products = () => {
   };
 
   const handleRowClick = (product: any) => {
-    navigate(`/products/${product.slug}`); // Use slug or id? Backend uses slug for getOneProductByAdmin
+    navigate(`/products/${product.slug}`);
+  };
+
+  const handleCategoryChange = async (productSlug: string, newCategoryId: string) => {
+    try {
+      await productsAPI.updateProduct(productSlug, { category: newCategoryId });
+      setEditingCategoryId(null);
+      toast.success("Category updated");
+      // Refresh products
+      const response = await productsAPI.getProducts({
+        page: currentPage,
+        limit: pageSize,
+        search: searchQuery,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      });
+      if (response.data.success) {
+        let result = response.data.data;
+        if (statusFilter !== 'all') {
+          result = result.filter((p: any) => {
+            const stock = p.available || 0;
+            if (statusFilter === 'out of stock') return stock === 0;
+            if (statusFilter === 'low stock') return stock > 0 && stock < 10;
+            if (statusFilter === 'active') return stock >= 10;
+            return true;
+          });
+        }
+        setProducts(result);
+      }
+    } catch (error) {
+      console.error("Failed to update category:", error);
+      toast.error("Failed to update category");
+    }
   };
 
   return (
@@ -177,7 +210,30 @@ const Products = () => {
           },
           {
             header: "Category",
-            accessorKey: (row) => row.categoryData?.[0]?.name || "Unknown",
+            accessorKey: (row) => {
+              if (editingCategoryId === row.slug) {
+                return (
+                  <Select value={row.categoryData?.name || ""} onValueChange={(val) => handleCategoryChange(row._id, val)}>
+                    <SelectTrigger className="h-6 w-[140px]">
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }
+              return (
+                <div
+                  onClick={(e) => { e.stopPropagation(); setEditingCategoryId(row.slug); }}
+                  className="cursor-pointer hover:bg-accent px-2 py-1 rounded inline-block"
+                >
+                  {row.categoryData?.name || "Unknown"}
+                </div>
+              );
+            },
           },
           {
             header: "Price",

@@ -112,4 +112,31 @@ const UpdateRoleByAdmin = async (req, res) => {
 		return res.status(500).json({ success: false, message: error.message });
 	}
 };
-module.exports = { getUsersByAdmin, getOrdersByUid, UpdateRoleByAdmin };
+const deleteUserByAdmin = async (req, res) => {
+	try {
+		const id = req.params.id;
+		const userToDelete = await User.findById(id);
+
+		if (!userToDelete) {
+			return res.status(404).json({ success: false, message: "User Not Found." });
+		}
+
+		// Prevent self-deletion
+		if (req.user && req.user.id === id) {
+			return res.status(403).json({ success: false, message: "Cannot delete your own account." });
+		}
+
+		// Prevent deletion of super admin
+		if (userToDelete.role === "super admin") {
+			return res.status(403).json({ success: false, message: "Cannot delete a Super Admin." });
+		}
+
+		await User.findByIdAndDelete(id);
+
+		return res.status(200).json({ success: true, message: "User deleted successfully." });
+	} catch (error) {
+		return res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+module.exports = { getUsersByAdmin, getOrdersByUid, UpdateRoleByAdmin, deleteUserByAdmin };

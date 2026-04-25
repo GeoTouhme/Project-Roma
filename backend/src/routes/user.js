@@ -29,4 +29,11 @@ router.post(
   adminController.UpdateRoleByAdmin
 );
 
+router.delete(
+  '/admin/users/:id',
+  verifyToken,
+  adminCheck,
+  adminController.deleteUserByAdmin
+);
+
 module.exports = router;

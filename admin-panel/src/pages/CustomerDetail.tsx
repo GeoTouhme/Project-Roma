@@ -45,10 +45,17 @@ const CustomerDetail = () => {
     fetchCustomer();
   }, [id]);
 
-  const handleDelete = () => {
-    // TODO: Implement delete API call if available
-    toast.success(`Customer ${customer?.name} deleted`);
-    navigate("/customers");
+  const handleDelete = async () => {
+    if (!customer?.id) return;
+
+    try {
+      await customersAPI.deleteCustomer(customer.id);
+      toast.success(`Customer ${customer?.name} deleted`);
+      navigate("/customers");
+    } catch (error) {
+      console.error("Failed to delete customer:", error);
+      toast.error("Failed to delete customer");
+    }
   };
 
   if (isLoading) {

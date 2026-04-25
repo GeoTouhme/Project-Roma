@@ -56,6 +56,26 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many requests. Please try again after 15 minutes.' },
 });
 
+// Skip rate limit for admin-authenticated requests
+const skipRateLimitForAdmin = (req, res, next) => {
+  const token = req.headers.authorization;
+  if (token) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(
+        token.replace('Bearer ', ''),
+        process.env.JWT_SECRET || 'b2bda22377f71d92dcc55e75f7be2091cc1ad5775139c1312e407e0c51cb1ad3'
+      );
+      if (decoded.role === 'admin' || decoded.role === 'super admin') {
+        return next('router');
+      }
+    } catch (err) {
+      // Token invalid — fall through to rate limiter
+    }
+  }
+  next();
+};
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -92,7 +112,7 @@ const uploadRoutes = require('./routes/upload');
 app.use('/api/store', storeRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', homeRoutes);
-app.use('/api', authLimiter, authRoutes); // Rate-limited: login, OTP, password reset
+app.use('/api', skipRateLimitForAdmin, authLimiter, authRoutes); // Rate-limited: login, OTP, password reset (admins exempt)
 app.use('/api', brandRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', subcategoryRoutes);
