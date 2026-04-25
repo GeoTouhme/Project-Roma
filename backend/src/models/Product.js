@@ -42,7 +42,6 @@ const productSchema = new mongoose.Schema(
     subCategory: {
       type: mongoose.Types.ObjectId,
       ref: 'SubCategory',
-      required: [true, 'please provide a sub category id'],
     },
     gender: {
       type: String,

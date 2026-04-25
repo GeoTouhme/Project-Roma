@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchBar } from "@/components/SearchBar";
 import { Table } from "@/components/Table";
@@ -14,17 +14,19 @@ import {
 } from "@/components/ui/select";
 import PageSizeSelector from "@/components/PageSizeSelector";
 import Pagination from "@/components/Pagination";
-import { Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Download, Upload } from "lucide-react";
 import { productsAPI, categoriesAPI } from "@/lib/api";
 
 const Products = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Data state
   const [products, setProducts] = useState<any[]>([]);
@@ -136,8 +138,76 @@ const Products = () => {
     }
   };
 
+  // ─── CSV Download Handler ───
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const response = await productsAPI.exportCSV();
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const date = new Date().toISOString().split('T')[0];
+      link.href = url;
+      link.download = `inventory_${date}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Inventory CSV downloaded successfully");
+    } catch (error) {
+      console.error("Failed to export CSV:", error);
+      toast.error("Failed to download inventory CSV");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // ─── CSV Upload Handler ───
+  const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const response = await productsAPI.importCSV(file);
+      if (response.data.success) {
+        const { created, updated, errors } = response.data.data;
+        toast.success(
+          `Import complete! Created: ${created}, Updated: ${updated}${errors.length > 0 ? `, Errors: ${errors.length}` : ''}`
+        );
+        if (errors.length > 0) {
+          console.warn("Import errors:", errors);
+          toast.warning(`${errors.length} row(s) had errors. Check console for details.`);
+        }
+        // Refresh product list
+        setCurrentPage(1);
+      } else {
+        toast.error(response.data.message || "Import failed");
+      }
+    } catch (error: any) {
+      console.error("Failed to import CSV:", error);
+      toast.error(error.response?.data?.message || "Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      // Reset file input so the same file can be re-uploaded
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 w-full">
+      {/* Hidden file input for CSV upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        onChange={handleImportCSV}
+        className="hidden"
+        id="csv-upload-input"
+      />
+
       {/* Page Header */}
       <PageHeader
         title="Products"
@@ -149,6 +219,26 @@ const Products = () => {
           </Button>
         }
       />
+
+      {/* CSV Action Buttons */}
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          onClick={handleExportCSV}
+          disabled={isExporting}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          {isExporting ? "Exporting..." : "Download Inventory CSV"}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isImporting}
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          {isImporting ? "Importing..." : "Upload Inventory CSV"}
+        </Button>
+      </div>
 
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -288,3 +378,4 @@ const Products = () => {
 };
 
 export default Products;
+

@@ -730,6 +730,297 @@ const getOneProductBySlug = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ─── CSV Helper: Escape a value for CSV (handles commas, quotes, newlines) ───
+function csvEscape(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+// ─── CSV Helper: Parse a single CSV line respecting quoted fields ───
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// ─── Slug generator: "Jack Daniels 750ml" → "jack-daniels-750ml" ───
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// ─── EXPORT INVENTORY CSV ───
+const exportInventoryCSV = async (req, res) => {
+  try {
+    const products = await Product.find()
+      .populate('category', 'name')
+      .populate('subCategory', 'name')
+      .lean();
+
+    const headers = ['UPC', 'Name', 'Price', 'Sale Price', 'Stock', 'Category', 'SubCategory', 'Status', 'Code', 'Description', 'Image URL'];
+    const csvRows = [headers.join(',')];
+
+    for (const p of products) {
+      const imageUrl = (p.images && p.images.length > 0) ? p.images[0].url : '';
+      const row = [
+        csvEscape(p.sku || ''),
+        csvEscape(p.name || ''),
+        csvEscape(p.price != null ? p.price : ''),
+        csvEscape(p.priceSale != null ? p.priceSale : ''),
+        csvEscape(p.available != null ? p.available : 0),
+        csvEscape(p.category ? p.category.name : ''),
+        csvEscape(p.subCategory ? p.subCategory.name : ''),
+        csvEscape(p.status || ''),
+        csvEscape(p.code || ''),
+        csvEscape(p.description || ''),
+        csvEscape(imageUrl),
+      ];
+      csvRows.push(row.join(','));
+    }
+
+    const csvContent = csvRows.join('\n');
+    const date = new Date().toISOString().split('T')[0];
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=inventory_${date}.csv`);
+    res.status(200).send(csvContent);
+  } catch (error) {
+    console.error('Export CSV Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to export inventory', error: error.message });
+  }
+};
+
+// ─── IMPORT INVENTORY CSV ───
+const importInventoryCSV = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
+    }
+
+    const csvText = req.file.buffer.toString('utf-8');
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+
+    if (lines.length < 2) {
+      return res.status(400).json({ success: false, message: 'CSV file is empty or has no data rows.' });
+    }
+
+    // Parse header row
+    const headerRow = parseCSVLine(lines[0]);
+    const headerMap = {};
+    headerRow.forEach((h, i) => {
+      headerMap[h.toLowerCase().trim()] = i;
+    });
+
+    // Validate required header
+    if (headerMap['upc'] === undefined) {
+      return res.status(400).json({ success: false, message: 'CSV must have a "UPC" column.' });
+    }
+
+    // Pre-fetch all categories and subcategories for name matching
+    const allCategories = await Category.find().select('name').lean();
+    const allSubCategories = await SubCategory.find().select('name').lean();
+
+    const catMap = {};
+    allCategories.forEach(c => { catMap[c.name.toLowerCase()] = c._id; });
+    const subCatMap = {};
+    allSubCategories.forEach(s => { subCatMap[s.name.toLowerCase()] = s._id; });
+
+    const results = { created: 0, updated: 0, errors: [] };
+
+    // Helper to get column value by header name
+    const getVal = (fields, headerName) => {
+      const idx = headerMap[headerName];
+      if (idx === undefined || idx >= fields.length) return undefined;
+      const val = fields[idx].trim();
+      return val === '' ? undefined : val;
+    };
+
+    for (let i = 1; i < lines.length; i++) {
+      try {
+        const fields = parseCSVLine(lines[i]);
+        const upc = getVal(fields, 'upc');
+
+        if (!upc) {
+          results.errors.push(`Row ${i + 1}: Missing UPC — skipped.`);
+          continue;
+        }
+
+        const existingProduct = await Product.findOne({ sku: upc });
+
+        if (existingProduct) {
+          // ─── UPDATE existing product ───
+          const updateFields = {};
+
+          const name = getVal(fields, 'name');
+          if (name !== undefined) updateFields.name = name;
+
+          const price = getVal(fields, 'price');
+          if (price !== undefined) updateFields.price = parseFloat(price);
+
+          const priceSale = getVal(fields, 'sale price');
+          if (priceSale !== undefined) updateFields.priceSale = parseFloat(priceSale);
+
+          const stock = getVal(fields, 'stock');
+          if (stock !== undefined) updateFields.available = parseInt(stock, 10);
+
+          const status = getVal(fields, 'status');
+          if (status !== undefined) updateFields.status = status;
+
+          const code = getVal(fields, 'code');
+          if (code !== undefined) updateFields.code = code;
+
+          const description = getVal(fields, 'description');
+          if (description !== undefined) updateFields.description = description;
+
+          const categoryName = getVal(fields, 'category');
+          if (categoryName && catMap[categoryName.toLowerCase()]) {
+            updateFields.category = catMap[categoryName.toLowerCase()];
+          }
+
+          const subCategoryName = getVal(fields, 'subcategory');
+          if (subCategoryName && subCatMap[subCategoryName.toLowerCase()]) {
+            updateFields.subCategory = subCatMap[subCategoryName.toLowerCase()];
+          }
+
+          const imageUrl = getVal(fields, 'image url');
+          if (imageUrl !== undefined) {
+            updateFields.images = [{
+              url: imageUrl,
+              _id: `csv_import_${Date.now()}_${i}`,
+              blurDataURL: imageUrl,
+            }];
+          }
+
+          if (Object.keys(updateFields).length > 0) {
+            await Product.findByIdAndUpdate(existingProduct._id, updateFields, { runValidators: true });
+          }
+          results.updated++;
+        } else {
+          // ─── CREATE new product ───
+          const name = getVal(fields, 'name');
+          const priceSale = getVal(fields, 'sale price');
+          const stock = getVal(fields, 'stock');
+          const categoryName = getVal(fields, 'category');
+
+          if (!name) {
+            results.errors.push(`Row ${i + 1}: New product (UPC: ${upc}) missing Name — skipped.`);
+            continue;
+          }
+          if (!priceSale) {
+            results.errors.push(`Row ${i + 1}: New product (UPC: ${upc}) missing Sale Price — skipped.`);
+            continue;
+          }
+          if (stock === undefined) {
+            results.errors.push(`Row ${i + 1}: New product (UPC: ${upc}) missing Stock — skipped.`);
+            continue;
+          }
+
+          const categoryId = categoryName ? catMap[categoryName.toLowerCase()] : null;
+          if (!categoryId) {
+            results.errors.push(`Row ${i + 1}: New product (UPC: ${upc}) — category "${categoryName || 'empty'}" not found — skipped.`);
+            continue;
+          }
+
+          // Generate unique slug
+          let baseSlug = generateSlug(name);
+          let slug = baseSlug;
+          let slugCounter = 1;
+          while (await Product.findOne({ slug })) {
+            slug = `${baseSlug}-${slugCounter}`;
+            slugCounter++;
+          }
+
+          const newProduct = {
+            sku: upc,
+            name: name,
+            slug: slug,
+            price: parseFloat(getVal(fields, 'price') || priceSale),
+            priceSale: parseFloat(priceSale),
+            available: parseInt(stock, 10),
+            category: categoryId,
+            status: getVal(fields, 'status') || 'enabled',
+            code: getVal(fields, 'code') || '',
+            description: getVal(fields, 'description') || '',
+            likes: 0,
+            sold: 0,
+            images: [],
+            colors: [],
+            sizes: [],
+          };
+
+          // SubCategory (optional)
+          const subCategoryName = getVal(fields, 'subcategory');
+          if (subCategoryName && subCatMap[subCategoryName.toLowerCase()]) {
+            newProduct.subCategory = subCatMap[subCategoryName.toLowerCase()];
+          }
+
+          // Image (optional)
+          const imageUrl = getVal(fields, 'image url');
+          if (imageUrl) {
+            newProduct.images = [{
+              url: imageUrl,
+              _id: `csv_import_${Date.now()}_${i}`,
+              blurDataURL: imageUrl,
+            }];
+          }
+
+          await Product.create(newProduct);
+          results.created++;
+        }
+      } catch (rowError) {
+        results.errors.push(`Row ${i + 1}: ${rowError.message}`);
+      }
+    }
+
+    console.log(`CSV Import complete — Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Import complete. Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`,
+      data: results,
+    });
+  } catch (error) {
+    console.error('Import CSV Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to import inventory', error: error.message });
+  }
+};
+
 module.exports = {
   getProducts,
   getFilters,
@@ -743,4 +1034,6 @@ module.exports = {
   getFiltersBySubCategory,
   relatedProducts,
   getOneProductBySlug,
+  exportInventoryCSV,
+  importInventoryCSV,
 };

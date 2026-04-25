@@ -101,6 +101,17 @@ export const productsAPI = {
 
     deleteProduct: (id: string) =>
         api.delete(`/api/admin/products/${id}`),
+
+    exportCSV: () =>
+        api.get('/api/admin/products/export-csv', { responseType: 'blob' }),
+
+    importCSV: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/api/admin/products/import-csv', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
 };
 
 export const customersAPI = {
