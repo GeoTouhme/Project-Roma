@@ -138,10 +138,33 @@ const Header = () => {
 
   const fetchAllCategories = () => {
     setLoading(true);
+
+    // Same IDs used in backend/src/controllers/product.js
+    const ALCOHOLIC_CATEGORY_IDS = new Set([
+      '69bc40b76f0fa539b06ef96a', // TEQUILA
+      '69bc40d16f0fa539b06ef988', // RUM
+      '69bc40df6f0fa539b06ef992', // WINE
+      '69bc40e26f0fa539b06ef997', // GIN
+      '69bc41066f0fa539b06ef9b4', // VODKA
+      '69bc42556f0fa539b06efa4f', // BEER
+      '69bc44f76f0fa539b06efb77', // WHISKEY
+      '69bd4c23013d204dfbd805e3', // COCKTAILS & SELTZERS
+      '69bd4c23013d204dfbd805e5', // LIQUEUR & SPIRITS
+    ]);
+
     CategoriesService.allCatgeories()
       .then((response) => {
         if (response?.success) {
-          const formattedData = response.data.map((category) => ({
+          // Sort: alcohol categories first, then the rest
+          const sortedData = [...response.data].sort((a, b) => {
+            const aIsAlcohol = ALCOHOLIC_CATEGORY_IDS.has(a._id);
+            const bIsAlcohol = ALCOHOLIC_CATEGORY_IDS.has(b._id);
+            if (aIsAlcohol && !bIsAlcohol) return -1;
+            if (!aIsAlcohol && bIsAlcohol) return 1;
+            return 0;
+          });
+
+          const formattedData = sortedData.map((category) => ({
             title: category.name,
             link: `/products/${category.slug}`,
             subMenu: category.subCategories?.length
