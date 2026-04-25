@@ -12,9 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import PageSizeSelector from "@/components/PageSizeSelector";
 import Pagination from "@/components/Pagination";
-import { Plus, Download, Upload } from "lucide-react";
+import { Plus, Download, Upload, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { productsAPI, categoriesAPI } from "@/lib/api";
 
 const Products = () => {
@@ -27,6 +34,8 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [importResultOpen, setImportResultOpen] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
 
   // Data state
   const [products, setProducts] = useState<any[]>([]);
@@ -172,13 +181,8 @@ const Products = () => {
       const response = await productsAPI.importCSV(file);
       if (response.data.success) {
         const { created, updated, errors } = response.data.data;
-        toast.success(
-          `Import complete! Created: ${created}, Updated: ${updated}${errors.length > 0 ? `, Errors: ${errors.length}` : ''}`
-        );
-        if (errors.length > 0) {
-          console.warn("Import errors:", errors);
-          toast.warning(`${errors.length} row(s) had errors. Check console for details.`);
-        }
+        setImportResult({ created, updated, errors });
+        setImportResultOpen(true);
         // Refresh product list
         setCurrentPage(1);
       } else {
@@ -186,7 +190,9 @@ const Products = () => {
       }
     } catch (error: any) {
       console.error("Failed to import CSV:", error);
-      toast.error(error.response?.data?.message || "Failed to import CSV");
+      const errorMsg = error.response?.data?.message || "Failed to import CSV";
+      setImportResult({ created: 0, updated: 0, errors: [errorMsg] });
+      setImportResultOpen(true);
     } finally {
       setIsImporting(false);
       // Reset file input so the same file can be re-uploaded
@@ -373,6 +379,74 @@ const Products = () => {
           onPageChange={setCurrentPage}
         />
       </div>
+
+      {/* Import Results Dialog */}
+      <Dialog open={importResultOpen} onOpenChange={setImportResultOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg">CSV Import Results</DialogTitle>
+            <DialogDescription>Summary of the inventory import operation.</DialogDescription>
+          </DialogHeader>
+
+          {importResult && (
+            <div className="space-y-4">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="text-xl font-bold text-green-700">{importResult.created}</div>
+                    <div className="text-xs text-green-600">Created</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <div className="text-xl font-bold text-blue-700">{importResult.updated}</div>
+                    <div className="text-xs text-blue-600">Updated</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                  <div>
+                    <div className="text-xl font-bold text-red-700">{importResult.errors.length}</div>
+                    <div className="text-xs text-red-600">Errors</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Details */}
+              {importResult.errors.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-red-700">
+                    <AlertTriangle className="h-4 w-4" />
+                    Error Details
+                  </div>
+                  <div className="max-h-[250px] overflow-y-auto rounded-md border border-red-200 bg-red-50/50 p-3 space-y-1">
+                    {importResult.errors.map((err, idx) => (
+                      <div key={idx} className="text-sm text-red-700 py-1 border-b border-red-100 last:border-0">
+                        {err}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Success message when no errors */}
+              {importResult.errors.length === 0 && (importResult.created > 0 || importResult.updated > 0) && (
+                <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  All rows imported successfully!
+                </div>
+              )}
+
+              <Button onClick={() => setImportResultOpen(false)} className="w-full">
+                Close
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
