@@ -110,7 +110,7 @@ backend/src/
 │   └── upload.js         # Multer config
 ├── models/               # Mongoose schemas
 │   ├── User.js           # firstName, lastName, email, password (bcrypt hashed), role, OTP, wishlist, orders
-│   ├── Product.js        # name, sku, slug, price, priceSale, images (Cloudinary), category/subCategory refs
+│   ├── Product.js        # name, sku, slug, price, priceSale, images (Cloudinary), category ref (required), subCategory ref (optional)
 │   ├── Order.js          # paymentMethod (Stripe/PayPal/COD), items, user snapshot, DoorDash delivery fields
 │   ├── Category.js, SubCategory.js, Brand.js
 │   ├── Review.js, CouponCode.js, Newsletter.js, Notification.js
@@ -149,6 +149,8 @@ All routes are mounted under `/api/`. Examples:
 - `POST /api/orders`, `GET /api/orders/:id`
 - `GET /api/dashboard/stats`
 - `GET /api/store/status` — returns `isOpen`, `message`, `schedule`
+- `GET /api/admin/products/export-csv` — downloads full inventory as CSV (admin-only)
+- `POST /api/admin/products/import-csv` — uploads CSV to upsert products by UPC/SKU (admin-only, multipart/form-data)
 - `GET /api/settings`
 
 ### DoorDash Drive Integration
@@ -186,7 +188,7 @@ All routes are mounted under `/api/`. Examples:
 - `/login` — admin authentication
 - `/dashboard` — sales analytics, charts, recent orders
 - `/orders`, `/orders/:id` — order management with DoorDash status
-- `/products`, `/products/new`, `/products/edit/:id` — product CRUD
+- `/products`, `/products/new`, `/products/edit/:id` — product CRUD + CSV download/upload buttons
 - `/categories`, `/sub-categories` — taxonomy management
 - `/customers` — customer management
 - `/newsletters` — email subscriber management
@@ -348,6 +350,18 @@ cd customer-panel && npm run build  # → build/
 2. Update `backend/src/controllers/product.js` (create/update handlers)
 3. Update `admin-panel/src/pages/ProductForm.tsx`
 4. Update `customer-panel` product display components as needed
+
+### CSV Inventory Operations
+The admin Products page (`/products`) has two CSV buttons:
+- **Download Inventory CSV** — exports all products with: UPC, Name, Price, Sale Price, Stock, Category, SubCategory, Status, Code, Description, Image URL (Cloudinary)
+- **Upload Inventory CSV** — imports a CSV file. Matches products by UPC (`sku` field):
+  - Existing UPC → updates only the provided fields
+  - New UPC → creates a new product (requires at least: UPC, Name, Sale Price, Stock, Category)
+  - Slugs are auto-generated from product name for new products
+  - Category/SubCategory matched by name (case-insensitive)
+  - Image URL column is optional
+
+Backend routes: `GET /api/admin/products/export-csv`, `POST /api/admin/products/import-csv` (multer memory storage, 10MB max, CSV-only)
 
 ### Run database scripts
 ```bash
