@@ -303,7 +303,7 @@ const Products = () => {
             accessorKey: (row) => {
               if (editingCategoryId === row.slug) {
                 return (
-                  <Select value={row.categoryData?.name || ""} onValueChange={(val) => handleCategoryChange(row._id, val)}>
+                  <Select value={row.categoryData?._id || row.category || ""} onValueChange={(val) => handleCategoryChange(row.slug, val)}>
                     <SelectTrigger className="h-6 w-[140px]">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
