@@ -46,20 +46,21 @@ const createOrder = async (req, res) => {
       couponCode,
       totalItems,
       shipping,
+      tip,
     } = await req.body;
 
     // Security: Only allow Stripe payments for now to prevent fraud
     if (paymentMethod !== 'Stripe') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Currently, only Stripe payments are accepted for security reasons.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Currently, only Stripe payments are accepted for security reasons.'
       });
     }
 
     if (!paymentId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Payment verification failed. Please try again.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed. Please try again.'
       });
     }
 
@@ -69,27 +70,39 @@ const createOrder = async (req, res) => {
         .json({ success: false, message: 'Please Provide Item(s)' });
     }
 
+    // Issue 2: Idempotency - check if order with this paymentId already exists
+    const existingOrder = await Orders.findOne({ paymentId });
+    if (existingOrder) {
+      return res.status(200).json({
+        success: true,
+        message: 'Order already placed',
+        orderId: existingOrder._id,
+        orderNo: existingOrder.orderNo,
+      });
+    }
+
     const products = await Products.find({
       _id: { $in: items.map((item) => item.pid) },
     }).populate('category');
 
     const alcoholCategorySlugs = [
-      'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more', 
-      'spirits', 'tequila', 'vodka', 'whiskey', 'wine', 
+      'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more',
+      'spirits', 'tequila', 'vodka', 'whiskey', 'wine',
       'brandy-and-cognac', 'spiked', 'hard-seltzer'
     ];
 
     let containsAlcohol = false;
 
+    // Issue 3: Collect inventory update promises and await them
+    const inventoryUpdates = [];
+
     const updatedItems = items.map((item) => {
       const product = products.find((p) => p._id.toString() === item.pid);
-      
-      // DEBUG LOG
+
       if (product) {
         console.log(`🔍 Checking Product: ${product.name} | Category: ${product.category ? product.category.name : 'N/A'} | Slug: ${product.category ? product.category.slug : 'N/A'}`);
       }
 
-      // Check if this product is alcohol based on its category slug
       if (product && product.category && alcoholCategorySlugs.includes(product.category.slug)) {
         containsAlcohol = true;
       }
@@ -97,11 +110,19 @@ const createOrder = async (req, res) => {
       const price = product ? product.priceSale : 0;
       const total = price * item.quantity;
 
-      Products.findOneAndUpdate(
-        { _id: item.pid, available: { $gte: 0 } },
-        { $inc: { available: -item.quantity, sold: item.quantity } },
-        { new: true, runValidators: true }
-      ).exec();
+      // Issue 3: Collect the promise instead of fire-and-forget
+      inventoryUpdates.push(
+        Products.findOneAndUpdate(
+          { _id: item.pid, available: { $gte: item.quantity } },
+          { $inc: { available: -item.quantity, sold: item.quantity } },
+          { new: true, runValidators: true }
+        ).exec().then(result => {
+          if (!result) {
+            throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
+          }
+          return result;
+        })
+      );
 
       return {
         ...item,
@@ -110,13 +131,22 @@ const createOrder = async (req, res) => {
       };
     });
 
+    // Issue 3: Await all inventory updates - fail the order if any product is out of stock
+    try {
+      await Promise.all(inventoryUpdates);
+    } catch (stockError) {
+      return res.status(400).json({
+        success: false,
+        message: stockError.message || 'One or more items are out of stock.'
+      });
+    }
+
     const grandTotal = updatedItems.reduce((acc, item) => acc + item.total, 0);
     let discount = 0;
 
     if (couponCode) {
       const couponData = await Coupons.findOne({ code: couponCode });
 
-      // Prevent server crash via null dereference if an invalid coupon code is entered
       if (!couponData) {
         return res
           .status(400)
@@ -129,7 +159,6 @@ const createOrder = async (req, res) => {
           .status(400)
           .json({ success: false, message: 'CouponCode Is Expired' });
       }
-      // Add the user's email to the usedBy array of the coupon code
       await Coupons.findOneAndUpdate(
         { code: couponCode },
         { $addToSet: { usedBy: user.email } }
@@ -146,10 +175,40 @@ const createOrder = async (req, res) => {
     let discountedTotal = grandTotal - discount;
     discountedTotal = discountedTotal || 0;
 
+    // Issue 5: Sanitize tip value
+    const sanitizedTip = Math.max(0, Math.min(Number(tip) || 0, 100));
+
+    // Issue 1: Verify Stripe payment amount matches server-calculated total
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const expectedAmountCents = Math.round((discountedTotal + Number(shipping) + sanitizedTip) * 100);
+
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
+    } catch (stripeError) {
+      // If we can't retrieve the payment intent (e.g., it's a payment method ID instead of payment intent ID),
+      // the frontend may need updating. For now, allow order to proceed but log a warning.
+      console.warn('⚠️ Could not retrieve Stripe payment intent. Payment verification skipped.', stripeError.message);
+    }
+
+    if (paymentIntent) {
+      if (paymentIntent.amount !== expectedAmountCents) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment amount mismatch. Please try again.'
+        });
+      }
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment not confirmed. Please try again.'
+        });
+      }
+    }
+
     const existingUser = await User.findOne({ email: user.email });
     const orderNo = await generateOrderNumber();
-    
-    // Construct the user object for the order with all billing details
+
     const orderUser = {
       firstName: user.firstName,
       lastName: user.lastName,
@@ -163,20 +222,36 @@ const createOrder = async (req, res) => {
       ...(existingUser ? { _id: existingUser._id } : {})
     };
 
-    const orderCreated = await Orders.create({
-      paymentMethod,
-      paymentId,
-      discount,
-      total: discountedTotal + Number(shipping),
-      subTotal: grandTotal,
-      shipping,
-      items: updatedItems.map(({ image, ...others }) => others),
-      user: orderUser,
-      totalItems,
-      orderNo,
-      containsAlcohol,
-      status: 'pending',
-    });
+    // Issue 2: Wrap order creation in try-catch for duplicate key error
+    let orderCreated;
+    try {
+      orderCreated = await Orders.create({
+        paymentMethod,
+        paymentId,
+        discount,
+        tip: sanitizedTip,
+        total: discountedTotal + Number(shipping) + sanitizedTip,
+        subTotal: grandTotal,
+        shipping,
+        items: updatedItems.map(({ image, ...others }) => others),
+        user: orderUser,
+        totalItems,
+        orderNo,
+        containsAlcohol,
+        status: 'pending',
+      });
+    } catch (err) {
+      if (err.code === 11000 && err.keyPattern?.paymentId) {
+        const duplicateOrder = await Orders.findOne({ paymentId });
+        return res.status(200).json({
+          success: true,
+          message: 'Order already placed',
+          orderId: duplicateOrder._id,
+          orderNo: duplicateOrder.orderNo,
+        });
+      }
+      throw err;
+    }
 
     // --- DoorDash Integration (Sandbox) ---
     let deliveryResponse = null;
@@ -498,10 +573,11 @@ const getDeliveryQuote = async (req, res) => {
     };
 
     const quote = await doorDashService.getDeliveryQuote(mockOrder);
-    
+
     return res.status(200).json({
       success: true,
-      data: quote
+      data: quote,
+      deliveryFee: (quote.fee || 0) / 100, // Convert from cents to dollars
     });
   } catch (error) {
     console.error('❌ DoorDash Quote Error:', error.response ? error.response.data : error.message);

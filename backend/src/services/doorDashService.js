@@ -68,7 +68,7 @@ class DoorDashService {
         pickup_instructions: "Please come to the main counter and ask for Balport Liquors online pickup.",
         order_value: Math.round(orderData.total * 100),
         pickup_time: pickupTime.toISOString(),
-        tip: 0, 
+        tip: Math.round((orderData.tip || 0) * 100), // DoorDash expects tip in cents
         contactless_dropoff: orderData.containsAlcohol ? false : true,
         items: orderData.items.map(item => ({
           name: item.name,

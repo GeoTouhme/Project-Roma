@@ -28,8 +28,6 @@ const Billing = () => {
   const { isOpen: storeIsOpen } = useSelector((state) => state.storeStatus);
   const subtotal = cartItems?.reduce((total, item) => total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity, 0);
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Stripe");
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [address, setAddress] = useState("");
@@ -45,6 +43,8 @@ const Billing = () => {
   const [checkingQuote, setCheckingQuote] = useState(false);
   const [quoteVerified, setQuoteVerified] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
+  const [tip, setTip] = useState(0);
+  const [deliveryFee, setDeliveryFee] = useState(0);
 
   // List of supported Zip Codes
   const supportedZipCodes = ["92663", "92646", "92612", "92647", "92661", "92707", "92648"];
@@ -100,7 +100,8 @@ const Billing = () => {
   const handleZipChange = (val) => {
     setZip(val);
     setErrors((prev) => ({ ...prev, zip: "" }));
-    setQuoteVerified(false); 
+    setQuoteVerified(false);
+    setDeliveryFee(0); 
     
     if (val.length === 5) {
       if (!supportedZipCodes.includes(val)) {
@@ -149,6 +150,8 @@ const Billing = () => {
       });
 
       if (response.success) {
+        const fee = response.deliveryFee || 0;
+        setDeliveryFee(fee);
         setQuoteVerified(true);
         setCheckoutError(null);
       } else {
@@ -229,41 +232,28 @@ const Billing = () => {
     });
 
     const orderPayload = {
-      paymentMethod: selectedPaymentMethod, // COD or stripe
+      paymentMethod: "Stripe", // COD or stripe
       items,
       user,
       totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
       couponCode: null,
-      shipping: "0",
+      shipping: deliveryFee.toString(),
+      tip,
     };
 
     setProcessing(true);
     setCheckoutError(null);
 
-    if (selectedPaymentMethod === "COD") {
-      try {
-        // await PaymentService.createOrder(orderPayload); // COD only
-        setCheckoutError('Cash On Delivery: Temporary Unavailable');
-        setProcessing(false);
-        // Redirect to success page or show confirmation
-      } catch (err) {
-        setCheckoutError(err?.response?.data?.message || 'Order creation failed');
-        setProcessing(false);
-      }
+    const cardElement = elements.getElement(CardElement);
+
+    if (!stripe || !elements || !cardElement) {
+      setCheckoutError("Stripe has not loaded yet.");
+      setProcessing(false);
       return;
     }
 
-    if (selectedPaymentMethod === "Stripe") {
-      const cardElement = elements.getElement(CardElement);
-
-      if (!stripe || !elements || !cardElement) {
-        setCheckoutError("Stripe has not loaded yet.");
-        setProcessing(false);
-        return;
-      }
-
-      try {
-        const clientSecret = await PaymentService.paymentIntentCreate({ amount: subtotal }).then(res => res.client_secret);
+    try {
+      const clientSecret = await PaymentService.paymentIntentCreate({ amount: subtotal + deliveryFee + tip }).then(res => res.client_secret);
 
         const billingDetails = {
           name: `${firstName} ${lastName}`,
@@ -301,7 +291,7 @@ const Billing = () => {
 
         const orderResponse = await OrderService.creteOrder({
           ...orderPayload,
-          paymentId: paymentMethodReq.paymentMethod.id,
+          paymentId: confirmRes.paymentIntent.id, // Use PaymentIntent ID for verification
         });
 
         console.log("orderResponse= ", orderResponse?.orderId);
@@ -403,6 +393,7 @@ const Billing = () => {
                     setAddress(e.target.value);
                     setErrors((prev) => ({ ...prev, address: "" }));
                     setQuoteVerified(false);
+                    setDeliveryFee(0);
                   }}
                   className={`border rounded-lg h-11 p-3 w-full ${errors.address ? "border-red-500" : ""}`}
                   placeholder="Start typing your address..."
@@ -421,6 +412,7 @@ const Billing = () => {
                       setCity(e.target.value);
                       setErrors((prev) => ({ ...prev, city: "" }));
                       setQuoteVerified(false);
+                      setDeliveryFee(0);
                     }}
                     className={`border rounded-lg h-11 p-3 w-full ${errors.city ? "border-red-500" : ""}`}
                     placeholder="Enter city"
@@ -466,6 +458,7 @@ const Billing = () => {
                       setPhone(e.target.value);
                       setErrors((prev) => ({ ...prev, phone: "" }));
                       setQuoteVerified(false);
+                      setDeliveryFee(0);
                     }}
                     className={`border rounded-lg h-11 p-3 w-full ${errors.phone ? "border-red-500" : ""}`}
                     placeholder="Enter your phone number"
@@ -563,23 +556,48 @@ const Billing = () => {
                 <p className="font-semibold">${subtotal.toFixed(2)}</p>
               </div>
               <div className="flex justify-between">
-                <p>Shipping:</p>
-                <p className="font-semibold">Free</p>
+                <p>Delivery Fee:</p>
+                <p className="font-semibold">
+                  {deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}
+                </p>
               </div>
+              {!quoteVerified && (
+                <p className="text-xs text-gray-400 italic">
+                  Delivery fee calculated after address verification
+                </p>
+              )}
               <hr />
               <div className="flex justify-between font-semibold text-lg">
                 <p>Total:</p>
-                <p>${subtotal.toFixed(2)}</p>
+                <p>${(subtotal + deliveryFee + tip).toFixed(2)}</p>
+              </div>
+            </div>
+
+            {/* Driver Tip */}
+            <div className="mt-2">
+              <p className="font-semibold mb-1">Driver Tip</p>
+              <div className="flex gap-2">
+                {[0, 2, 3, 5].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setTip(amount)}
+                    className={`px-3 py-1 rounded-lg border text-sm font-semibold transition-colors ${
+                      tip === amount
+                        ? "bg-[#B5223B] text-white border-[#B5223B]"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-[#B5223B]"
+                    }`}
+                  >
+                    {amount === 0 ? "No tip" : `$${amount}`}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Stripe card input */}
-            {selectedPaymentMethod === "Stripe" && (
-              <div className="mt-4 border rounded p-4">
-                <label className="block font-semibold mb-2">Card Details</label>
-                <CardElement options={cardElementOpts} onChange={() => setCheckoutError(null)} />
-              </div>
-            )}
+            <div className="mt-4 border rounded p-4">
+              <label className="block font-semibold mb-2">Card Details</label>
+              <CardElement options={cardElementOpts} onChange={() => setCheckoutError(null)} />
+            </div>
             {checkoutError && <p className="text-red-500 font-semibold mb-2">{checkoutError}</p>}
             {quoteVerified && !checkoutError && <p className="text-green-600 font-semibold mb-2 flex items-center gap-1">✅ Delivery address verified</p>}
             {checkingQuote && <p className="text-blue-600 font-semibold mb-2 animate-pulse">Checking delivery availability...</p>}

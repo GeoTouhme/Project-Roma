@@ -33,6 +33,10 @@ const OrderSchema = new mongoose.Schema(
     discount: {
       type: Number,
     },
+    tip: {
+      type: Number,
+      default: 0,
+    },
     status: {
       type: String,
     },
@@ -101,6 +105,8 @@ const OrderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+OrderSchema.index({ paymentId: 1 }, { unique: true, sparse: true });
 
 const Order = mongoose.models.Order || mongoose.model('Order', OrderSchema);
 module.exports = Order;
