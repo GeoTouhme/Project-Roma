@@ -232,7 +232,7 @@ const Billing = () => {
     });
 
     const orderPayload = {
-      paymentMethod: "Stripe", // COD or stripe
+      paymentMethod: "Stripe",
       items,
       user,
       totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
@@ -255,62 +255,60 @@ const Billing = () => {
     try {
       const clientSecret = await PaymentService.paymentIntentCreate({ amount: subtotal + deliveryFee + tip }).then(res => res.client_secret);
 
-        const billingDetails = {
-          name: `${firstName} ${lastName}`,
-          email,
-          phone,
-          address: {
-            city,
-            country,
-            line1: address,
-            postal_code: zip,
-          },
-        };
+      const billingDetails = {
+        name: `${firstName} ${lastName}`,
+        email,
+        phone,
+        address: {
+          city,
+          country,
+          line1: address,
+          postal_code: zip,
+        },
+      };
 
-        const paymentMethodReq = await stripe.createPaymentMethod({
-          type: 'card',
-          card: cardElement,
-          billing_details: billingDetails,
-        });
+      const paymentMethodReq = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+        billing_details: billingDetails,
+      });
 
-        if (paymentMethodReq.error) {
-          setCheckoutError(paymentMethodReq.error.message);
-          setProcessing(false);
-          return;
-        }
-
-        const confirmRes = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: paymentMethodReq.paymentMethod.id,
-        });
-
-        if (confirmRes.error) {
-          setCheckoutError(confirmRes.error.message);
-          setProcessing(false);
-          return;
-        }
-
-        const orderResponse = await OrderService.creteOrder({
-          ...orderPayload,
-          paymentId: confirmRes.paymentIntent.id, // Use PaymentIntent ID for verification
-        });
-
-        console.log("orderResponse= ", orderResponse?.orderId);
-        toast.success("Order placed!")
+      if (paymentMethodReq.error) {
+        setCheckoutError(paymentMethodReq.error.message);
         setProcessing(false);
-        dispatch(clearCart());
-        setTimeout(() => {
-          if (orderResponse?.orderId)
-            navigate(`/order/${orderResponse?.orderId}`)
-        }, 1500);
-
-        // Redirect to success or confirmation page
-      } catch (err) {
-        console.log("err= ", err);
-        toast.error(err?.response?.data?.message || 'Something went wrong');
-        setCheckoutError(err?.response?.data?.message || 'Payment failed');
-        setProcessing(false);
+        return;
       }
+
+      const confirmRes = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: paymentMethodReq.paymentMethod.id,
+      });
+
+      if (confirmRes.error) {
+        setCheckoutError(confirmRes.error.message);
+        setProcessing(false);
+        return;
+      }
+
+      const orderResponse = await OrderService.creteOrder({
+        ...orderPayload,
+        paymentId: confirmRes.paymentIntent.id,
+      });
+
+      console.log("orderResponse= ", orderResponse?.orderId);
+      toast.success("Order placed!")
+      setProcessing(false);
+      dispatch(clearCart());
+      setTimeout(() => {
+        if (orderResponse?.orderId)
+          navigate(`/order/${orderResponse?.orderId}`)
+      }, 1500);
+    } catch (err) {
+      console.log("err= ", err);
+      toast.error(err?.response?.data?.message || 'Something went wrong');
+      setCheckoutError(err?.response?.data?.message || 'Payment failed');
+      setProcessing(false);
     }
+  };
   };
 
   const iframeStyles = {
