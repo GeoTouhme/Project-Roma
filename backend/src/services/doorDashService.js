@@ -85,7 +85,7 @@ class DoorDashService {
         action_if_undeliverable: orderData.containsAlcohol ? "return_to_pickup" : "dispose"
       };
 
-      console.log('📦 Sending Fully-Compliant Payload:', JSON.stringify(payload, null, 2));
+      console.log('📦 Creating DoorDash delivery for order:', payload.external_delivery_id);
 
       const response = await axios.post(this.baseUrl, payload, {
         headers: {
@@ -118,7 +118,7 @@ class DoorDashService {
         action_if_undeliverable: deliveryData.containsAlcohol ? "return_to_pickup" : "dispose"
       };
 
-      console.log('📦 Sending Fully-Validated Quote Payload:', JSON.stringify(payload, null, 2));
+      console.log('📦 Requesting DoorDash delivery quote for:', payload.dropoff_address);
 
       const response = await axios.post(this.quoteUrl, payload, {
         headers: {
@@ -129,6 +129,48 @@ class DoorDashService {
       return response.data;
     } catch (error) {
       console.error('DoorDash Quote Error:', error.response ? error.response.data : error.message);
+      throw error;
+    }
+  }
+
+  async cancelDelivery(externalDeliveryId) {
+    try {
+      const token = this.generateToken();
+
+      const response = await axios.put(
+        `${this.baseUrl}/${externalDeliveryId}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('DoorDash Cancel Error:', error.response ? error.response.data : error.message);
+      throw error;
+    }
+  }
+
+  async getDeliveryStatus(externalDeliveryId) {
+    try {
+      const token = this.generateToken();
+
+      const response = await axios.get(
+        `${this.baseUrl}/${externalDeliveryId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('DoorDash Status Error:', error.response ? error.response.data : error.message);
       throw error;
     }
   }

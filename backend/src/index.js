@@ -108,6 +108,7 @@ const delete_fileRoutes = require('./routes/file-delete');
 const storeRoutes = require('./routes/store');
 const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
+const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 
 app.use('/api/store', storeRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -129,6 +130,7 @@ app.use('/api', OrderRoutes);
 app.use('/api', paymentRoutes);
 app.use('/api', delete_fileRoutes);
 app.use('/api', uploadRoutes);
+app.use('/api', doorDashWebhookRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API

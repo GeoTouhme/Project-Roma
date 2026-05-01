@@ -16,5 +16,7 @@ router.get('/admin/orders', verifyToken, adminCheck, orderRoutes.getOrdersByAdmi
 router.get('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.getOneOrderByAdmin);
 router.put('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.updateOrderByAdmin);
 router.delete('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.deleteOrderByAdmin);
+router.put('/admin/orders/:id/cancel', verifyToken, adminCheck, orderRoutes.cancelDelivery);
+router.get('/admin/orders/:id/delivery-status', verifyToken, adminCheck, orderRoutes.refreshDeliveryStatus);
 
 module.exports = router;

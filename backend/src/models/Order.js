@@ -56,6 +56,12 @@ const OrderSchema = new mongoose.Schema(
     deliveryError: {
       type: String,
     },
+    estimatedPickupTime: {
+      type: String,
+    },
+    estimatedDeliveryTime: {
+      type: String,
+    },
     items: {
       type: Array,
     },

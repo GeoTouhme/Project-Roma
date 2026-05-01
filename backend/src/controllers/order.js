@@ -253,7 +253,7 @@ const createOrder = async (req, res) => {
       throw err;
     }
 
-    // --- DoorDash Integration (Sandbox) ---
+    // --- DoorDash Delivery Dispatch ---
     let deliveryResponse = null;
     let deliveryError = null;
     let trackingUrl = null;
@@ -261,15 +261,17 @@ const createOrder = async (req, res) => {
     try {
       console.log('🚀 Triggering DoorDash Delivery for Order:', orderNo);
       deliveryResponse = await doorDashService.createDelivery(orderCreated);
-      console.log('✅ DoorDash Full Response:', JSON.stringify(deliveryResponse, null, 2));
+      console.log('✅ DoorDash Delivery created:', deliveryResponse.delivery_id || deliveryResponse.id);
       
       trackingUrl = deliveryResponse.tracking_url;
 
       await Orders.findByIdAndUpdate(orderCreated._id, {
-        $set: { 
+        $set: {
           deliveryId: deliveryResponse.support_reference || deliveryResponse.delivery_id || deliveryResponse.id,
           trackingUrl: trackingUrl,
-          deliveryStatus: deliveryResponse.delivery_status || 'created'
+          deliveryStatus: deliveryResponse.delivery_status || 'created',
+          estimatedPickupTime: deliveryResponse.pickup_time_estimated || null,
+          estimatedDeliveryTime: deliveryResponse.dropoff_time_estimated || null,
         }
       });
     } catch (ddError) {
@@ -589,6 +591,79 @@ const getDeliveryQuote = async (req, res) => {
   }
 };
 
+const cancelDelivery = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const order = await Orders.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Cancel DoorDash delivery if order has been dispatched
+    if (order.orderNo && order.deliveryStatus && order.deliveryStatus !== 'DELIVERY_CANCELLED' && order.deliveryStatus !== 'DASHER_DROPPED_OFF') {
+      try {
+        await doorDashService.cancelDelivery(order.orderNo);
+      } catch (ddError) {
+        console.error('DoorDash cancel failed:', ddError.response ? ddError.response.data : ddError.message);
+        // Continue — update local status even if DoorDash cancel fails
+      }
+    }
+
+    await Orders.findByIdAndUpdate(id, {
+      $set: {
+        status: 'cancelled',
+        deliveryStatus: 'DELIVERY_CANCELLED',
+      }
+    });
+
+    return res.status(200).json({ success: true, message: 'Delivery cancelled' });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const refreshDeliveryStatus = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const order = await Orders.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (!order.orderNo) {
+      return res.status(400).json({ success: false, message: 'No delivery associated with this order' });
+    }
+
+    const delivery = await doorDashService.getDeliveryStatus(order.orderNo);
+
+    const updateFields = {
+      deliveryStatus: delivery.delivery_status,
+    };
+
+    if (delivery.tracking_url) updateFields.trackingUrl = delivery.tracking_url;
+    if (delivery.dropoff_time_estimated) updateFields.estimatedDeliveryTime = delivery.dropoff_time_estimated;
+    if (delivery.pickup_time_estimated) updateFields.estimatedPickupTime = delivery.pickup_time_estimated;
+
+    // Map DoorDash status to internal order status
+    if (delivery.delivery_status === 'DASHER_PICKED_UP') updateFields.status = 'shipped';
+    if (delivery.delivery_status === 'DASHER_DROPPED_OFF') updateFields.status = 'delivered';
+    if (delivery.delivery_status === 'DELIVERY_CANCELLED') updateFields.status = 'delivery_failed';
+    if (delivery.delivery_status === 'DELIVERY_RETURNED') updateFields.status = 'returned';
+
+    await Orders.findByIdAndUpdate(id, { $set: updateFields });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Delivery status refreshed',
+      data: delivery,
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createOrder,
   getDeliveryQuote,
@@ -597,4 +672,6 @@ module.exports = {
   getOneOrderByAdmin,
   updateOrderByAdmin,
   deleteOrderByAdmin,
+  cancelDelivery,
+  refreshDeliveryStatus,
 };

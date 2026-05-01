@@ -94,7 +94,8 @@ backend/src/
 ├── controllers/          # Route handlers (one file per domain)
 │   ├── auth.js           # Registration, login, OTP, password reset
 │   ├── product.js        # CRUD, filtering, pagination, bulk ops
-│   ├── order.js          # Order lifecycle + DoorDash dispatch
+│   ├── order.js          # Order lifecycle + DoorDash dispatch, cancel, refresh
+│   ├── doorDashWebhook.js # DoorDash webhook handler (status updates)
 │   ├── cart.js, wishlist.js, review.js, search.js
 │   ├── category.js, subcategory.js, brand.js
 │   ├── dashboard.js      # Admin analytics
@@ -111,11 +112,13 @@ backend/src/
 ├── models/               # Mongoose schemas
 │   ├── User.js           # firstName, lastName, email, password (bcrypt hashed), role, OTP, wishlist, orders
 │   ├── Product.js        # name, sku, slug, price, priceSale, images (Cloudinary), category ref (required), subCategory ref (optional)
-│   ├── Order.js          # paymentMethod (Stripe/PayPal/COD), items, user snapshot, DoorDash delivery fields
+│   ├── Order.js          # paymentMethod (Stripe/PayPal/COD), items, user snapshot, DoorDash delivery fields, estimatedPickupTime, estimatedDeliveryTime
 │   ├── Category.js, SubCategory.js, Brand.js
 │   ├── Review.js, CouponCode.js, Newsletter.js, Notification.js
 │   └── settings.js       # Store hours, delivery settings
-├── routes/               # Express Router definitions (one per domain)
+├── routes/
+│   ├── doorDashWebhook.js # POST /api/webhooks/doordash — no auth (DoorDash Basic Auth)
+│   └── ...
 ├── services/
 │   ├── cloudinary.service.js  # Upload/delete/transform images
 │   └── doorDashService.js     # DoorDash Drive API v2 integration
@@ -147,6 +150,9 @@ All routes are mounted under `/api/`. Examples:
 - `POST /api/login`, `POST /api/register`
 - `GET /api/products`, `GET /api/products/:slug`
 - `POST /api/orders`, `GET /api/orders/:id`
+- `POST /api/webhooks/doordash` — DoorDash delivery status webhook (no JWT)
+- `PUT /api/admin/orders/:id/cancel` — cancel order + DoorDash delivery
+- `GET /api/admin/orders/:id/delivery-status` — refresh delivery status from DoorDash
 - `GET /api/dashboard/stats`
 - `GET /api/store/status` — returns `isOpen`, `message`, `schedule`
 - `GET /api/admin/products/export-csv` — downloads full inventory as CSV (admin-only)
@@ -161,6 +167,10 @@ All routes are mounted under `/api/`. Examples:
 - Alcohol-aware: sets `containsAlcohol` flag → requires ID verification, signature, no contactless delivery, return-to-pickup if undeliverable
 - `createDelivery()` — dispatches a delivery order
 - `getDeliveryQuote()` — gets a delivery fee quote
+- `cancelDelivery(externalDeliveryId)` — cancels an active delivery
+- `getDeliveryStatus(externalDeliveryId)` — polls DoorDash for latest status
+
+**Webhook** (`POST /api/webhooks/doordash`) — receives DoorDash status pushes and maps them to internal order statuses (`shipped`, `delivered`, `delivery_failed`, `returned`). Always returns 200 to prevent retries. Creates admin notifications on `DELIVERY_CANCELLED` and `DELIVERY_RETURNED`.
 
 ### Database
 

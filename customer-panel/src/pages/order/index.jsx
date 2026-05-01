@@ -47,6 +47,7 @@ const OrderPage = () => {
         deliveryId,
         trackingUrl,
         deliveryStatus,
+        estimatedDeliveryTime,
     } = order;
 
     return (
@@ -139,6 +140,14 @@ const OrderPage = () => {
                                     <span className="text-gray-500 uppercase font-semibold">Support ID:</span>
                                     <span className="text-gray-800 font-mono">{deliveryId}</span>
                                 </div>
+                                {estimatedDeliveryTime && (
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500 uppercase font-semibold">ETA:</span>
+                                        <span className="text-gray-800 font-semibold">
+                                            {new Date(estimatedDeliveryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
