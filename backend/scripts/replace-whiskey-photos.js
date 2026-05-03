@@ -116,7 +116,7 @@ const connectDB = async () => {
         // IMPORTANT: Force local Docker MongoDB connection, NOT Atlas
         // The .env may point to Atlas (cloud) which has 0 products.
         // The real products are in the local Docker MongoDB.
-        const uri = 'mongodb://mongodb:27017/liquor_shop';
+        const uri = 'mongodb://localhost:27017/liquor_shop';
         console.log(`📡 Connecting to: ${uri}`);
         await mongoose.connect(uri);
         
