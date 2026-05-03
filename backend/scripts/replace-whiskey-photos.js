@@ -62,31 +62,36 @@ function extractUPC(filename) {
 }
 
 /**
+ * Strip leading zeros from a string.
+ * DB stores codes without leading zeros (e.g., "80686001607" not "0080686001607")
+ */
+function stripLeadingZeros(str) {
+    const stripped = str.replace(/^0+/, '');
+    return stripped || '0'; // Don't return empty string for "0"
+}
+
+/**
  * Try to find a product by UPC code.
- * Attempts exact match first, then tries zero-padded variants for short codes.
+ * Photo filenames have leading zeros, but DB stores codes WITHOUT leading zeros.
+ * Also tries matching via SKU field (BP-{code} format).
  */
 async function findProductByUPC(upc) {
-    // Try exact match first
+    // Try exact match first (with leading zeros as-is)
     let product = await Product.findOne({ code: upc });
     if (product) return product;
 
-    // For short codes (< 13 digits), try zero-padding to 13 digits
-    if (upc.length < 13) {
-        const padded = upc.padStart(13, '0');
-        product = await Product.findOne({ code: padded });
-        if (product) return product;
-    }
-
-    // Try matching via SKU field (BP-PRO-{UPC})
-    product = await Product.findOne({ sku: `BP-PRO-${upc}` });
+    // Try with leading zeros stripped (main matching strategy)
+    const stripped = stripLeadingZeros(upc);
+    product = await Product.findOne({ code: stripped });
     if (product) return product;
 
-    // Try padded SKU
-    if (upc.length < 13) {
-        const padded = upc.padStart(13, '0');
-        product = await Product.findOne({ sku: `BP-PRO-${padded}` });
-        if (product) return product;
-    }
+    // Try matching via SKU field (BP-{code} format, no leading zeros)
+    product = await Product.findOne({ sku: `BP-${stripped}` });
+    if (product) return product;
+
+    // Try SKU with original UPC (with leading zeros)
+    product = await Product.findOne({ sku: `BP-${upc}` });
+    if (product) return product;
 
     return null;
 }
@@ -108,9 +113,22 @@ async function deleteOldImage(publicId) {
 
 const connectDB = async () => {
     try {
-        const uri = process.env.MONGODB_URI || 'mongodb://mongodb:27017/liquor_shop';
+        // IMPORTANT: Force local Docker MongoDB connection, NOT Atlas
+        // The .env may point to Atlas (cloud) which has 0 products.
+        // The real products are in the local Docker MongoDB.
+        const uri = 'mongodb://mongodb:27017/liquor_shop';
+        console.log(`📡 Connecting to: ${uri}`);
         await mongoose.connect(uri);
-        console.log('✅ MongoDB Connected');
+        
+        // Verify we have products
+        const count = await Product.countDocuments();
+        console.log(`✅ MongoDB Connected — ${count} products in database`);
+        
+        if (count === 0) {
+            console.error('❌ No products found! Are you connecting to the right database?');
+            console.error('   Expected: local Docker MongoDB with ~4,591 products');
+            process.exit(1);
+        }
     } catch (error) {
         console.error('❌ MongoDB Connection Error:', error);
         process.exit(1);
@@ -262,7 +280,7 @@ const runMigration = async () => {
                 results.errors.push({ upc, productName: product.name, error: uploadErr.message });
 
                 // Clean up temp file if it still exists
-                try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (e) {}
+                try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (e) { }
             }
 
             // Delay to avoid Cloudinary rate limiting
