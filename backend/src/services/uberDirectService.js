@@ -15,7 +15,7 @@ class UberDirectService {
     }
 
     const response = await axios.post(
-      'https://login.uber.com/oauth/v2/token',
+      'https://auth.uber.com/oauth/v2/token',
       new URLSearchParams({
         client_id: process.env.UBER_DIRECT_CLIENT_ID,
         client_secret: process.env.UBER_DIRECT_CLIENT_SECRET,
