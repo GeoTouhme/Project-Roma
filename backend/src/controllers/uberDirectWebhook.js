@@ -34,22 +34,38 @@ const handleUberDirectWebhook = async (req, res) => {
 
     const {
       delivery_id,
-      external_id,
       status,
+      data = {},
+    } = req.body;
+
+    // Uber webhook payload nests delivery details under `data`
+    const {
       tracking_url,
       pickup_time_estimated,
       dropoff_time_estimated,
-    } = req.body;
+      courier_imminent,
+      undeliverable_action,
+      undeliverable_reason,
+      cancelation_reason,
+    } = data;
 
-    const orderNo = external_id || delivery_id;
+    if (!delivery_id) {
+      console.warn('⚠️ Uber Direct webhook missing delivery_id');
+      return res.status(200).json({ received: true });
+    }
 
-    console.log(`📬 Uber Direct Webhook: Order ${orderNo} → ${status}`);
+    // Return jobs use `ret_` prefix; strip it to match the original order's deliveryId
+    const searchDeliveryId = delivery_id.startsWith('ret_')
+      ? delivery_id.replace(/^ret_/, '')
+      : delivery_id;
 
-    // Find the order by orderNo (which is the external_id we sent during creation)
-    const order = await Orders.findOne({ orderNo });
+    console.log(`📬 Uber Direct Webhook: Delivery ${delivery_id} (search: ${searchDeliveryId}) → ${status}${courier_imminent ? ' (courier imminent)' : ''}`);
+
+    // Find the order by deliveryId (the ID Uber assigned and we stored on creation)
+    const order = await Orders.findOne({ deliveryId: searchDeliveryId });
 
     if (!order) {
-      console.warn(`⚠️ Uber Direct webhook received for unknown order: ${orderNo}`);
+      console.warn(`⚠️ Uber Direct webhook received for unknown delivery: ${searchDeliveryId}`);
       // Always return 200 to Uber — they retry on non-200
       return res.status(200).json({ received: true });
     }
@@ -66,15 +82,25 @@ const handleUberDirectWebhook = async (req, res) => {
     // Map Uber Direct status to internal order status
     switch (status) {
       case 'pending':
-      case 'pickup_ready':
-      case 'en_route_to_pickup':
-      case 'pickup':
         // No status change yet
         break;
 
+      case 'pickup':
+        // courier_imminent true means ~1 min from store — still "pending" on our side
+        if (courier_imminent) {
+          console.log(`📬 Uber Direct: Courier is imminent for Order ${order.orderNo}`);
+        }
+        break;
+
       case 'pickup_complete':
-      case 'en_route_to_dropoff':
+        updateFields.status = 'shipped';
+        break;
+
       case 'dropoff':
+        // courier_imminent true means ~1 min from customer — already "shipped"
+        if (courier_imminent) {
+          console.log(`📬 Uber Direct: Courier is near dropoff for Order ${order.orderNo}`);
+        }
         updateFields.status = 'shipped';
         break;
 
@@ -84,9 +110,10 @@ const handleUberDirectWebhook = async (req, res) => {
 
       case 'canceled':
         updateFields.status = 'delivery_failed';
+        console.error(`🚨 Uber Direct CANCEL: ${cancelation_reason || 'No reason provided'}`);
         await Notifications.create({
           opened: false,
-          title: `🚨 DELIVERY CANCELLED by Uber Direct for Order ${orderNo}`,
+          title: `🚨 DELIVERY CANCELLED by Uber Direct for Order ${order.orderNo}${cancelation_reason ? ` (${cancelation_reason})` : ''}`,
           paymentMethod: order.paymentMethod,
           orderId: order._id,
           city: order.user?.city || '',
@@ -96,14 +123,20 @@ const handleUberDirectWebhook = async (req, res) => {
 
       case 'returned':
         updateFields.status = 'returned';
+        console.error(`📦 Uber Direct RETURN: ${undeliverable_reason || 'No reason provided'}`);
         await Notifications.create({
           opened: false,
-          title: `📦 Order ${orderNo} RETURNED to store (ID verification failed)`,
+          title: `📦 Order ${order.orderNo} RETURNED to store (${undeliverable_reason || 'ID verification failed'})`,
           paymentMethod: order.paymentMethod,
           orderId: order._id,
           city: order.user?.city || '',
           cover: '',
         });
+        break;
+
+      case 'shopping_completed':
+        // Courier Pick & Pack only — no action needed for standard Direct
+        console.log(`📬 Uber Direct: Shopping completed for Order ${order.orderNo}`);
         break;
 
       default:
