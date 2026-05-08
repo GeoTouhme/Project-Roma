@@ -44,6 +44,11 @@ const OrderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    deliveryProvider: {
+      type: String,
+      enum: ['doordash', 'uberdirect'],
+      default: 'doordash',
+    },
     deliveryId: {
       type: String,
     },

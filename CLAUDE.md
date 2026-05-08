@@ -94,15 +94,16 @@ backend/src/
 ├── controllers/          # Route handlers (one file per domain)
 │   ├── auth.js           # Registration, login, OTP, password reset
 │   ├── product.js        # CRUD, filtering, pagination, bulk ops
-│   ├── order.js          # Order lifecycle + DoorDash dispatch, cancel, refresh
+│   ├── order.js          # Order lifecycle + DoorDash/Uber Direct dispatch, cancel, refresh
 │   ├── doorDashWebhook.js # DoorDash webhook handler (status updates)
+│   ├── uberDirectWebhook.js # Uber Direct webhook handler (status updates)
 │   ├── cart.js, wishlist.js, review.js, search.js
 │   ├── category.js, subcategory.js, brand.js
 │   ├── dashboard.js      # Admin analytics
 │   ├── home.js           # Homepage data aggregation
 │   ├── coupon-code.js    # Promo code management
 │   ├── newsletter.js, notification.js
-│   ├── settings.js       # Store settings (hours, delivery config)
+│   ├── settings.js       # Store settings (hours, delivery provider config)
 │   ├── upload.js         # Image upload endpoint
 │   └── payment-intents.js # Stripe payment intents
 ├── middleware/
@@ -118,10 +119,12 @@ backend/src/
 │   └── settings.js       # Store hours, delivery settings
 ├── routes/
 │   ├── doorDashWebhook.js # POST /api/webhooks/doordash — no auth (DoorDash Basic Auth)
+│   ├── uberDirectWebhook.js # POST /api/webhooks/uberdirect — signature verification
 │   └── ...
 ├── services/
 │   ├── cloudinary.service.js  # Upload/delete/transform images
-│   └── doorDashService.js     # DoorDash Drive API v2 integration
+│   ├── doorDashService.js     # DoorDash Drive API v2 integration
+│   └── uberDirectService.js   # Uber Direct API v1 integration (OAuth2)
 ├── utils/
 │   ├── mailer.js         # Nodemailer email sender
 │   └── validators.js     # Input sanitization & type-checking
@@ -142,6 +145,7 @@ Required:
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - `STRIPE_SECRET_KEY` — Stripe server-side key
 - `DOORDASH_DEVELOPER_ID`, `DOORDASH_KEY_ID`, `DOORDASH_SIGNING_SECRET` — DoorDash Drive API credentials
+- `UBER_DIRECT_CLIENT_ID`, `UBER_DIRECT_CLIENT_SECRET`, `UBER_DIRECT_CUSTOMER_ID`, `UBER_DIRECT_WEBHOOK_SECRET` — Uber Direct API credentials
 - Email config for Nodemailer (SMTP host, user, pass)
 
 ### API Route Prefix
@@ -151,8 +155,9 @@ All routes are mounted under `/api/`. Examples:
 - `GET /api/products`, `GET /api/products/:slug`
 - `POST /api/orders`, `GET /api/orders/:id`
 - `POST /api/webhooks/doordash` — DoorDash delivery status webhook (no JWT)
-- `PUT /api/admin/orders/:id/cancel` — cancel order + DoorDash delivery
-- `GET /api/admin/orders/:id/delivery-status` — refresh delivery status from DoorDash
+- `POST /api/webhooks/uberdirect` — Uber Direct delivery status webhook (HMAC signature verification)
+- `PUT /api/admin/orders/:id/cancel` — cancel order + delivery provider dispatch
+- `GET /api/admin/orders/:id/delivery-status` — refresh delivery status from active provider
 - `GET /api/dashboard/stats`
 - `GET /api/store/status` — returns `isOpen`, `message`, `schedule`
 - `GET /api/admin/products/export-csv` — downloads full inventory as CSV (admin-only)
@@ -167,10 +172,34 @@ All routes are mounted under `/api/`. Examples:
 - Alcohol-aware: sets `containsAlcohol` flag → requires ID verification, signature, no contactless delivery, return-to-pickup if undeliverable
 - `createDelivery()` — dispatches a delivery order
 - `getDeliveryQuote()` — gets a delivery fee quote
-- `cancelDelivery(externalDeliveryId)` — cancels an active delivery
+- `cancelDelivery(externalDeliveryId)` — cancels an active delivery (PUT)
 - `getDeliveryStatus(externalDeliveryId)` — polls DoorDash for latest status
 
 **Webhook** (`POST /api/webhooks/doordash`) — receives DoorDash status pushes and maps them to internal order statuses (`shipped`, `delivered`, `delivery_failed`, `returned`). Always returns 200 to prevent retries. Creates admin notifications on `DELIVERY_CANCELLED` and `DELIVERY_RETURNED`.
+
+### Uber Direct Integration
+
+`src/services/uberDirectService.js` handles delivery dispatch as an alternative to DoorDash:
+- OAuth2 client-credentials flow with in-memory token caching (refreshes ~60s before expiry)
+- Token endpoint: `https://login.uber.com/oauth/v2/token`, scope `eats.deliveries`
+- Base URL: `https://api.uber.com/v1/customers/{customerId}/deliveries`
+- Alcohol-aware: `dropoff_verification.identification.enabled: true` for alcohol orders
+- **No tip field** in payload — tips are handled via the Uber consumer tracking link
+- `createDelivery()` — dispatches a delivery order
+- `getDeliveryQuote()` — gets a delivery fee quote
+- `cancelDelivery(externalDeliveryId)` — cancels an active delivery (POST, not PUT)
+- `getDeliveryStatus(externalDeliveryId)` — polls Uber Direct for latest status
+
+**Webhook** (`POST /api/webhooks/uberdirect`) — receives Uber Direct status pushes with mandatory HMAC-SHA256 signature verification via `x-uber-signature` header. Maps statuses to internal order statuses. Always returns 200 to prevent retries.
+
+### Dual-Provider Delivery Architecture
+
+The system supports switching between DoorDash and Uber Direct via an admin toggle:
+
+- **`deliveryProvider` setting** (`Settings` model, enum: `doordash` | `uberdirect`, default: `doordash`) — global configuration set in the admin Store Settings page.
+- **`deliveryProvider` field** (`Order` model) — stored per-order at creation time so cancel/refresh operations always route to the correct API, even if the global setting changes later.
+- **Order controller branching** — `getDeliveryService()` helper reads the active provider from Settings and returns the appropriate service instance. `createOrder` and `getDeliveryQuote` use the active provider from settings. `cancelDelivery` and `refreshDeliveryStatus` read `order.deliveryProvider` from the existing order document.
+- **Settings controller** — uses `$set` partial updates to prevent saving store hours from wiping `deliveryProvider` and vice versa.
 
 ### Database
 

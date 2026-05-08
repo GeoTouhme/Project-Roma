@@ -32,6 +32,7 @@ interface OperatingHour {
 const StoreSettings = () => {
     const queryClient = useQueryClient();
     const [timezone, setTimezone] = useState('America/Los_Angeles');
+    const [deliveryProvider, setDeliveryProvider] = useState('doordash');
     const [operatingHours, setOperatingHours] = useState<OperatingHour[]>([]);
 
     // Fetch store settings using React Query
@@ -49,6 +50,9 @@ const StoreSettings = () => {
         }
         if (settings?.data?.data?.timezone) {
             setTimezone(settings.data.data.timezone);
+        }
+        if (settings?.data?.data?.deliveryProvider) {
+            setDeliveryProvider(settings.data.data.deliveryProvider);
         }
     }, [settings]);
 
@@ -79,6 +83,7 @@ const StoreSettings = () => {
         const payload = {
             timezone,
             operatingHours,
+            deliveryProvider,
         };
         mutation.mutate(payload);
     };
@@ -114,6 +119,20 @@ const StoreSettings = () => {
                                         {tz.label}
                                     </SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Delivery Provider Selector */}
+                    <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-500">Delivery Provider</label>
+                        <Select value={deliveryProvider} onValueChange={setDeliveryProvider}>
+                            <SelectTrigger className="w-full md:w-[300px]">
+                                <SelectValue placeholder="Select provider" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="doordash">DoorDash</SelectItem>
+                                <SelectItem value="uberdirect">Uber Direct</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

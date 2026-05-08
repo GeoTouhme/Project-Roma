@@ -112,7 +112,7 @@ const OrderPage = () => {
 
                 {/* Right Panels */}
                 <div className="space-y-4">
-                    {/* DoorDash Tracking Info */}
+                    {/* Delivery Tracking Info */}
                     {trackingUrl && (
                         <div className="bg-white border-2 border-primary rounded-md p-4 shadow-md animate-pulse-slow">
                             <h3 className="text-primary text-lg font-bold mb-3 flex items-center gap-2">
@@ -120,7 +120,7 @@ const OrderPage = () => {
                             </h3>
                             <div className="space-y-3">
                                 <p className="text-sm text-gray-600">
-                                    Your order is being delivered by DoorDash. Click below to track your driver in real-time.
+                                    Your order is being delivered. Click below to track your driver in real-time.
                                 </p>
                                 <a 
                                     href={trackingUrl} 

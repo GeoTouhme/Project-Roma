@@ -158,7 +158,7 @@ const Billing = () => {
         if (!silent) setCheckoutError(response.message || "Delivery not available for this address.");
       }
     } catch (err) {
-      if (!silent) setCheckoutError(err?.response?.data?.message || "DoorDash: Delivery not available for this address.");
+      if (!silent) setCheckoutError(err?.response?.data?.message || "Delivery not available for this address.");
     } finally {
       setCheckingQuote(false);
     }
@@ -308,7 +308,6 @@ const Billing = () => {
       setCheckoutError(err?.response?.data?.message || 'Payment failed');
       setProcessing(false);
     }
-  };
   };
 
   const iframeStyles = {
@@ -603,7 +602,7 @@ const Billing = () => {
             {/* Place Order Button */}
             {cartItems.length > 0 && <div className="w-full flex flex-col items-end">
               <div className="text-xs text-gray-500 mb-2 text-right max-w-[300px]">
-                By placing this order, you agree to our terms and that your personal data may be processed by DoorDash for the purpose of identity verification as required by law.
+                By placing this order, you agree to our terms and that your personal data may be processed by our delivery partner for the purpose of identity verification as required by law.
               </div>
               <button
                 disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}

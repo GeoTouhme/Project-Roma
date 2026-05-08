@@ -4,6 +4,8 @@ const Orders = require('../models/Order');
 const Coupons = require('../models/CouponCode');
 const User = require('../models/User');
 const doorDashService = require('../services/doorDashService');
+const uberDirectService = require('../services/uberDirectService');
+const Settings = require('../models/settings');
 const sendEmail = require('../utils/mailer');
 
 const nodemailer = require('nodemailer');
@@ -34,6 +36,15 @@ function readHTMLTemplate() {
     'order.html'
   );
   return fs.readFileSync(htmlFilePath, 'utf8');
+}
+
+async function getDeliveryService() {
+  const settings = await Settings.findOneOrCreate();
+  const provider = settings.deliveryProvider || 'doordash';
+  return {
+    service: provider === 'uberdirect' ? uberDirectService : doorDashService,
+    provider,
+  };
 }
 
 const createOrder = async (req, res) => {
@@ -253,39 +264,44 @@ const createOrder = async (req, res) => {
       throw err;
     }
 
-    // --- DoorDash Delivery Dispatch ---
+    // --- Delivery Dispatch ---
     let deliveryResponse = null;
     let deliveryError = null;
     let trackingUrl = null;
+    let activeProvider = 'doordash';
 
     try {
-      console.log('🚀 Triggering DoorDash Delivery for Order:', orderNo);
-      deliveryResponse = await doorDashService.createDelivery(orderCreated);
-      console.log('✅ DoorDash Delivery created:', deliveryResponse.delivery_id || deliveryResponse.id);
-      
+      const { service, provider } = await getDeliveryService();
+      activeProvider = provider;
+
+      console.log(`🚀 Triggering ${provider} Delivery for Order:`, orderNo);
+      deliveryResponse = await service.createDelivery(orderCreated);
+      console.log(`✅ ${provider} Delivery created:`, deliveryResponse.delivery_id || deliveryResponse.id || deliveryResponse.external_id);
+
       trackingUrl = deliveryResponse.tracking_url;
 
       await Orders.findByIdAndUpdate(orderCreated._id, {
         $set: {
-          deliveryId: deliveryResponse.support_reference || deliveryResponse.delivery_id || deliveryResponse.id,
+          deliveryProvider: provider,
+          deliveryId: deliveryResponse.support_reference || deliveryResponse.delivery_id || deliveryResponse.id || deliveryResponse.external_id,
           trackingUrl: trackingUrl,
-          deliveryStatus: deliveryResponse.delivery_status || 'created',
+          deliveryStatus: deliveryResponse.delivery_status || deliveryResponse.status || 'created',
           estimatedPickupTime: deliveryResponse.pickup_time_estimated || null,
           estimatedDeliveryTime: deliveryResponse.dropoff_time_estimated || null,
         }
       });
     } catch (ddError) {
       deliveryError = ddError.response ? ddError.response.data : ddError.message;
-      console.error('❌ DoorDash Delivery Failed Post-Payment:', deliveryError);
-      
+      console.error(`❌ ${activeProvider} Delivery Failed Post-Payment:`, deliveryError);
+
       // Update order status to alert admin that delivery dispatch failed
       await Orders.findByIdAndUpdate(orderCreated._id, {
-        $set: { 
+        $set: {
           status: 'delivery_failed',
           deliveryError: JSON.stringify(deliveryError)
         }
       });
-      
+
       // Create a critical notification for the admin
       await Notifications.create({
         opened: false,
@@ -471,7 +487,7 @@ const updateOrderByAdmin = async (req, res) => {
     // 🛡️ SECURITY: Whitelist only the fields admins are allowed to update.
     // Passing raw req.body allows injection of Mongo operators ($set, $inc, etc.)
     // or overwriting sensitive fields like paymentId, user._id, total.
-    const ALLOWED_ORDER_FIELDS = ['status', 'trackingUrl', 'deliveryStatus', 'note', 'deliveryId'];
+    const ALLOWED_ORDER_FIELDS = ['status', 'trackingUrl', 'deliveryStatus', 'note', 'deliveryId', 'deliveryProvider'];
     const safeData = {};
     for (const field of ALLOWED_ORDER_FIELDS) {
       if (data[field] !== undefined) safeData[field] = data[field];
@@ -574,7 +590,9 @@ const getDeliveryQuote = async (req, res) => {
       containsAlcohol
     };
 
-    const quote = await doorDashService.getDeliveryQuote(mockOrder);
+    const { service, provider } = await getDeliveryService();
+
+    const quote = await service.getDeliveryQuote(mockOrder);
 
     return res.status(200).json({
       success: true,
@@ -582,7 +600,7 @@ const getDeliveryQuote = async (req, res) => {
       deliveryFee: (quote.fee || 0) / 100, // Convert from cents to dollars
     });
   } catch (error) {
-    console.error('❌ DoorDash Quote Error:', error.response ? error.response.data : error.message);
+    console.error('❌ Delivery Quote Error:', error.response ? error.response.data : error.message);
     const message = error.response?.data?.message || error.message;
     return res.status(400).json({ 
       success: false, 
@@ -600,13 +618,14 @@ const cancelDelivery = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    // Cancel DoorDash delivery if order has been dispatched
+    // Cancel delivery if order has been dispatched
     if (order.orderNo && order.deliveryStatus && order.deliveryStatus !== 'DELIVERY_CANCELLED' && order.deliveryStatus !== 'DASHER_DROPPED_OFF') {
       try {
-        await doorDashService.cancelDelivery(order.orderNo);
+        const service = order.deliveryProvider === 'uberdirect' ? uberDirectService : doorDashService;
+        await service.cancelDelivery(order.orderNo);
       } catch (ddError) {
-        console.error('DoorDash cancel failed:', ddError.response ? ddError.response.data : ddError.message);
-        // Continue — update local status even if DoorDash cancel fails
+        console.error('Delivery cancel failed:', ddError.response ? ddError.response.data : ddError.message);
+        // Continue — update local status even if provider cancel fails
       }
     }
 
@@ -636,21 +655,33 @@ const refreshDeliveryStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No delivery associated with this order' });
     }
 
-    const delivery = await doorDashService.getDeliveryStatus(order.orderNo);
+    const provider = order.deliveryProvider || 'doordash';
+    const service = provider === 'uberdirect' ? uberDirectService : doorDashService;
+    const delivery = await service.getDeliveryStatus(order.orderNo);
 
-    const updateFields = {
-      deliveryStatus: delivery.delivery_status,
-    };
+    const updateFields = {};
 
-    if (delivery.tracking_url) updateFields.trackingUrl = delivery.tracking_url;
-    if (delivery.dropoff_time_estimated) updateFields.estimatedDeliveryTime = delivery.dropoff_time_estimated;
-    if (delivery.pickup_time_estimated) updateFields.estimatedPickupTime = delivery.pickup_time_estimated;
+    if (provider === 'uberdirect') {
+      updateFields.deliveryStatus = delivery.status;
+      if (delivery.tracking_url) updateFields.trackingUrl = delivery.tracking_url;
+      if (delivery.dropoff_eta) updateFields.estimatedDeliveryTime = delivery.dropoff_eta;
+      if (delivery.pickup_eta) updateFields.estimatedPickupTime = delivery.pickup_eta;
 
-    // Map DoorDash status to internal order status
-    if (delivery.delivery_status === 'DASHER_PICKED_UP') updateFields.status = 'shipped';
-    if (delivery.delivery_status === 'DASHER_DROPPED_OFF') updateFields.status = 'delivered';
-    if (delivery.delivery_status === 'DELIVERY_CANCELLED') updateFields.status = 'delivery_failed';
-    if (delivery.delivery_status === 'DELIVERY_RETURNED') updateFields.status = 'returned';
+      if (delivery.status === 'pickup_complete' || delivery.status === 'en_route_to_dropoff' || delivery.status === 'dropoff') updateFields.status = 'shipped';
+      if (delivery.status === 'delivered') updateFields.status = 'delivered';
+      if (delivery.status === 'canceled') updateFields.status = 'delivery_failed';
+      if (delivery.status === 'returned') updateFields.status = 'returned';
+    } else {
+      updateFields.deliveryStatus = delivery.delivery_status;
+      if (delivery.tracking_url) updateFields.trackingUrl = delivery.tracking_url;
+      if (delivery.dropoff_time_estimated) updateFields.estimatedDeliveryTime = delivery.dropoff_time_estimated;
+      if (delivery.pickup_time_estimated) updateFields.estimatedPickupTime = delivery.pickup_time_estimated;
+
+      if (delivery.delivery_status === 'DASHER_PICKED_UP') updateFields.status = 'shipped';
+      if (delivery.delivery_status === 'DASHER_DROPPED_OFF') updateFields.status = 'delivered';
+      if (delivery.delivery_status === 'DELIVERY_CANCELLED') updateFields.status = 'delivery_failed';
+      if (delivery.delivery_status === 'DELIVERY_RETURNED') updateFields.status = 'returned';
+    }
 
     await Orders.findByIdAndUpdate(id, { $set: updateFields });
 

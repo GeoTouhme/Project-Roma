@@ -45,7 +45,15 @@ app.use(cors({
 }));
 
 // Body parser with explicit size limit to prevent DoS via large payloads
-app.use(bodyParser.json({ limit: '1mb' }));
+// Preserve raw body buffer for webhook signature verification
+app.use(bodyParser.json({
+  limit: '1mb',
+  verify: (req, res, buf) => {
+    if (req.originalUrl.startsWith('/api/webhooks/')) {
+      req.rawBody = buf;
+    }
+  }
+}));
 
 // Relaxed rate limiter for development/testing
 const authLimiter = rateLimit({
@@ -109,6 +117,7 @@ const storeRoutes = require('./routes/store');
 const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
+const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
 
 app.use('/api/store', storeRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -131,6 +140,7 @@ app.use('/api', paymentRoutes);
 app.use('/api', delete_fileRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api', doorDashWebhookRoutes);
+app.use('/api', uberDirectWebhookRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API

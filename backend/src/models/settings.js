@@ -16,7 +16,12 @@ const settingsSchema = new mongoose.Schema({
         required: true,
         default: 'America/Los_Angeles'
     },
-    operatingHours: [operatingHoursSchema]
+    operatingHours: [operatingHoursSchema],
+    deliveryProvider: {
+        type: String,
+        enum: ['doordash', 'uberdirect'],
+        default: 'doordash',
+    }
 });
 
 // Create a default settings document if it doesn't exist
@@ -26,6 +31,7 @@ settingsSchema.statics.findOneOrCreate = async function () {
         settings = new this({
             key: 'storeConfig',
             timezone: 'America/Los_Angeles',
+            deliveryProvider: 'doordash',
             operatingHours: [
                 { dayOfWeek: 0, day: 'Sunday', isOpen: true, open: '07:00', close: '02:00' },
                 { dayOfWeek: 1, day: 'Monday', isOpen: true, open: '06:00', close: '02:00' },
