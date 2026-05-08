@@ -298,6 +298,7 @@ const createOrder = async (req, res) => {
       await Orders.findByIdAndUpdate(orderCreated._id, {
         $set: {
           status: 'delivery_failed',
+          deliveryProvider: activeProvider,
           deliveryError: JSON.stringify(deliveryError)
         }
       });
@@ -619,7 +620,9 @@ const cancelDelivery = async (req, res) => {
     }
 
     // Cancel delivery if order has been dispatched
-    if (order.orderNo && order.deliveryStatus && order.deliveryStatus !== 'DELIVERY_CANCELLED' && order.deliveryStatus !== 'DASHER_DROPPED_OFF') {
+    // Check terminal statuses for both DoorDash and Uber Direct
+    const terminalStatuses = ['DELIVERY_CANCELLED', 'DASHER_DROPPED_OFF', 'canceled', 'delivered', 'returned'];
+    if (order.orderNo && order.deliveryStatus && !terminalStatuses.includes(order.deliveryStatus)) {
       try {
         const service = order.deliveryProvider === 'uberdirect' ? uberDirectService : doorDashService;
         await service.cancelDelivery(order.orderNo);
