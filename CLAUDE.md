@@ -183,7 +183,7 @@ All routes are mounted under `/api/`. Examples:
 - OAuth2 client-credentials flow with in-memory token caching (refreshes ~60s before expiry)
 - Token endpoint: `https://login.uber.com/oauth/v2/token`, scope `eats.deliveries`
 - Base URL: `https://api.uber.com/v1/customers/{customerId}/deliveries`
-- Alcohol-aware: `dropoff_verification.identification.enabled: true` for alcohol orders
+- Alcohol-aware: `dropoff_verification.identification.min_age: 21` plus `signature_requirement.enabled: true` for alcohol orders
 - **No tip field** in payload — tips are handled via the Uber consumer tracking link
 - `createDelivery()` — dispatches a delivery order
 - `getDeliveryQuote()` — gets a delivery fee quote

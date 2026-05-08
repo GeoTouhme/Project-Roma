@@ -6,6 +6,7 @@ class UberDirectService {
     this.tokenExpiry = 0;
     this.customerId = process.env.UBER_DIRECT_CUSTOMER_ID;
     this.baseUrl = `https://api.uber.com/v1/customers/${this.customerId}/deliveries`;
+    this.quoteUrl = `https://api.uber.com/v1/customers/${this.customerId}/delivery_quotes`;
   }
 
   async getAccessToken() {
@@ -75,6 +76,9 @@ class UberDirectService {
       if (orderData.containsAlcohol) {
         payload.dropoff_verification = {
           identification: {
+            min_age: 21,
+          },
+          signature_requirement: {
             enabled: true,
           },
         };
@@ -122,7 +126,7 @@ class UberDirectService {
 
       console.log('📦 Requesting Uber Direct delivery quote for:', payload.dropoff_address);
 
-      const response = await axios.post(`${this.baseUrl}/quote`, payload, {
+      const response = await axios.post(this.quoteUrl, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
