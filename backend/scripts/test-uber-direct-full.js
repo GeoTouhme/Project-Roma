@@ -7,7 +7,7 @@ const CLIENT_SECRET = process.env.UBER_DIRECT_CLIENT_SECRET;
 
 const BASE_URL = `https://api.uber.com/v1/customers/${CUSTOMER_ID}/deliveries`;
 const QUOTE_URL = `https://api.uber.com/v1/customers/${CUSTOMER_ID}/delivery_quotes`;
-const AUTH_URL = 'https://login.uber.com/oauth/v2/token';
+const AUTH_URL = 'https://auth.uber.com/oauth/v2/token';
 
 // ─── Test Data ──────────────────────────────────────────────────────────────
 const TEST_ORDER_NO = 'TEST-' + Date.now();

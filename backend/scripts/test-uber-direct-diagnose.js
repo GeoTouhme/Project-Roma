@@ -5,7 +5,7 @@ const CLIENT_ID = process.env.UBER_DIRECT_CLIENT_ID;
 const CLIENT_SECRET = process.env.UBER_DIRECT_CLIENT_SECRET;
 const CUSTOMER_ID = process.env.UBER_DIRECT_CUSTOMER_ID;
 
-const AUTH_URL = 'https://login.uber.com/oauth/v2/token';
+const AUTH_URL = 'https://auth.uber.com/oauth/v2/token';
 const BASE_URL = `https://api.uber.com/v1/customers/${CUSTOMER_ID}/deliveries`;
 
 async function diagnose() {
