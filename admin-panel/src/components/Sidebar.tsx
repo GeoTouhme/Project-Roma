@@ -14,6 +14,7 @@ import {
   Layers,
   Mail,
   Clock,
+  BarChart3,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -147,6 +148,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             to="/store-settings"
             icon={<Clock className="w-5 h-5" />}
             label="Store Settings"
+            collapsed={collapsed}
+          />
+          <NavItem
+            to="/analytics"
+            icon={<BarChart3 className="w-5 h-5" />}
+            label="Analytics"
             collapsed={collapsed}
           />
           <NavItem

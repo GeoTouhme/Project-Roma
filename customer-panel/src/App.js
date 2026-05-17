@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import "react-loading-skeleton/dist/skeleton.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -17,19 +17,58 @@ import MaintenancePage from "./components/maintenance/MaintenancePage";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { fetchStoreStatus } from "./redux/storeStatusSlice";
+import { ORDERING_DISABLED } from "./config/orderingConfig";
+import { trackPageView } from "./services/analyticsService";
 
 const MAINTENANCE = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
+const PageTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    let pageType = 'page';
+    let slug = path;
+
+    if (path === '/' || path === '') {
+      pageType = 'home';
+      slug = 'home';
+    } else if (path.startsWith('/product/')) {
+      pageType = 'product';
+      slug = path.split('/').pop() || 'product';
+    } else if (path.startsWith('/collections')) {
+      pageType = 'collections';
+      slug = 'collections';
+    } else if (path.startsWith('/cart')) {
+      pageType = 'cart';
+      slug = 'cart';
+    } else if (path.startsWith('/orders')) {
+      pageType = 'orders';
+      slug = 'orders';
+    } else if (path.startsWith('/account')) {
+      pageType = 'account';
+      slug = 'account';
+    }
+
+    trackPageView(pageType, { slug, name: pageType });
+  }, [location]);
+
+  return null;
+};
+
 const AppRoutes = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   return (
-    <Routes>
-      {isAuthenticated && <Route path="/*" element={<AuthenticatedRoutes />} />}
-      <Route path="/*" element={<PublicRoutes />} />
-    </Routes>
+    <>
+      <PageTracker />
+      <Routes>
+        {isAuthenticated && <Route path="/*" element={<AuthenticatedRoutes />} />}
+        <Route path="/*" element={<PublicRoutes />} />
+      </Routes>
+    </>
   );
 };
 
@@ -63,11 +102,17 @@ function App() {
 
   return (
     <Provider store={store}>
-      <Elements stripe={stripePromise}>
+      {ORDERING_DISABLED ? (
         <Router>
           <AppContent />
         </Router>
-      </Elements>
+      ) : (
+        <Elements stripe={stripePromise}>
+          <Router>
+            <AppContent />
+          </Router>
+        </Elements>
+      )}
     </Provider>
   );
 }

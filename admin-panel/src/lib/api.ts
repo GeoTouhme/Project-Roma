@@ -193,6 +193,11 @@ export const uploadAPI = {
 export const getSettings = () => api.get('/api/settings');
 export const updateSettings = (data: any) => api.put('/api/settings', data);
 
+export const analyticsAPI = {
+    getAnalytics: () =>
+        api.get('/api/admin/analytics'),
+};
+
 export const newsletterAPI = {
     getNewsletters: (params?: any) =>
         api.get('/api/admin/newsletter', { params }),

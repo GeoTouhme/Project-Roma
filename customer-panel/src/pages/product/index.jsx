@@ -8,6 +8,7 @@ import { FaPlus, FaMinus } from "react-icons/fa6";
 import { BiSolidPencil } from "react-icons/bi";
 import { MdOutlineVerified } from "react-icons/md";
 import ProductService from "../../services/productService";
+import { getProductDetailImage, getProductThumbImage } from "../../utils/cloudinary";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css"
 import { useDispatch } from "react-redux";
@@ -17,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import ReviewsService from "../../services/reviewsService";
 import ReviewModal from "../../components/review-modal";
 import moment from "moment";
+import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
+import { trackPageView } from "../../services/analyticsService";
 
 const ProductPage = () => {
   const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
@@ -113,6 +116,9 @@ const ProductPage = () => {
         if (response.success) {
           setProduct(response.data);
           fetchReviews(response.data?._id);
+
+          // Track product view
+          trackPageView('product', { slug, name: response.data?.name || '' });
           // setReviews(response.data?.reviews);
           setCategory(response?.category);
           setBrand(response?.brand);
@@ -265,10 +271,11 @@ const ProductPage = () => {
                       {images.map((img, idx) => (
                         <div key={idx}>
                           <img
-                            src={img.url}
+                            src={getProductDetailImage(img.url)}
                             alt={`Product ${idx}`}
                             className="w-full h-auto pointer-events-none"
                             style={{ opacity: zoomStyle.backgroundSize !== "100%" ? 0 : 1 }}
+                            loading="lazy"
                           />
                         </div>
                       ))}
@@ -281,9 +288,10 @@ const ProductPage = () => {
                       {images.map((img, idx) => (
                         <div key={idx} className="px-1">
                           <img
-                            src={img?.url}
+                            src={getProductThumbImage(img?.url)}
                             alt={`Thumbnail ${idx}`}
                             className="w-full cursor-pointer border rounded-md hover:border-gray-700"
+                            loading="lazy"
                           />
                         </div>
                       ))}
@@ -309,18 +317,20 @@ const ProductPage = () => {
                     <span className="text-gray-500 line-through text-lg">${product?.price}</span>
                     <span className="text-[#B5223B] text-2xl font-bold ml-2">${product?.priceSale}</span>
 
-                    {/* Quantity Selector */}
-                    <div className="flex items-center border border-[#CECECE] rounded-md">
-                      <div className="mx-6 my-1">
-                        <button onClick={decreaseQuantity} className="py-1 text-[#B5223B] text-sm font-bold">
-                          <FaMinus />
-                        </button>
-                        <span className="mx-4 text-lg text-[#B5223B]">{quantity}</span>
-                        <button onClick={increaseQuantity} className="py-1 text-[#B5223B]">
-                          <FaPlus />
-                        </button>
+                    {!ORDERING_DISABLED && (
+                      /* Quantity Selector */
+                      <div className="flex items-center border border-[#CECECE] rounded-md">
+                        <div className="mx-6 my-1">
+                          <button onClick={decreaseQuantity} className="py-1 text-[#B5223B] text-sm font-bold">
+                            <FaMinus />
+                          </button>
+                          <span className="mx-4 text-lg text-[#B5223B]">{quantity}</span>
+                          <button onClick={increaseQuantity} className="py-1 text-[#B5223B]">
+                            <FaPlus />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Product Details */}
@@ -334,8 +344,21 @@ const ProductPage = () => {
 
                   {/* Buttons */}
                   <div className="mt-16 flex space-x-4">
-                    <button className="w-full px-6 py-2 bg-[#B5223B] text-white" onClick={handleAddToCart}>Add To Cart</button>
-                    <button className="w-full px-6 py-2 border border-[#B5223B] text-[#B5223B]" onClick={() => handleBillingNavigate()}>Buy Now</button>
+                    {ORDERING_DISABLED ? (
+                      <a
+                        href={DOORDASH_ORDER_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full px-6 py-3 bg-[#B5223B] text-white text-center font-semibold rounded hover:bg-red-700 transition inline-block"
+                      >
+                        Order Now on DoorDash
+                      </a>
+                    ) : (
+                      <>
+                        <button className="w-full px-6 py-2 bg-[#B5223B] text-white" onClick={handleAddToCart}>Add To Cart</button>
+                        <button className="w-full px-6 py-2 border border-[#B5223B] text-[#B5223B]" onClick={() => handleBillingNavigate()}>Buy Now</button>
+                      </>
+                    )}
                   </div>
 
                   <div className="relative mt-10 p-4 border rounded-lg text-center border-[#CECECE]">

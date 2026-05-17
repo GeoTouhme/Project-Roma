@@ -118,11 +118,13 @@ const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
+const analyticsRoutes = require('./routes/analytics');
 
 app.use('/api/store', storeRoutes);
+app.use('/api', analyticsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', homeRoutes);
-app.use('/api', skipRateLimitForAdmin, authLimiter, authRoutes); // Rate-limited: login, OTP, password reset (admins exempt)
+app.use('/api', skipRateLimitForAdmin, authLimiter, authRoutes); // Keep auth enabled for admin panel
 app.use('/api', brandRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', subcategoryRoutes);
@@ -131,16 +133,17 @@ app.use('/api', productRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', searchRoutes);
 app.use('/api', userRoutes);
-app.use('/api', cartRoutes);
+// === TEMPORARILY DISABLED — Using DoorDash for ordering ===
+// app.use('/api', cartRoutes);
+// app.use('/api', OrderRoutes);
+// app.use('/api', paymentRoutes);
+// app.use('/api', wishlistRoutes);
+// app.use('/api', doorDashWebhookRoutes);
+// app.use('/api', uberDirectWebhookRoutes);
 app.use('/api', couponCodeRoutes);
 app.use('/api', reviewRoutes);
-app.use('/api', wishlistRoutes);
-app.use('/api', OrderRoutes);
-app.use('/api', paymentRoutes);
 app.use('/api', delete_fileRoutes);
 app.use('/api', uploadRoutes);
-app.use('/api', doorDashWebhookRoutes);
-app.use('/api', uberDirectWebhookRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API
