@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Icons from "../svg";
+import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 
 const MobileBottomNav = () => {
   const location = useLocation();
@@ -14,8 +15,10 @@ const MobileBottomNav = () => {
   const navItems = [
     { name: "Home", icon: "home", link: "/" },
     { name: "Shop", icon: "products", link: "/products" },
-    { name: "Wishlist", icon: "wishlist", link: isAuthenticated ? "/wishlist" : "/login" },
-    { name: "Account", icon: "user", link: isAuthenticated ? "/account" : "/login" },
+    ...(!ORDERING_DISABLED ? [
+      { name: "Wishlist", icon: "wishlist", link: isAuthenticated ? "/wishlist" : "/login" },
+      { name: "Account", icon: "user", link: isAuthenticated ? "/account" : "/login" },
+    ] : []),
   ];
 
   return (
@@ -49,18 +52,29 @@ const MobileBottomNav = () => {
           })}
         </div>
 
-        {/* Floating Cart Button */}
-        <div 
-          onClick={() => navigate("/cart")}
-          className="relative bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full w-16 h-16 flex items-center justify-center cursor-pointer border border-white/50"
-        >
-          <Icons name="cart_bag" width={24} height={24} color="#000000" />
-          {cartCount > 0 && (
-            <div className="absolute top-3 right-3 bg-[#B5223B] text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-              {cartCount}
-            </div>
-          )}
-        </div>
+        {/* Floating Cart Button — replaced with DoorDash when ordering disabled */}
+        {ORDERING_DISABLED ? (
+          <a
+            href={DOORDASH_ORDER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative bg-[#B5223B] text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full w-16 h-16 flex items-center justify-center text-xs font-bold border border-white/50"
+          >
+            Order
+          </a>
+        ) : (
+          <div
+            onClick={() => navigate("/cart")}
+            className="relative bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full w-16 h-16 flex items-center justify-center cursor-pointer border border-white/50"
+          >
+            <Icons name="cart_bag" width={24} height={24} color="#000000" />
+            {cartCount > 0 && (
+              <div className="absolute top-3 right-3 bg-[#B5223B] text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                {cartCount}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

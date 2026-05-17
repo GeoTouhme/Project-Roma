@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ordersAPI } from "@/lib/api";
+import { getAdminThumbnail } from "@/lib/utils";
 import { toast } from "sonner";
 
 const OrderDetail = () => {
@@ -211,7 +212,7 @@ const OrderDetail = () => {
                     header: "Image",
                     accessorKey: (item: any) => (
                       <div className="w-12 h-12 rounded overflow-hidden bg-muted">
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                        <img src={getAdminThumbnail(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                       </div>
                     )
                   },

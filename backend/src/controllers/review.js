@@ -15,7 +15,10 @@ const getReviewsbyPid = async (req, res) => {
 			path: "user",
 			select: ["firstName", "lastName", "cover", "orders"],
 		});
-		const product = await Products.findById(pid).select("slug");
+		const product = await Products.findById(pid).select('slug status available');
+		if (!product || product.status === 'disabled' || product.available <= 0) {
+			return res.status(404).json({ success: false, message: 'Product not found or unavailable.' });
+		}
 		const reviewsSummery = await Products.aggregate([
 			{
 				$match: { slug: product.slug },

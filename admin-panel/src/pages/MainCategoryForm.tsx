@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { categoriesAPI } from "@/lib/api";
+import { getAdminThumbnail } from "@/lib/utils";
 
 const MainCategoryForm = () => {
   const { id } = useParams<{ id?: string }>(); // id is actually the slug
@@ -157,7 +158,7 @@ const MainCategoryForm = () => {
             />
             {imageUrl && (
               <div className="mt-2 relative w-full h-40 bg-gray-100 rounded-md overflow-hidden">
-                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <img src={getAdminThumbnail(imageUrl)} alt="Preview" className="w-full h-full object-cover" loading="lazy" />
               </div>
             )}
           </div>

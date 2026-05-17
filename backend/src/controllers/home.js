@@ -41,7 +41,9 @@ const getTopRatedProducts = async (req, res) => {
     const bestSellingProduct = await Product.aggregate([
       {
         $match: {
-          category: { $in: ALCOHOLIC_CATEGORIES }
+          category: { $in: ALCOHOLIC_CATEGORIES },
+          status: { $ne: 'disabled' },
+          available: { $gt: 0 },
         }
       },
       {
@@ -134,7 +136,9 @@ const getBestSellerProducts = async (req, res) => {
     const bestSellingProduct = await Product.aggregate([
       {
         $match: {
-          category: { $in: ALCOHOLIC_CATEGORIES }
+          category: { $in: ALCOHOLIC_CATEGORIES },
+          status: { $ne: 'disabled' },
+          available: { $gt: 0 },
         }
       },
       {
@@ -216,7 +220,9 @@ const getFeaturedProducts = async (req, res) => {
       {
         $match: {
           isFeatured: true,
-          category: { $in: ALCOHOLIC_CATEGORIES }
+          category: { $in: ALCOHOLIC_CATEGORIES },
+          status: { $ne: 'disabled' },
+          available: { $gt: 0 },
         },
       },
       {

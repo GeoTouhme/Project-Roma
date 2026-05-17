@@ -31,6 +31,7 @@ const getProducts = async (req, res) => {
     // Build a clean match query from scratch
     let productSearchQuery = {
       status: { $ne: 'disabled' },
+      available: { $gt: 0 },
     };
 
     // 1. Handle Partial Search by Name with Security Sanitization
@@ -174,6 +175,7 @@ const getFilters = async (req, res) => {
   try {
     const totalProducts = await Product.find({
       status: { $ne: 'disabled' },
+      available: { $gt: 0 },
     }).select(['colors', 'sizes', 'gender', 'price']);
 
     const brands = await Brand.find({
@@ -522,6 +524,7 @@ const getFiltersByCategory = async (req, res) => {
     }
     const totalProducts = await Product.find({
       status: { $ne: 'disabled' },
+      available: { $gt: 0 },
       category: categoryData._id,
     }).select(['colors', 'sizes', 'gender']);
     const brands = await Brand.find({
@@ -577,6 +580,7 @@ const getFiltersBySubCategory = async (req, res) => {
     }
     const totalProducts = await Product.find({
       status: { $ne: 'disabled' },
+      available: { $gt: 0 },
       subCategory: subCategoryData._id,
     }).select(['colors', 'sizes', 'gender']);
     const brands = await Brand.find({
@@ -612,7 +616,7 @@ const getFiltersBySubCategory = async (req, res) => {
 
 const getAllProductSlug = async (req, res) => {
   try {
-    const products = await Product.find().select('slug');
+    const products = await Product.find({ status: { $ne: 'disabled' }, available: { $gt: 0 } }).select('slug');
 
     return res.status(200).json({
       success: true,
@@ -647,6 +651,8 @@ const relatedProducts = async (req, res) => {
         $match: {
           category: product.category,
           _id: { $ne: product._id },
+          status: { $ne: 'disabled' },
+          available: { $gt: 0 },
         },
       },
       {
@@ -682,7 +688,7 @@ const getOneProductBySlug = async (req, res) => {
     if (!slug) {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
-    const product = await Product.findOne({ slug });
+    const product = await Product.findOne({ slug, status: { $ne: 'disabled' }, available: { $gt: 0 } });
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product Not Found' });
@@ -696,7 +702,7 @@ const getOneProductBySlug = async (req, res) => {
     const getProductRatingAndReviews = () => {
       return Product.aggregate([
         {
-          $match: { slug },
+          $match: { slug, status: { $ne: 'disabled' }, available: { $gt: 0 } },
         },
         {
           $lookup: {

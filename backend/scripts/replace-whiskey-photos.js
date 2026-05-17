@@ -152,22 +152,28 @@ const runMigration = async () => {
         process.exit(1);
     }
 
-    // Read all photo files
-    const allFiles = fs.readdirSync(PHOTOS_DIR);
-    console.log(`\n📁 Found ${allFiles.length} files in ${PHOTOS_DIR}`);
-
-    // Extract valid UPCs
-    const photoMap = new Map(); // UPC -> filename
+    // Read all photo files recursively
+    const photoMap = new Map(); // UPC -> { filename, subdir }
     const skippedFiles = [];
 
-    for (const file of allFiles) {
-        const upc = extractUPC(file);
-        if (upc) {
-            photoMap.set(upc, file);
-        } else {
-            skippedFiles.push(file);
+    function scanDir(dir, subdir) {
+        const entries = fs.readdirSync(dir);
+        for (const ent of entries) {
+            const fullPath = path.join(dir, ent);
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) {
+                scanDir(fullPath, ent);
+            } else {
+                const upc = extractUPC(ent);
+                if (upc) {
+                    photoMap.set(upc, { filename: ent, subdir });
+                } else {
+                    skippedFiles.push(ent);
+                }
+            }
         }
     }
+    scanDir(PHOTOS_DIR, '');
 
     console.log(`✅ Valid UPC photos: ${photoMap.size}`);
     if (skippedFiles.length > 0) {
@@ -191,9 +197,11 @@ const runMigration = async () => {
     console.log(`\n${'─'.repeat(60)}`);
     console.log('Processing photos...\n');
 
-    for (const [upc, filename] of photoMap) {
+    for (const [upc, fileInfo] of photoMap) {
         processed++;
         const progress = `[${processed}/${total}]`;
+        const filename = fileInfo.filename;
+        const subdir = fileInfo.subdir;
 
         try {
             const product = await findProductByUPC(upc);
@@ -232,7 +240,9 @@ const runMigration = async () => {
             if (DRY_RUN) continue;
 
             // ── LIVE: Upload new photo ──
-            const photoPath = path.join(PHOTOS_DIR, filename);
+            const photoPath = subdir
+                ? path.join(PHOTOS_DIR, subdir, filename)
+                : path.join(PHOTOS_DIR, filename);
 
             // Verify file exists and has content
             const stat = fs.statSync(photoPath);
@@ -242,7 +252,7 @@ const runMigration = async () => {
                 continue;
             }
 
-            // Upload to Cloudinary (the service auto-deletes the local file, 
+            // Upload to Cloudinary (the service auto-deletes the local file,
             // so we need to copy it first to preserve the original)
             const tempPath = path.join(PHOTOS_DIR, `_temp_${filename}`);
             fs.copyFileSync(photoPath, tempPath);

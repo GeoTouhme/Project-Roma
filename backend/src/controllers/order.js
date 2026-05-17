@@ -96,6 +96,16 @@ const createOrder = async (req, res) => {
       _id: { $in: items.map((item) => item.pid) },
     }).populate('category');
 
+    const validProducts = products.filter(
+      (p) => p.status !== 'disabled' && p.available > 0
+    );
+    if (validProducts.length !== products.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more products are unavailable or out of stock.',
+      });
+    }
+
     const alcoholCategorySlugs = [
       'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more',
       'spirits', 'tequila', 'vodka', 'whiskey', 'wine',
@@ -562,6 +572,16 @@ const getDeliveryQuote = async (req, res) => {
     const products = await Products.find({
       _id: { $in: items.map((item) => item.pid) },
     }).populate('category');
+
+    const validProducts = products.filter(
+      (p) => p.status !== 'disabled' && p.available > 0
+    );
+    if (validProducts.length !== products.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more products are unavailable or out of stock.',
+      });
+    }
 
     const alcoholCategorySlugs = [
       'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more', 

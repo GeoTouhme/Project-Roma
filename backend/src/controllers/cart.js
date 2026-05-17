@@ -19,12 +19,13 @@ const getCart = async (request, response) => {
         'available',
         'price',
         'priceSale',
+        'status',
       ]);
 
-      if (!product) {
+      if (!product || product.status === 'disabled' || product.available <= 0) {
         return response
-          .status(404)
-          .json({ success: false, message: 'Products Not Found' });
+          .status(400)
+          .json({ success: false, message: 'Product is unavailable or out of stock.' });
       }
       const { quantity, color, size, sku } = item;
       if (product.available < quantity) {

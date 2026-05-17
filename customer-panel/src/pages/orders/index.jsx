@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye } from "react-icons/fa";
 import OrderService from "../../services/orderService";
+import { getThumbnailImage } from "../../utils/cloudinary";
 import moment from "moment";
 import Breadcrumb from "../../components/breadcrumb";
 
@@ -96,9 +97,10 @@ const OrdersPage = () => {
                                 <tr key={order._id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 flex items-center gap-3">
                                         <img
-                                            src={order.items[0]?.imageUrl}
+                                            src={getThumbnailImage(order.items[0]?.imageUrl)}
                                             alt={order.items[0]?.name}
                                             className="w-10 h-10 object-cover rounded"
+                                            loading="lazy"
                                         />
                                         <span>{order.items[0]?.name}</span>
                                     </td>

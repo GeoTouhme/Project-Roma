@@ -14,6 +14,7 @@ import VerifyEmail from "../pages/auth/VerifyEmail";
 import Terms from "../pages/Terms/Terms";
 import Privacy from "../pages/Privacy/Privacy";
 import { useSelector } from "react-redux";
+import { ORDERING_DISABLED } from "../config/orderingConfig";
 
 const PublicRoutes = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -23,15 +24,15 @@ const PublicRoutes = () => {
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Register />} />
+        <Route path="/login" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/terms-and-conditions" element={<Terms />} />
         <Route path="/privacy-policy" element={<Privacy />} />
         <Route path="/category/wine/*" element={<Collection />} />
         <Route path="/products/*" element={<Collection />} />
         <Route path="/product/*" element={<ProductPage />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/verify-otp" element={<VerifyEmail />} />
+        <Route path="/cart" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Cart />} />
+        <Route path="/verify-otp" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <VerifyEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Footer />

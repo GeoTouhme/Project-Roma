@@ -5,6 +5,7 @@ import PaymentService from "../../services/paymentService";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import OrderService from "../../services/orderService";
 import { clearCart } from "../../redux/cartSlice";
+import { getThumbnailImage } from "../../utils/cloudinary";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -525,7 +526,7 @@ const Billing = () => {
               <div key={index} className="flex justify-between items-start mb-4">
                 {/* Left: Image and Name */}
                 <div className="flex items-start gap-4">
-                  <img src={item.image || Product} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                  <img src={item.image ? getThumbnailImage(item.image) : Product} alt={item.name} className="w-12 h-12 object-cover rounded" loading="lazy" />
                   <div>
                     <p className="font-semibold">{item.name}</p>
                     <div className="text-sm text-gray-500 flex items-center gap-4">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import OrderService from "../../services/orderService";
+import { getThumbnailImage } from "../../utils/cloudinary";
 import { RiUserFill, RiTruckFill } from "react-icons/ri";
 import { FaDollarSign } from "react-icons/fa6";
 import { FaExternalLinkAlt } from "react-icons/fa";
@@ -87,7 +88,7 @@ const OrderPage = () => {
                             {items.map((item) => (
                                 <tr key={item._id} className="border-t">
                                     <td className="p-3 flex items-center gap-3">
-                                        <img src={item.imageUrl} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                                        <img src={getThumbnailImage(item.imageUrl)} alt={item.name} className="w-12 h-12 object-cover rounded" loading="lazy" />
                                         <span>{item.name}</span>
                                     </td>
                                     {/* <td className="p-3">{item.color ?? "-"}</td>

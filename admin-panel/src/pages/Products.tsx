@@ -23,6 +23,7 @@ import PageSizeSelector from "@/components/PageSizeSelector";
 import Pagination from "@/components/Pagination";
 import { Plus, Download, Upload, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { productsAPI, categoriesAPI } from "@/lib/api";
+import { getAdminThumbnail } from "@/lib/utils";
 
 const Products = () => {
   const navigate = useNavigate();
@@ -293,9 +294,10 @@ const Products = () => {
             accessorKey: (row) => (
               <div className="flex items-center gap-3">
                 <img
-                  src={row.image?.url || "https://dummyimage.com/100x100/ecf0f1/7f8c8d?text=No+Image"}
+                  src={getAdminThumbnail(row.image?.url) || "https://dummyimage.com/100x100/ecf0f1/7f8c8d?text=No+Image"}
                   alt={row.name}
                   className="h-10 w-10 rounded-md object-cover border"
+                  loading="lazy"
                 />
                 <div>
                   <div className="font-medium">{row.name}</div>

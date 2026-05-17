@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
 import Skeleton from "react-loading-skeleton";
+import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 
 
 
@@ -440,12 +441,23 @@ const Home = () => {
                 Premium Drinks, Delivered Fast
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Your Favorite Liquor at Your Doorstep</p>
-              <Link
-                to="/products"
-                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-              >
-                Order Now
-              </Link>
+              {ORDERING_DISABLED ? (
+                <a
+                  href={DOORDASH_ORDER_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
+                >
+                  Order Now
+                </a>
+              ) : (
+                <Link
+                  to="/products"
+                  className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
+                >
+                  Order Now
+                </Link>
+              )}
             </div>
           </div>
 

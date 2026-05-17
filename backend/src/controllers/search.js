@@ -30,7 +30,8 @@ const Search=async(req,res)=> {
           $regex: safeQuery,
           $options: 'i'
         },
-        status: { $ne: 'disabled' }
+        status: { $ne: 'disabled' },
+        available: { $gt: 0 },
       },
       null,
       { limit: 10 }

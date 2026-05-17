@@ -7,6 +7,8 @@ import Rating from "../rating-star";
 import Icons from "../svg";
 import WishlistService from "../../services/wishlistService";
 import toast from "react-hot-toast";
+import { getProductCardImage } from "../../utils/cloudinary";
+import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 
 const ProductCard = ({ product, wishListDone }) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -55,9 +57,10 @@ const ProductCard = ({ product, wishListDone }) => {
       <div className="product_grid_image relative pt-[100%]">
         <Link to={`/product/${product.slug}`}>
           <img
-            src={product.image}
+            src={getProductCardImage(product.image)}
             alt={product.title}
             className="absolute top-0 left-0 w-full h-full object-contain transform scale-75"
+            loading="lazy"
           />
         </Link>
       </div>
@@ -92,14 +95,16 @@ const ProductCard = ({ product, wishListDone }) => {
               {product.price > 0 && <span className="line-through">${product.price?.toFixed(2)}</span>}{" "}${product.priceSale?.toFixed(2)}
             </p>
           </div>
-          <div className="product_grid_cart_btn md:w-10 w-8 md:h-10 h-8 bg-black rounded-full flex items-center justify-center cursor-pointer" onClick={handleAddToCart}>
-            <Icons
-              name="add_to_cart"
-              width={window.innerWidth >= 768 ? 22 : 15}
-              height={window.innerWidth >= 768 ? 22 : 15}
-              color="#FFFFFF"
-            />
-          </div>
+          {!ORDERING_DISABLED && (
+            <div className="product_grid_cart_btn md:w-10 w-8 md:h-10 h-8 bg-black rounded-full flex items-center justify-center cursor-pointer" onClick={handleAddToCart}>
+              <Icons
+                name="add_to_cart"
+                width={window.innerWidth >= 768 ? 22 : 15}
+                height={window.innerWidth >= 768 ? 22 : 15}
+                color="#FFFFFF"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

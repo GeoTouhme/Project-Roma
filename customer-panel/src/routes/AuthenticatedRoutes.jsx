@@ -15,6 +15,7 @@ import OrdersPage from "../pages/orders";
 import WishlistPage from "../pages/wishlist";
 import Terms from "../pages/Terms/Terms";
 import Privacy from "../pages/Privacy/Privacy";
+import { ORDERING_DISABLED } from "../config/orderingConfig";
 
 const AuthenticatedRoutes = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -26,11 +27,11 @@ const AuthenticatedRoutes = () => {
         <Route path="/category/wine/*" element={<Collection />} />
         <Route path="/products/*" element={<Collection />} />
         <Route path="/product/*" element={<ProductPage />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/billing" element={<Billing />} />
-        <Route path="/order/:id" element={<OrderPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/cart" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Cart />} />
+        <Route path="/billing" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Billing />} />
+        <Route path="/order/:id" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <OrderPage />} />
+        <Route path="/orders" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <OrdersPage />} />
+        <Route path="/wishlist" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <WishlistPage />} />
         <Route path="/terms-and-conditions" element={<Terms />} />
         <Route path="/privacy-policy" element={<Privacy />} />
         <Route path="/account" element={isAuthenticated ? <Account /> : <Navigate to="/login" replace />} />

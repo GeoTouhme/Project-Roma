@@ -25,6 +25,7 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import toast from "react-hot-toast";
 import OrderService from "../../services/orderService";
+import { getThumbnailImage } from "../../utils/cloudinary";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 
 
@@ -503,9 +504,10 @@ const Account = () => {
                             {/* Product Image */}
                             <div className="w-full md:w-auto flex justify-center">
                               <img
-                                src={order.items?.[0]?.imageUrl || ""}
+                                src={getThumbnailImage(order.items?.[0]?.imageUrl)}
                                 alt={order.items?.[0]?.name || "Product"}
                                 className="w-24 h-24 object-cover rounded"
+                                loading="lazy"
                               />
                             </div>
 

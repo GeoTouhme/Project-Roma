@@ -6,9 +6,11 @@ import Skeleton from "react-loading-skeleton";
 import { useLocation } from "react-router-dom";
 import CategoriesService from "../../services/categoriesService";
 import SearchService from "../../services/searchService";
+import { getThumbnailImage } from "../../utils/cloudinary";
 import { useSelector } from "react-redux";
 import AnnouncementBar from "./AnnouncementBar";
 import CategoryBar from "./CategoryBar";
+import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 
 const Header = () => {
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
@@ -354,9 +356,10 @@ const Header = () => {
                               >
                                 <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                                   <img
-                                    src={prod.images?.[0]?.url}
+                                    src={getThumbnailImage(prod.images?.[0]?.url)}
                                     alt=""
                                     className="w-full h-full object-cover"
+                                    loading="lazy"
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -386,16 +389,18 @@ const Header = () => {
                 )}
               </div>
 
-              {/* User */}
-              <div
-                className="cursor-pointer hidden xl:block"
-                onClick={handleAccountNavigate}
-              >
-                <Icons name="user" height={22} width={22} color="#111111" />
-              </div>
+              {/* User — HIDDEN when ordering disabled */}
+              {!ORDERING_DISABLED && (
+                <div
+                  className="cursor-pointer hidden xl:block"
+                  onClick={handleAccountNavigate}
+                >
+                  <Icons name="user" height={22} width={22} color="#111111" />
+                </div>
+              )}
 
-              {/* Wishlist */}
-              {isAuthenticated && (
+              {/* Wishlist — HIDDEN when ordering disabled */}
+              {!ORDERING_DISABLED && isAuthenticated && (
                 <div
                   className="relative cursor-pointer hidden xl:block"
                   onClick={() => navigate("/wishlist")}
@@ -404,18 +409,32 @@ const Header = () => {
                 </div>
               )}
 
-              {/* Cart */}
-              <div
-                className="relative cursor-pointer"
-                onClick={() => navigate("/cart")}
-              >
-                <Icons name="cart_bag" height={22} width={22} color="#111111" />
-                {cartCount !== 0 && (
-                  <div className="absolute w-[18px] h-[18px] rounded-full bg-primary flex items-center justify-center text-[10px] text-white right-[-8px] top-[-6px]">
-                    {cartCount}
-                  </div>
-                )}
-              </div>
+              {/* Cart — HIDDEN when ordering disabled */}
+              {!ORDERING_DISABLED && (
+                <div
+                  className="relative cursor-pointer"
+                  onClick={() => navigate("/cart")}
+                >
+                  <Icons name="cart_bag" height={22} width={22} color="#111111" />
+                  {cartCount !== 0 && (
+                    <div className="absolute w-[18px] h-[18px] rounded-full bg-primary flex items-center justify-center text-[10px] text-white right-[-8px] top-[-6px]">
+                      {cartCount}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* DoorDash Order Button — SHOWN when ordering disabled */}
+              {ORDERING_DISABLED && (
+                <a
+                  href={DOORDASH_ORDER_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#B5223B] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-red-700 transition hidden xl:inline-block"
+                >
+                  Order Now
+                </a>
+              )}
 
               {/* Mobile Menu Toggle */}
               <button

@@ -10,7 +10,9 @@ const getWishlist = async (req, res) => {
     const products = await Products.aggregate([
       {
         $match: {
-          _id: { $in: wishlist }, // Match products with IDs present in the Pids array
+          _id: { $in: wishlist },
+          status: { $ne: 'disabled' },
+          available: { $gt: 0 },
         },
       },
       {

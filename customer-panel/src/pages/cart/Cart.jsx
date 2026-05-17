@@ -3,7 +3,9 @@ import { FaTimes } from "react-icons/fa";
 import Breadcrumb from "../../components/breadcrumb";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { getThumbnailImage } from "../../utils/cloudinary";
 import { removeFromCart, updateQuantity } from "../../redux/cartSlice";
+import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -35,6 +37,31 @@ const Cart = () => {
       navigate("/billing");
     }
   };
+
+  if (ORDERING_DISABLED) {
+    return (
+      <div className="main">
+        <div className="page-title text-center mx-auto py-10">
+          <h2 className="text-[30px] font-bold mb-2">Cart</h2>
+          <div className="breadcrumbs">
+            <Breadcrumb />
+          </div>
+        </div>
+        <div className="container py-20 text-center">
+          <h2 className="text-2xl font-bold mb-4">Online Ordering Coming Soon!</h2>
+          <p className="text-gray-600 mb-8">Order now through our DoorDash partner for fast delivery.</p>
+          <a
+            href={DOORDASH_ORDER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#B5223B] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-red-700 transition inline-block"
+          >
+            Order Now on DoorDash
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -73,7 +100,7 @@ const Cart = () => {
                           <button onClick={() => removeItem(item.id)} className="text-red-500">
                             <FaTimes size={16} />
                           </button>
-                          <img src={item.image} alt={item.name} className="w-12 h-12" />
+                          <img src={getThumbnailImage(item.image)} alt={item.name} className="w-12 h-12" loading="lazy" />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">{item.name}</p>
                           </div>
