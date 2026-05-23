@@ -449,8 +449,8 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Tier 3: Category Bar */}
-      <CategoryBar categories={categoryData} />
+      {/* Tier 3: Category Bar — hidden per request */}
+      {/* <CategoryBar categories={categoryData} /> */}
 
       {/* Mobile Drawer */}
       <div

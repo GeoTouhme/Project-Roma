@@ -375,12 +375,14 @@ const Home = () => {
                 Natural & Premium Wines
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Curated Selection for Every Occasion</p>
-              <Link
-                to="/products"
+              <a
+                href="https://nrsgo.com/balport/department/1/category/33"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Wine
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -397,12 +399,14 @@ const Home = () => {
                 Elevate Your Spirits
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Premium Tequila, Vodka & Mixers</p>
-              <Link
-                to="/products"
+              <a
+                href="https://nrsgo.com/balport/department/1/category/31"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Spirits
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -419,12 +423,14 @@ const Home = () => {
                 Game Night Ready
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Cold Beers & Your Favorite Snacks</p>
-              <Link
-                to="/products"
+              <a
+                href="https://nrsgo.com/balport/department/1/category/23"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Beer
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -441,23 +447,14 @@ const Home = () => {
                 Premium Drinks, Delivered Fast
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Your Favorite Liquor at Your Doorstep</p>
-              {ORDERING_DISABLED ? (
-                <a
-                  href={DOORDASH_ORDER_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-                >
-                  Order Now
-                </a>
-              ) : (
-                <Link
-                  to="/products"
-                  className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-                >
-                  Order Now
-                </Link>
-              )}
+              <a
+                href="https://nrsgo.com/balport/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
+              >
+                Order Now
+              </a>
             </div>
           </div>
 
@@ -474,12 +471,14 @@ const Home = () => {
                 Taste the Summer
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Ice-Cold Beers & Hard Seltzers</p>
-              <Link
-                to="/products"
+              <a
+                href="https://nrsgo.com/balport/department/10"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Refresh Now
-              </Link>
+              </a>
             </div>
           </div>
         </Slider>
@@ -514,6 +513,8 @@ const Home = () => {
           </div>
         </div>
       </section>
+      {/* best_sellers section hidden when ordering is disabled */}
+      {/*
       <section className="best_sellers md:mb-[100px] mb-[40px]">
         <div className="container">
           <div className="section_head mb-8 text-center">
@@ -541,6 +542,42 @@ const Home = () => {
                   }}
                   wishListDone={() => { fetchBestSellerProducts(); fetchTopProducts(); }}
                 />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+      */}
+      <section className="store-gallery md:mb-[100px] mb-[40px]">
+        <div className="container">
+          <div className="section_head mb-8 text-center">
+            <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">Store Gallery</h2>
+          </div>
+          <div className="section_content">
+            <div className="gallery_grid grid grid-cols-2 md:grid-cols-4 md:gap-4 gap-2">
+              {[
+                '/images/gallery/photo_2026-05-21_19-29-37.jpg',
+                '/images/gallery/photo_2026-05-21_19-29-58.jpg',
+                '/images/gallery/photo_2026-05-21_19-30-06.jpg',
+                '/images/gallery/photo_2026-05-21_19-30-22.jpg',
+                '/images/gallery/photo_2026-05-21_19-30-29.jpg',
+                '/images/gallery/photo_2026-05-21_19-30-43.jpg',
+                '/images/gallery/photo_2026-05-21_19-30-52.jpg',
+                '/images/gallery/photo_2026-05-21_19-30-58.jpg',
+                '/images/gallery/photo_2026-05-21_19-31-05.jpg',
+                '/images/gallery/photo_2026-05-21_19-31-11.jpg',
+                '/images/gallery/photo_2026-05-21_19-31-20.jpg',
+                '/images/gallery/photo_2026-05-21_19-31-25.jpg',
+                '/images/gallery/photo_2026-05-21_19-31-56.jpg',
+                '/images/gallery/photo_2026-05-21_19-32-02.jpg',
+              ].map((src, index) => (
+                <div key={index} className="gallery_item overflow-hidden rounded-lg">
+                  <img
+                    src={src}
+                    alt={`Store gallery ${index + 1}`}
+                    className="w-full h-[200px] md:h-[260px] object-cover hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -611,6 +648,8 @@ const Home = () => {
           */}
         </Slider>
       </section>
+      {/* popular_products section hidden when ordering is disabled */}
+      {/*
       <section className="popular_products md:mb-[100px] mb-[40px]">
         <div className="container">
           <div className="section_head mb-8 text-center">
@@ -638,6 +677,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      */}
       <section className="faqs md:pb-[100px] pb-[40px] relative">
         <div className="container">
           <div className="section_head mb-8 text-center">

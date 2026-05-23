@@ -24,9 +24,9 @@ const AuthenticatedRoutes = () => {
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/category/wine/*" element={<Collection />} />
-        <Route path="/products/*" element={<Collection />} />
-        <Route path="/product/*" element={<ProductPage />} />
+        <Route path="/category/wine/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Collection />} />
+        <Route path="/products/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Collection />} />
+        <Route path="/product/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <ProductPage />} />
         <Route path="/cart" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Cart />} />
         <Route path="/billing" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Billing />} />
         <Route path="/order/:id" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <OrderPage />} />

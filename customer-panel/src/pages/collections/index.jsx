@@ -390,8 +390,8 @@ const Collection = () => {
         </div>
       </div>
       <div className="container md:pb-[100px] pb-[40px]">
-        {/* Mobile Category Chips - Horizontal Scroll */}
-        {isMobile && categories?.length > 0 && (
+        {/* Mobile Category Chips - Hidden per request */}
+        {/* {isMobile && categories?.length > 0 && (
           <div className="mb-5 -mx-2.5 px-2.5">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
               <button
@@ -417,7 +417,7 @@ const Collection = () => {
               ))}
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="collection_grid_filter grid lg:grid-cols-[300px,1fr] grid-cols-1 gap-5">
           <div className="filter">
