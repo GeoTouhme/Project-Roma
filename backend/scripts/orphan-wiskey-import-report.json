@@ -1,0 +1,577 @@
+{
+  "created": [
+    {
+      "upc": "0080686015406",
+      "stripped": "80686015406",
+      "productId": "69ff2d3fc7a5174ccae8abda",
+      "name": "Whiskey Product - 0080686015406"
+    },
+    {
+      "upc": "0080686024019",
+      "stripped": "80686024019",
+      "productId": "69ff2d3fc7a5174ccae8abdd",
+      "name": "Whiskey Product - 0080686024019"
+    },
+    {
+      "upc": "0080686957386",
+      "stripped": "80686957386",
+      "productId": "69ff2d3fc7a5174ccae8abe0",
+      "name": "Whiskey Product - 0080686957386"
+    },
+    {
+      "upc": "0081128000707",
+      "stripped": "81128000707",
+      "productId": "69ff2d3fc7a5174ccae8abe3",
+      "name": "Whiskey Product - 0081128000707"
+    },
+    {
+      "upc": "0088004031497",
+      "stripped": "88004031497",
+      "productId": "69ff2d3fc7a5174ccae8abe8",
+      "name": "Whiskey Product - 0088004031497"
+    },
+    {
+      "upc": "0088004039646",
+      "stripped": "88004039646",
+      "productId": "69ff2d3fc7a5174ccae8abeb",
+      "name": "Whiskey Product - 0088004039646"
+    },
+    {
+      "upc": "0088076190108",
+      "stripped": "88076190108",
+      "productId": "69ff2d3fc7a5174ccae8abee",
+      "name": "Whiskey Product - 0088076190108"
+    },
+    {
+      "upc": "0088857001623",
+      "stripped": "88857001623",
+      "productId": "69ff2d3fc7a5174ccae8abf1",
+      "name": "Whiskey Product - 0088857001623"
+    },
+    {
+      "upc": "0088857001739",
+      "stripped": "88857001739",
+      "productId": "69ff2d3fc7a5174ccae8abf4",
+      "name": "Whiskey Product - 0088857001739"
+    },
+    {
+      "upc": "0088857001814",
+      "stripped": "88857001814",
+      "productId": "69ff2d3fc7a5174ccae8abf7",
+      "name": "Whiskey Product - 0088857001814"
+    },
+    {
+      "upc": "0096749006427",
+      "stripped": "96749006427",
+      "productId": "69ff2d3fc7a5174ccae8abfb",
+      "name": "Whiskey Product - 0096749006427"
+    },
+    {
+      "upc": "0810080552029",
+      "stripped": "810080552029",
+      "productId": "69ff2d3fc7a5174ccae8abfe",
+      "name": "Whiskey Product - 0810080552029"
+    },
+    {
+      "upc": "0811538016230",
+      "stripped": "811538016230",
+      "productId": "69ff2d3fc7a5174ccae8ac01",
+      "name": "Whiskey Product - 0811538016230"
+    },
+    {
+      "upc": "0860007585357",
+      "stripped": "860007585357",
+      "productId": "69ff2d3fc7a5174ccae8ac04",
+      "name": "Whiskey Product - 0860007585357"
+    },
+    {
+      "upc": "0860008284228",
+      "stripped": "860008284228",
+      "productId": "69ff2d3fc7a5174ccae8ac07",
+      "name": "Whiskey Product - 0860008284228"
+    },
+    {
+      "upc": "2OJB2221",
+      "stripped": "2OJB2221",
+      "productId": "69ff2d3fc7a5174ccae8ac0a",
+      "name": "Whiskey Product - 2OJB2221"
+    },
+    {
+      "upc": "4520971500102",
+      "stripped": "4520971500102",
+      "productId": "69ff2d3fc7a5174ccae8ac0d",
+      "name": "Whiskey Product - 4520971500102"
+    },
+    {
+      "upc": "4904230033578",
+      "stripped": "4904230033578",
+      "productId": "69ff2d3fc7a5174ccae8ac10",
+      "name": "Whiskey Product - 4904230033578"
+    },
+    {
+      "upc": "4904230044987",
+      "stripped": "4904230044987",
+      "productId": "69ff2d3fc7a5174ccae8ac13",
+      "name": "Whiskey Product - 4904230044987"
+    },
+    {
+      "upc": "5029704219001",
+      "stripped": "5029704219001",
+      "productId": "69ff2d3fc7a5174ccae8ac16",
+      "name": "Whiskey Product - 5029704219001"
+    },
+    {
+      "upc": "https.--qrstud.io-llox80k",
+      "stripped": "https.--qrstud.io-llox80k",
+      "productId": "69ff2d3fc7a5174ccae8ac19",
+      "name": "Whiskey Product - https.--qrstud.io-llox80k"
+    },
+    {
+      "upc": "0031259005904",
+      "stripped": "31259005904",
+      "productId": "69ff2d3fc7a5174ccae8ac1c",
+      "name": "Vodka Product - 0031259005904"
+    },
+    {
+      "upc": "0080660487076",
+      "stripped": "80660487076",
+      "productId": "69ff2d3fc7a5174ccae8ac1f",
+      "name": "Vodka Product - 0080660487076"
+    },
+    {
+      "upc": "0080660487083",
+      "stripped": "80660487083",
+      "productId": "69ff2d3fc7a5174ccae8ac22",
+      "name": "Vodka Product - 0080660487083"
+    },
+    {
+      "upc": "0081753838034",
+      "stripped": "81753838034",
+      "productId": "69ff2d3fc7a5174ccae8ac25",
+      "name": "Vodka Product - 0081753838034"
+    },
+    {
+      "upc": "0085000024300",
+      "stripped": "85000024300",
+      "productId": "69ff2d3fc7a5174ccae8ac28",
+      "name": "Vodka Product - 0085000024300"
+    },
+    {
+      "upc": "0085000024317",
+      "stripped": "85000024317",
+      "productId": "69ff2d3fc7a5174ccae8ac2b",
+      "name": "Vodka Product - 0085000024317"
+    },
+    {
+      "upc": "0085000032534",
+      "stripped": "85000032534",
+      "productId": "69ff2d3fc7a5174ccae8ac2e",
+      "name": "Vodka Product - 0085000032534"
+    },
+    {
+      "upc": "0720815985575",
+      "stripped": "720815985575",
+      "productId": "69ff2d3fc7a5174ccae8ac31",
+      "name": "Vodka Product - 0720815985575"
+    },
+    {
+      "upc": "0720815985735",
+      "stripped": "720815985735",
+      "productId": "69ff2d3fc7a5174ccae8ac34",
+      "name": "Vodka Product - 0720815985735"
+    },
+    {
+      "upc": "0721059002004",
+      "stripped": "721059002004",
+      "productId": "69ff2d3fc7a5174ccae8ac37",
+      "name": "Vodka Product - 0721059002004"
+    },
+    {
+      "upc": "0721059003759",
+      "stripped": "721059003759",
+      "productId": "69ff2d3fc7a5174ccae8ac3a",
+      "name": "Vodka Product - 0721059003759"
+    },
+    {
+      "upc": "0721059007504",
+      "stripped": "721059007504",
+      "productId": "69ff2d3fc7a5174ccae8ac3d",
+      "name": "Vodka Product - 0721059007504"
+    },
+    {
+      "upc": "0810155750015",
+      "stripped": "810155750015",
+      "productId": "69ff2d3fc7a5174ccae8ac40",
+      "name": "Vodka Product - 0810155750015"
+    },
+    {
+      "upc": "08200802",
+      "stripped": "8200802",
+      "productId": "69ff2d3fc7a5174ccae8ac43",
+      "name": "Vodka Product - 08200802"
+    },
+    {
+      "upc": "08201209",
+      "stripped": "8201209",
+      "productId": "69ff2d3fc7a5174ccae8ac46",
+      "name": "Vodka Product - 08201209"
+    },
+    {
+      "upc": "08256102",
+      "stripped": "8256102",
+      "productId": "69ff2d3fc7a5174ccae8ac49",
+      "name": "Vodka Product - 08256102"
+    },
+    {
+      "upc": "08256209",
+      "stripped": "8256209",
+      "productId": "69ff2d3fc7a5174ccae8ac4c",
+      "name": "Vodka Product - 08256209"
+    },
+    {
+      "upc": "08295004",
+      "stripped": "8295004",
+      "productId": "69ff2d3fc7a5174ccae8ac4f",
+      "name": "Vodka Product - 08295004"
+    },
+    {
+      "upc": "0835229000100",
+      "stripped": "835229000100",
+      "productId": "69ff2d3fc7a5174ccae8ac52",
+      "name": "Vodka Product - 0835229000100"
+    },
+    {
+      "upc": "0835229000209",
+      "stripped": "835229000209",
+      "productId": "69ff2d3fc7a5174ccae8ac55",
+      "name": "Vodka Product - 0835229000209"
+    },
+    {
+      "upc": "0835229010109",
+      "stripped": "835229010109",
+      "productId": "69ff2d3fc7a5174ccae8ac58",
+      "name": "Vodka Product - 0835229010109"
+    },
+    {
+      "upc": "0850045482008",
+      "stripped": "850045482008",
+      "productId": "69ff2d3fc7a5174ccae8ac5b",
+      "name": "Vodka Product - 0850045482008"
+    },
+    {
+      "upc": "0850045482053",
+      "stripped": "850045482053",
+      "productId": "69ff2d3fc7a5174ccae8ac5e",
+      "name": "Vodka Product - 0850045482053"
+    },
+    {
+      "upc": "0850045482084",
+      "stripped": "850045482084",
+      "productId": "69ff2d3fc7a5174ccae8ac61",
+      "name": "Vodka Product - 0850045482084"
+    },
+    {
+      "upc": "0852935001153",
+      "stripped": "852935001153",
+      "productId": "69ff2d3fc7a5174ccae8ac64",
+      "name": "Vodka Product - 0852935001153"
+    },
+    {
+      "upc": "0856695001002",
+      "stripped": "856695001002",
+      "productId": "69ff2d3fc7a5174ccae8ac67",
+      "name": "Vodka Product - 0856695001002"
+    },
+    {
+      "upc": "0863748000103",
+      "stripped": "863748000103",
+      "productId": "69ff2d3fc7a5174ccae8ac6a",
+      "name": "Vodka Product - 0863748000103"
+    }
+  ],
+  "skipped": [
+    {
+      "upc": "0080686010739",
+      "reason": "already exists",
+      "productId": "69bc54166f0fa539b06f030a"
+    },
+    {
+      "upc": "0082000789550",
+      "reason": "already exists",
+      "productId": "69bc55526f0fa539b06f03b8"
+    },
+    {
+      "upc": "0082000811053",
+      "reason": "already exists",
+      "productId": "69bc55686f0fa539b06f03c8"
+    },
+    {
+      "upc": "0096749000067",
+      "reason": "already exists",
+      "productId": "69bc5c1a6f0fa539b06f0722"
+    }
+  ],
+  "uploaded": [
+    {
+      "upc": "0080686010739",
+      "productId": "69bc54166f0fa539b06f030a",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330944/balport-products/bdutanmn08ezuzxrslrg.jpg"
+    },
+    {
+      "upc": "0080686015406",
+      "productId": "69ff2d3fc7a5174ccae8abda",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330946/balport-products/xpoiej5d8yvn26dkk5ls.jpg"
+    },
+    {
+      "upc": "0080686024019",
+      "productId": "69ff2d3fc7a5174ccae8abdd",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330948/balport-products/vzqkcdtvon5npqkfsmkp.jpg"
+    },
+    {
+      "upc": "0080686957386",
+      "productId": "69ff2d3fc7a5174ccae8abe0",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330950/balport-products/sxvlfaj1we8uffaemdgp.jpg"
+    },
+    {
+      "upc": "0081128000707",
+      "productId": "69ff2d3fc7a5174ccae8abe3",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330953/balport-products/tcq1d67ynwiqtu0z9ijk.jpg"
+    },
+    {
+      "upc": "0082000789550",
+      "productId": "69bc55526f0fa539b06f03b8",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330955/balport-products/fd4xhmzibyi93bbj3sjw.jpg"
+    },
+    {
+      "upc": "0082000811053",
+      "productId": "69bc55686f0fa539b06f03c8",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330957/balport-products/d4aqekuz0woq4wjtp3ai.jpg"
+    },
+    {
+      "upc": "0088004031497",
+      "productId": "69ff2d3fc7a5174ccae8abe8",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330959/balport-products/p3ulcwarmxwof8sfzuuv.jpg"
+    },
+    {
+      "upc": "0088004039646",
+      "productId": "69ff2d3fc7a5174ccae8abeb",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330961/balport-products/ov074xrpgejxsd8ebf6v.jpg"
+    },
+    {
+      "upc": "0088076190108",
+      "productId": "69ff2d3fc7a5174ccae8abee",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330963/balport-products/z82kfffll5x7ic3mpj8x.jpg"
+    },
+    {
+      "upc": "0088857001623",
+      "productId": "69ff2d3fc7a5174ccae8abf1",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330965/balport-products/fxtfy0tmamhtd2ypmqb3.jpg"
+    },
+    {
+      "upc": "0088857001739",
+      "productId": "69ff2d3fc7a5174ccae8abf4",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330968/balport-products/rictkvhwdkzlq5yanwbm.jpg"
+    },
+    {
+      "upc": "0088857001814",
+      "productId": "69ff2d3fc7a5174ccae8abf7",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330970/balport-products/skaqkvpqpofaigg0q3sv.jpg"
+    },
+    {
+      "upc": "0096749000067",
+      "productId": "69bc5c1a6f0fa539b06f0722",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330972/balport-products/yc390euaootz0zqv4pjr.jpg"
+    },
+    {
+      "upc": "0096749006427",
+      "productId": "69ff2d3fc7a5174ccae8abfb",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330974/balport-products/gsxyobzsaqbzmdq9ewca.jpg"
+    },
+    {
+      "upc": "0810080552029",
+      "productId": "69ff2d3fc7a5174ccae8abfe",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330977/balport-products/ejvkvhrvjjbtxzn3bcpm.jpg"
+    },
+    {
+      "upc": "0811538016230",
+      "productId": "69ff2d3fc7a5174ccae8ac01",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330979/balport-products/uwoo2zhwzdn6j2javddd.jpg"
+    },
+    {
+      "upc": "0860007585357",
+      "productId": "69ff2d3fc7a5174ccae8ac04",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330981/balport-products/su7zmngh9cvvd3dnce8g.jpg"
+    },
+    {
+      "upc": "0860008284228",
+      "productId": "69ff2d3fc7a5174ccae8ac07",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330983/balport-products/nkpyykilvwbxx4cmmh7y.jpg"
+    },
+    {
+      "upc": "2OJB2221",
+      "productId": "69ff2d3fc7a5174ccae8ac0a",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330986/balport-products/kqasnmbeisrdnm1dw9ny.jpg"
+    },
+    {
+      "upc": "4520971500102",
+      "productId": "69ff2d3fc7a5174ccae8ac0d",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330988/balport-products/wyc5rau8mfx0qcftmz8p.jpg"
+    },
+    {
+      "upc": "4904230033578",
+      "productId": "69ff2d3fc7a5174ccae8ac10",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330990/balport-products/uou9n7lbdsmwcibksqpl.jpg"
+    },
+    {
+      "upc": "4904230044987",
+      "productId": "69ff2d3fc7a5174ccae8ac13",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330992/balport-products/ew4ltu0t7ixvtjq6vaql.jpg"
+    },
+    {
+      "upc": "5029704219001",
+      "productId": "69ff2d3fc7a5174ccae8ac16",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330994/balport-products/gwnxsx50vnf3nrzoy9ji.jpg"
+    },
+    {
+      "upc": "https.--qrstud.io-llox80k",
+      "productId": "69ff2d3fc7a5174ccae8ac19",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330996/balport-products/wnt9gk2qzy1rew8tvrda.jpg"
+    },
+    {
+      "upc": "0031259005904",
+      "productId": "69ff2d3fc7a5174ccae8ac1c",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778330999/balport-products/jgpql1kpzmzmieqabsqu.jpg"
+    },
+    {
+      "upc": "0080660487076",
+      "productId": "69ff2d3fc7a5174ccae8ac1f",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331001/balport-products/pgm2ujwxdknzqodvbk6r.jpg"
+    },
+    {
+      "upc": "0080660487083",
+      "productId": "69ff2d3fc7a5174ccae8ac22",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331003/balport-products/huhefeelr82gbiucsofw.jpg"
+    },
+    {
+      "upc": "0081753838034",
+      "productId": "69ff2d3fc7a5174ccae8ac25",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331005/balport-products/rozj01vdwbznymfdsnaf.jpg"
+    },
+    {
+      "upc": "0085000024300",
+      "productId": "69ff2d3fc7a5174ccae8ac28",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331008/balport-products/qwrwmoovssfufc2akqwp.jpg"
+    },
+    {
+      "upc": "0085000024317",
+      "productId": "69ff2d3fc7a5174ccae8ac2b",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331010/balport-products/c6ghtejkzggw1c79iu15.jpg"
+    },
+    {
+      "upc": "0085000032534",
+      "productId": "69ff2d3fc7a5174ccae8ac2e",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331012/balport-products/qu1tjgfondh0uttfbhxs.jpg"
+    },
+    {
+      "upc": "0720815985575",
+      "productId": "69ff2d3fc7a5174ccae8ac31",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331015/balport-products/johbox0id5so9qndu5er.jpg"
+    },
+    {
+      "upc": "0720815985735",
+      "productId": "69ff2d3fc7a5174ccae8ac34",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331017/balport-products/seravfrgw3e78meamewe.jpg"
+    },
+    {
+      "upc": "0721059002004",
+      "productId": "69ff2d3fc7a5174ccae8ac37",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331020/balport-products/btauejzletzdvuahh7je.jpg"
+    },
+    {
+      "upc": "0721059003759",
+      "productId": "69ff2d3fc7a5174ccae8ac3a",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331022/balport-products/ndcox3hp8hdv9xnuxxlo.jpg"
+    },
+    {
+      "upc": "0721059007504",
+      "productId": "69ff2d3fc7a5174ccae8ac3d",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331024/balport-products/v8vooilaaresofjuj7ic.jpg"
+    },
+    {
+      "upc": "0810155750015",
+      "productId": "69ff2d3fc7a5174ccae8ac40",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331026/balport-products/tbaetctnauzgfeazebrc.jpg"
+    },
+    {
+      "upc": "08200802",
+      "productId": "69ff2d3fc7a5174ccae8ac43",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331029/balport-products/o3dbdrpvsg7zap9sdzoa.jpg"
+    },
+    {
+      "upc": "08201209",
+      "productId": "69ff2d3fc7a5174ccae8ac46",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331031/balport-products/hkzfmnf82nuqysfph2zp.jpg"
+    },
+    {
+      "upc": "08256102",
+      "productId": "69ff2d3fc7a5174ccae8ac49",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331033/balport-products/tyobgjrc4sd2wjoroz84.jpg"
+    },
+    {
+      "upc": "08256209",
+      "productId": "69ff2d3fc7a5174ccae8ac4c",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331035/balport-products/e99e3shabnq1dvhp0adz.jpg"
+    },
+    {
+      "upc": "08295004",
+      "productId": "69ff2d3fc7a5174ccae8ac4f",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331038/balport-products/cxi5ex0p9uycaxmethg3.jpg"
+    },
+    {
+      "upc": "0835229000100",
+      "productId": "69ff2d3fc7a5174ccae8ac52",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331040/balport-products/lctinq3y4qbli6nt0og1.jpg"
+    },
+    {
+      "upc": "0835229000209",
+      "productId": "69ff2d3fc7a5174ccae8ac55",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331042/balport-products/afntyozxfv1acbrulrxf.jpg"
+    },
+    {
+      "upc": "0835229010109",
+      "productId": "69ff2d3fc7a5174ccae8ac58",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331045/balport-products/fs0snmjmpnfuvqrk4bum.jpg"
+    },
+    {
+      "upc": "0850045482008",
+      "productId": "69ff2d3fc7a5174ccae8ac5b",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331047/balport-products/hfrrr6a8azdztdwzjqez.jpg"
+    },
+    {
+      "upc": "0850045482053",
+      "productId": "69ff2d3fc7a5174ccae8ac5e",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331049/balport-products/uriqbfutnmh9fcleumyw.jpg"
+    },
+    {
+      "upc": "0850045482084",
+      "productId": "69ff2d3fc7a5174ccae8ac61",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331052/balport-products/wkq0jqyiszfry5swqo0j.jpg"
+    },
+    {
+      "upc": "0852935001153",
+      "productId": "69ff2d3fc7a5174ccae8ac64",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331054/balport-products/uhxoco2wzzfsqywsak2p.jpg"
+    },
+    {
+      "upc": "0856695001002",
+      "productId": "69ff2d3fc7a5174ccae8ac67",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331056/balport-products/bjxjjkp5qb2p1d6dmqgd.jpg"
+    },
+    {
+      "upc": "0863748000103",
+      "productId": "69ff2d3fc7a5174ccae8ac6a",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778331058/balport-products/xooqpef8bf7xweowkyih.jpg"
+    }
+  ],
+  "errors": []
+}

@@ -5,3 +5,14 @@ build
 dist
 npm-debug.log
 Dockerfile
+venv-rembg
+pro_data/images
+tequila-photos
+wiskey-photos
+games-photos
+temp-uploads
+scripts/*.json
+scripts/*.txt
+scripts/*.csv
+*.zip
+*.tar.gz

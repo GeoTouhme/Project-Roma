@@ -1,0 +1,129 @@
+{
+  "created": [
+    {
+      "upc": "0080686004424",
+      "stripped": "80686004424",
+      "productId": "69fb0eab2a27a5438b3df993",
+      "name": "Whiskey Product - 0080686004424"
+    },
+    {
+      "upc": "0080686007746",
+      "stripped": "80686007746",
+      "productId": "69fb0eab2a27a5438b3df996",
+      "name": "Whiskey Product - 0080686007746"
+    },
+    {
+      "upc": "0082184004371",
+      "stripped": "82184004371",
+      "productId": "69fb0eab2a27a5438b3df999",
+      "name": "Whiskey Product - 0082184004371"
+    },
+    {
+      "upc": "0085246503171",
+      "stripped": "85246503171",
+      "productId": "69fb0eab2a27a5438b3df99c",
+      "name": "Whiskey Product - 0085246503171"
+    },
+    {
+      "upc": "08262802",
+      "stripped": "8262802",
+      "productId": "69fb0eab2a27a5438b3df99f",
+      "name": "Whiskey Product - 08262802"
+    },
+    {
+      "upc": "08269203",
+      "stripped": "8269203",
+      "productId": "69fb0eab2a27a5438b3df9a2",
+      "name": "Whiskey Product - 08269203"
+    },
+    {
+      "upc": "08773502",
+      "stripped": "8773502",
+      "productId": "69fb0eab2a27a5438b3df9a5",
+      "name": "Whiskey Product - 08773502"
+    },
+    {
+      "upc": "08773900",
+      "stripped": "8773900",
+      "productId": "69fb0eab2a27a5438b3df9a8",
+      "name": "Whiskey Product - 08773900"
+    },
+    {
+      "upc": "08776509",
+      "stripped": "8776509",
+      "productId": "69fb0eab2a27a5438b3df9ab",
+      "name": "Whiskey Product - 08776509"
+    },
+    {
+      "upc": "10055406",
+      "stripped": "10055406",
+      "productId": "69fb0eab2a27a5438b3df9ae",
+      "name": "Whiskey Product - 10055406"
+    }
+  ],
+  "skipped": [],
+  "uploaded": [
+    {
+      "upc": "0080686004424",
+      "productId": "69fb0eab2a27a5438b3df993",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060972/balport-products/bmjsgjlik2pv8letcdlj.jpg",
+      "publicId": "balport-products/bmjsgjlik2pv8letcdlj"
+    },
+    {
+      "upc": "0080686007746",
+      "productId": "69fb0eab2a27a5438b3df996",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060975/balport-products/r7hgykplpbqqlpaylvjd.jpg",
+      "publicId": "balport-products/r7hgykplpbqqlpaylvjd"
+    },
+    {
+      "upc": "0082184004371",
+      "productId": "69fb0eab2a27a5438b3df999",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060978/balport-products/mw05chtnljcvpfatzdun.jpg",
+      "publicId": "balport-products/mw05chtnljcvpfatzdun"
+    },
+    {
+      "upc": "0085246503171",
+      "productId": "69fb0eab2a27a5438b3df99c",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060981/balport-products/kaxk78ozce2shn4vo8pa.jpg",
+      "publicId": "balport-products/kaxk78ozce2shn4vo8pa"
+    },
+    {
+      "upc": "08262802",
+      "productId": "69fb0eab2a27a5438b3df99f",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060983/balport-products/dl1tjsbzl5thcyzxifht.jpg",
+      "publicId": "balport-products/dl1tjsbzl5thcyzxifht"
+    },
+    {
+      "upc": "08269203",
+      "productId": "69fb0eab2a27a5438b3df9a2",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060986/balport-products/qihcsje1gtojgkmdrtuu.jpg",
+      "publicId": "balport-products/qihcsje1gtojgkmdrtuu"
+    },
+    {
+      "upc": "08773502",
+      "productId": "69fb0eab2a27a5438b3df9a5",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060989/balport-products/nbudgjioki7okslj3krl.jpg",
+      "publicId": "balport-products/nbudgjioki7okslj3krl"
+    },
+    {
+      "upc": "08773900",
+      "productId": "69fb0eab2a27a5438b3df9a8",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060992/balport-products/hgexswel4zjkf6dqre7r.jpg",
+      "publicId": "balport-products/hgexswel4zjkf6dqre7r"
+    },
+    {
+      "upc": "08776509",
+      "productId": "69fb0eab2a27a5438b3df9ab",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060995/balport-products/bx2novzyqgsmekfmxnyt.jpg",
+      "publicId": "balport-products/bx2novzyqgsmekfmxnyt"
+    },
+    {
+      "upc": "10055406",
+      "productId": "69fb0eab2a27a5438b3df9ae",
+      "url": "https://res.cloudinary.com/ddhs5dd6l/image/upload/v1778060998/balport-products/aglktdffdjeiuba9vkzc.jpg",
+      "publicId": "balport-products/aglktdffdjeiuba9vkzc"
+    }
+  ],
+  "errors": [],
+  "timestamp": "2026-05-06T09:50:00.195Z"
+}
