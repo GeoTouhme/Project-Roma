@@ -513,8 +513,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-      {/* best_sellers section hidden when ordering is disabled */}
-      {/*
       <section className="best_sellers md:mb-[100px] mb-[40px]">
         <div className="container">
           <div className="section_head mb-8 text-center">
@@ -538,46 +536,10 @@ const Home = () => {
                     priceSale: product.priceSale,
                     price: product.price,
                     rating: product.averageRating || 0,
-                    isWishlisted: product.isWishlisted, // Adjust if you have logic to determine wishlist status
+                    isWishlisted: product.isWishlisted,
                   }}
                   wishListDone={() => { fetchBestSellerProducts(); fetchTopProducts(); }}
                 />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-      */}
-      <section className="store-gallery md:mb-[100px] mb-[40px]">
-        <div className="container">
-          <div className="section_head mb-8 text-center">
-            <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">Store Gallery</h2>
-          </div>
-          <div className="section_content">
-            <div className="gallery_grid grid grid-cols-2 md:grid-cols-4 md:gap-4 gap-2">
-              {[
-                '/images/gallery/photo_2026-05-21_19-29-37.jpg',
-                '/images/gallery/photo_2026-05-21_19-29-58.jpg',
-                '/images/gallery/photo_2026-05-21_19-30-06.jpg',
-                '/images/gallery/photo_2026-05-21_19-30-22.jpg',
-                '/images/gallery/photo_2026-05-21_19-30-29.jpg',
-                '/images/gallery/photo_2026-05-21_19-30-43.jpg',
-                '/images/gallery/photo_2026-05-21_19-30-52.jpg',
-                '/images/gallery/photo_2026-05-21_19-30-58.jpg',
-                '/images/gallery/photo_2026-05-21_19-31-05.jpg',
-                '/images/gallery/photo_2026-05-21_19-31-11.jpg',
-                '/images/gallery/photo_2026-05-21_19-31-20.jpg',
-                '/images/gallery/photo_2026-05-21_19-31-25.jpg',
-                '/images/gallery/photo_2026-05-21_19-31-56.jpg',
-                '/images/gallery/photo_2026-05-21_19-32-02.jpg',
-              ].map((src, index) => (
-                <div key={index} className="gallery_item overflow-hidden rounded-lg">
-                  <img
-                    src={src}
-                    alt={`Store gallery ${index + 1}`}
-                    className="w-full h-[200px] md:h-[260px] object-cover hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
               ))}
             </div>
           </div>
@@ -624,32 +586,44 @@ const Home = () => {
             </div>
           </div>
 
-          {/* ── Slide 2 — Add your next banner here ── */}
-          {/* 
+          {/* ── Slide 2 — Store Gallery ── */}
           <div>
-            <div className="banner-inner relative">
-              <img src={YourNewImage} alt="banner" className="w-full md:h-full h-[400px] object-cover object-right" />
-              <div className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center max-w-[500px] w-full md:text-center">
-                <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-white font-medium md:mb-3 mb-2 uppercase">
-                  Your Subtitle
-                </h6>
-                <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] text-white font-semibold mb-3">
-                  Your Headline
-                </h2>
-                <p className="text-[18px]/[28px] text-white tracking-[-0.1px]">
-                  Your description text here
-                </p>
-                <Link to="/shop" className="bg-primary mt-8 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px]">
-                  Shop Now
-                </Link>
+            <div className="banner-inner relative bg-gray-50 py-8 md:py-12">
+              <div className="container">
+                <div className="section_head mb-6 md:mb-8 text-center">
+                  <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">Store Gallery</h2>
+                </div>
+                <div className="gallery_grid grid grid-cols-2 md:grid-cols-4 md:gap-4 gap-2">
+                  {[
+                    '/images/gallery/photo_2026-05-21_19-29-37.jpg',
+                    '/images/gallery/photo_2026-05-21_19-29-58.jpg',
+                    '/images/gallery/photo_2026-05-21_19-30-06.jpg',
+                    '/images/gallery/photo_2026-05-21_19-30-22.jpg',
+                    '/images/gallery/photo_2026-05-21_19-30-29.jpg',
+                    '/images/gallery/photo_2026-05-21_19-30-43.jpg',
+                    '/images/gallery/photo_2026-05-21_19-30-52.jpg',
+                    '/images/gallery/photo_2026-05-21_19-30-58.jpg',
+                    '/images/gallery/photo_2026-05-21_19-31-05.jpg',
+                    '/images/gallery/photo_2026-05-21_19-31-11.jpg',
+                    '/images/gallery/photo_2026-05-21_19-31-20.jpg',
+                    '/images/gallery/photo_2026-05-21_19-31-25.jpg',
+                    '/images/gallery/photo_2026-05-21_19-31-56.jpg',
+                    '/images/gallery/photo_2026-05-21_19-32-02.jpg',
+                  ].map((src, index) => (
+                    <div key={index} className="gallery_item overflow-hidden rounded-lg">
+                      <img
+                        src={src}
+                        alt={`Store gallery ${index + 1}`}
+                        className="w-full h-[160px] md:h-[220px] object-cover hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-          */}
         </Slider>
       </section>
-      {/* popular_products section hidden when ordering is disabled */}
-      {/*
       <section className="popular_products md:mb-[100px] mb-[40px]">
         <div className="container">
           <div className="section_head mb-8 text-center">
@@ -677,7 +651,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-      */}
       <section className="faqs md:pb-[100px] pb-[40px] relative">
         <div className="container">
           <div className="section_head mb-8 text-center">

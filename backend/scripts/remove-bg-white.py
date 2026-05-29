@@ -54,12 +54,12 @@ def process_image(input_path: str, output_path: str) -> None:
 
 
 def cli_mode() -> None:
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:
         print("Usage: remove-bg-white.py <input.jpg> <output.jpg>")
         sys.exit(1)
 
-    process_image(sys.argv[2], sys.argv[3])
-    print(f"Saved: {sys.argv[3]}")
+    process_image(sys.argv[1], sys.argv[2])
+    print(f"Saved: {sys.argv[2]}")
 
 
 # ─── Worker mode ─────────────────────────────────────────────────
