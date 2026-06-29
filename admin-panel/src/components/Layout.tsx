@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
+import { NotificationBell } from "./NotificationBell";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, Outlet } from "react-router-dom";
@@ -50,11 +51,14 @@ export const Layout: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 transition-all duration-300">
-        {/* Mobile nav toggle */}
+      <div className="flex-1 transition-all duration-300 flex flex-col">
+        {/* Top header with notifications */}
+        <header className="h-14 border-b bg-card flex items-center justify-end px-4 md:px-6">
+          <NotificationBell />
+        </header>
 
         {/* Content */}
-        <main className="h-full overflow-y-auto px-4 py-4 md:p-6 w-full flex justify-center animate-fade-in">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:p-6 w-full flex justify-center animate-fade-in">
           <Outlet />
         </main>
       </div>

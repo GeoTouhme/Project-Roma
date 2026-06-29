@@ -47,6 +47,39 @@ async function getDeliveryService() {
   };
 }
 
+/**
+ * Process a Stripe refund for an order.
+ * Returns the refund ID on success, or null if no Stripe payment exists.
+ * Throws on Stripe error so the caller can decide whether to fail or continue.
+ */
+async function processStripeRefund(order) {
+  if (order.paymentMethod !== 'Stripe' || !order.paymentId) {
+    return null;
+  }
+
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  const refundAmountCents = Math.round(Number(order.total) * 100);
+
+  const refund = await stripe.refunds.create({
+    payment_intent: order.paymentId,
+    amount: refundAmountCents,
+  });
+
+  return { refundId: refund.id, amount: order.total };
+}
+
+async function restockInventory(items) {
+  if (!items || !items.length) return;
+  const restockUpdates = items.map((item) =>
+    Products.findByIdAndUpdate(
+      item.pid,
+      { $inc: { available: item.quantity, sold: -item.quantity } },
+      { new: true, runValidators: true }
+    ).exec()
+  );
+  await Promise.all(restockUpdates);
+}
+
 const createOrder = async (req, res) => {
   try {
     const {
@@ -275,54 +308,11 @@ const createOrder = async (req, res) => {
     }
 
     // --- Delivery Dispatch ---
-    let deliveryResponse = null;
-    let deliveryError = null;
+    // NOTE: Automatic DoorDash/Uber Direct dispatch is disabled. Staff will
+    // manually accept the order in the admin panel and request a driver through
+    // the provider app. The delivery service files are kept for future use.
     let trackingUrl = null;
-    let activeProvider = 'doordash';
-
-    try {
-      const { service, provider } = await getDeliveryService();
-      activeProvider = provider;
-
-      console.log(`🚀 Triggering ${provider} Delivery for Order:`, orderNo);
-      deliveryResponse = await service.createDelivery(orderCreated);
-      console.log(`✅ ${provider} Delivery created:`, deliveryResponse.delivery_id || deliveryResponse.id || deliveryResponse.external_id);
-
-      trackingUrl = deliveryResponse.tracking_url;
-
-      await Orders.findByIdAndUpdate(orderCreated._id, {
-        $set: {
-          deliveryProvider: provider,
-          deliveryId: deliveryResponse.support_reference || deliveryResponse.delivery_id || deliveryResponse.id || deliveryResponse.external_id,
-          trackingUrl: trackingUrl,
-          deliveryStatus: deliveryResponse.delivery_status || deliveryResponse.status || 'created',
-          estimatedPickupTime: deliveryResponse.pickup_time_estimated || null,
-          estimatedDeliveryTime: deliveryResponse.dropoff_time_estimated || null,
-        }
-      });
-    } catch (ddError) {
-      deliveryError = ddError.response ? ddError.response.data : ddError.message;
-      console.error(`❌ ${activeProvider} Delivery Failed Post-Payment:`, deliveryError);
-
-      // Update order status to alert admin that delivery dispatch failed
-      await Orders.findByIdAndUpdate(orderCreated._id, {
-        $set: {
-          status: 'delivery_failed',
-          deliveryProvider: activeProvider,
-          deliveryError: JSON.stringify(deliveryError)
-        }
-      });
-
-      // Create a critical notification for the admin
-      await Notifications.create({
-        opened: false,
-        title: `🚨 DELIVERY FAILED for Order ${orderNo}`,
-        paymentMethod,
-        orderId: orderCreated._id,
-        city: user.city,
-        cover: '', // Optional
-      });
-    }
+    console.log(`⏸️ Auto-delivery dispatch disabled for Order ${orderNo}. Awaiting staff acceptance.`);
     // --------------------------------------
 
     await Notifications.create({
@@ -498,7 +488,7 @@ const updateOrderByAdmin = async (req, res) => {
     // 🛡️ SECURITY: Whitelist only the fields admins are allowed to update.
     // Passing raw req.body allows injection of Mongo operators ($set, $inc, etc.)
     // or overwriting sensitive fields like paymentId, user._id, total.
-    const ALLOWED_ORDER_FIELDS = ['status', 'trackingUrl', 'deliveryStatus', 'note', 'deliveryId', 'deliveryProvider'];
+    const ALLOWED_ORDER_FIELDS = ['status', 'trackingUrl', 'deliveryStatus', 'note', 'deliveryId', 'deliveryProvider', 'staffNotes'];
     const safeData = {};
     for (const field of ALLOWED_ORDER_FIELDS) {
       if (data[field] !== undefined) safeData[field] = data[field];
@@ -639,27 +629,249 @@ const cancelDelivery = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    // Cancel delivery if order has been dispatched
+    // Cancel delivery if order has been dispatched automatically
     // Check terminal statuses for both DoorDash and Uber Direct
     const terminalStatuses = ['DELIVERY_CANCELLED', 'DASHER_DROPPED_OFF', 'canceled', 'delivered', 'returned'];
-    if (order.orderNo && order.deliveryStatus && !terminalStatuses.includes(order.deliveryStatus)) {
+    // For automatically dispatched deliveries only (legacy / future)
+    if (order.deliveryId && order.deliveryStatus && !terminalStatuses.includes(order.deliveryStatus)) {
       try {
         const service = order.deliveryProvider === 'uberdirect' ? uberDirectService : doorDashService;
-        await service.cancelDelivery(order.orderNo);
+        await service.cancelDelivery(order.deliveryId);
       } catch (ddError) {
         console.error('Delivery cancel failed:', ddError.response ? ddError.response.data : ddError.message);
         // Continue — update local status even if provider cancel fails
       }
     }
 
+    // Restock inventory for cancelled orders
+    await restockInventory(order.items);
+
+    // Attempt Stripe refund for cancelled orders
+    let refundResult = null;
+    let refundError = null;
+    try {
+      refundResult = await processStripeRefund(order);
+    } catch (err) {
+      refundError = err.message;
+      console.error(`❌ Stripe refund failed for cancelled order ${order.orderNo}:`, refundError);
+    }
+
+    const updateFields = {
+      status: 'cancelled',
+      deliveryStatus: 'DELIVERY_CANCELLED',
+    };
+
+    if (refundResult) {
+      updateFields.refundId = refundResult.refundId;
+      updateFields.refundAmount = refundResult.amount;
+    } else if (refundError) {
+      updateFields.refundError = refundError;
+    }
+
+    await Orders.findByIdAndUpdate(id, { $set: updateFields });
+
+    return res.status(200).json({
+      success: true,
+      message: refundResult
+        ? 'Order cancelled, inventory restocked, and refund issued.'
+        : refundError
+        ? 'Order cancelled and inventory restocked, but the refund failed. Please handle the refund manually in Stripe.'
+        : 'Order cancelled and inventory restocked.',
+      refundId: refundResult?.refundId || null,
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const acceptOrderByAdmin = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const order = await Orders.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending orders can be accepted.',
+      });
+    }
+
+    const adminUser = await User.findById(req.user._id).select('firstName lastName');
+
     await Orders.findByIdAndUpdate(id, {
       $set: {
-        status: 'cancelled',
-        deliveryStatus: 'DELIVERY_CANCELLED',
-      }
+        status: 'processing',
+        staffAcceptedAt: new Date(),
+        staffActionBy: {
+          _id: adminUser?._id,
+          name: adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin',
+        },
+      },
     });
 
-    return res.status(200).json({ success: true, message: 'Delivery cancelled' });
+    return res.status(200).json({
+      success: true,
+      message: 'Order accepted. Staff can now request a driver manually.',
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const denyOrderByAdmin = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { reason } = await req.body;
+
+    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'A denial reason is required.',
+      });
+    }
+
+    const order = await Orders.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending orders can be denied.',
+      });
+    }
+
+    // Restock inventory for denied orders
+    await restockInventory(order.items);
+
+    // Attempt Stripe refund for denied orders
+    let refundResult = null;
+    let refundError = null;
+    try {
+      refundResult = await processStripeRefund(order);
+    } catch (err) {
+      refundError = err.message;
+      console.error(`❌ Stripe refund failed for denied order ${order.orderNo}:`, refundError);
+    }
+
+    const adminUser = await User.findById(req.user._id).select('firstName lastName');
+
+    const updateFields = {
+      status: 'denied',
+      staffDenialReason: reason.trim(),
+      staffDeniedAt: new Date(),
+      staffActionBy: {
+        _id: adminUser?._id,
+        name: adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin',
+      },
+    };
+
+    if (refundResult) {
+      updateFields.refundId = refundResult.refundId;
+      updateFields.refundAmount = refundResult.amount;
+    } else if (refundError) {
+      updateFields.refundError = refundError;
+    }
+
+    await Orders.findByIdAndUpdate(id, { $set: updateFields });
+
+    return res.status(200).json({
+      success: true,
+      message: refundResult
+        ? 'Order denied, inventory restocked, and refund issued.'
+        : refundError
+        ? 'Order denied and inventory restocked, but the refund failed. Please handle the refund manually in Stripe.'
+        : 'Order denied and inventory restocked.',
+      refundId: refundResult?.refundId || null,
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const cancelOrderByCustomer = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { reason } = await req.body;
+    const order = await Orders.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Only allow cancellation while order is still pending (not yet accepted)
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'This order can no longer be cancelled. Please contact the store.',
+      });
+    }
+
+    // Verify the order belongs to the authenticated customer
+    const authUser = req.user;
+    if (
+      order.user?._id?.toString() !== authUser?._id?.toString() &&
+      order.user?.email !== authUser?.email
+    ) {
+      return res.status(403).json({ success: false, message: 'You are not authorized to cancel this order.' });
+    }
+
+    // Restock inventory
+    await restockInventory(order.items);
+
+    // Attempt Stripe refund
+    let refundResult = null;
+    let refundError = null;
+    try {
+      refundResult = await processStripeRefund(order);
+    } catch (err) {
+      refundError = err.message;
+      console.error(`❌ Stripe refund failed for customer-cancelled order ${order.orderNo}:`, refundError);
+    }
+
+    const updateFields = {
+      status: 'cancelled',
+      customerCancellationReason: reason ? reason.trim() : 'Customer cancelled',
+    };
+
+    if (refundResult) {
+      updateFields.refundId = refundResult.refundId;
+      updateFields.refundAmount = refundResult.amount;
+    } else if (refundError) {
+      updateFields.refundError = refundError;
+    }
+
+    await Orders.findByIdAndUpdate(id, { $set: updateFields });
+
+    // Notify staff about the customer cancellation
+    try {
+      await Notifications.create({
+        opened: false,
+        title: `⚠️ CUSTOMER CANCELLED Order ${order.orderNo} — ${order.user?.firstName} ${order.user?.lastName}`,
+        paymentMethod: order.paymentMethod,
+        orderId: order._id,
+        city: order.user?.city || '',
+        cover: '',
+      });
+    } catch (notifyErr) {
+      console.error('Failed to create customer cancellation notification:', notifyErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: refundResult
+        ? 'Order cancelled and refund issued.'
+        : refundError
+        ? 'Order cancelled, but the refund failed. Please contact the store.'
+        : 'Order cancelled.',
+      refundId: refundResult?.refundId || null,
+    });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
@@ -674,13 +886,13 @@ const refreshDeliveryStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    if (!order.orderNo) {
+    if (!order.deliveryId) {
       return res.status(400).json({ success: false, message: 'No delivery associated with this order' });
     }
 
     const provider = order.deliveryProvider || 'doordash';
     const service = provider === 'uberdirect' ? uberDirectService : doorDashService;
-    const delivery = await service.getDeliveryStatus(order.orderNo);
+    const delivery = await service.getDeliveryStatus(order.deliveryId);
 
     const updateFields = {};
 
@@ -726,6 +938,9 @@ module.exports = {
   getOneOrderByAdmin,
   updateOrderByAdmin,
   deleteOrderByAdmin,
+  acceptOrderByAdmin,
+  denyOrderByAdmin,
   cancelDelivery,
+  cancelOrderByCustomer,
   refreshDeliveryStatus,
 };

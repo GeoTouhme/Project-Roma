@@ -10,11 +10,14 @@ const { checkStoreHours } = require('../middleware/checkStoreHours');
 router.post('/orders', checkStoreHours, orderRoutes.createOrder);
 router.post('/orders/delivery-quote', checkStoreHours, orderRoutes.getDeliveryQuote);
 router.get('/orders/:id', verifyToken, orderRoutes.getOrderById);
+router.put('/orders/:id/cancel', verifyToken, orderRoutes.cancelOrderByCustomer);
 
 //admin routes
 router.get('/admin/orders', verifyToken, adminCheck, orderRoutes.getOrdersByAdmin);
 router.get('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.getOneOrderByAdmin);
 router.put('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.updateOrderByAdmin);
+router.put('/admin/orders/:id/accept', verifyToken, adminCheck, orderRoutes.acceptOrderByAdmin);
+router.put('/admin/orders/:id/deny', verifyToken, adminCheck, orderRoutes.denyOrderByAdmin);
 router.delete('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.deleteOrderByAdmin);
 router.put('/admin/orders/:id/cancel', verifyToken, adminCheck, orderRoutes.cancelDelivery);
 router.get('/admin/orders/:id/delivery-status', verifyToken, adminCheck, orderRoutes.refreshDeliveryStatus);

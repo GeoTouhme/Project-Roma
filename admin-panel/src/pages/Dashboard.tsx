@@ -91,7 +91,7 @@ const Dashboard = () => {
   })) || [];
 
   // Order status data for chart
-  const orderStatuses = ['Pending', 'Processing', 'Delivered', 'Returned', 'Cancelled'];
+  const orderStatuses = ['Pending', 'Processing', 'On The Way', 'Delivered', 'Returned', 'Cancelled', 'Denied'];
   const orderStatusData = analytics?.ordersReport?.map((value: number, index: number) => ({
     name: orderStatuses[index],
     value: value || 0
@@ -249,21 +249,21 @@ const Dashboard = () => {
         <DashboardCard
           title="Pending Orders"
           value={analytics?.ordersReport?.[0]?.toString() || "0"}
-          description="Waiting for processing"
+          description="Waiting for staff acceptance"
           icon={<Clock className="h-4 w-4" />}
           trend={{ value: 0, isPositive: true }}
         />
         <DashboardCard
-          title="Delivered Orders"
-          value={analytics?.ordersReport?.[2]?.toString() || "0"}
-          description="Succesfully delivered"
+          title="Processing Orders"
+          value={analytics?.ordersReport?.[1]?.toString() || "0"}
+          description="Accepted, awaiting driver"
           icon={<CheckCircle2 className="h-4 w-4" />}
           trend={{ value: 0, isPositive: true }}
         />
         <DashboardCard
-          title="Cancelled Orders"
-          value={analytics?.ordersReport?.[4]?.toString() || "0"}
-          description="Cancelled by user/admin"
+          title="Cancelled / Denied"
+          value={((analytics?.ordersReport?.[5] || 0) + (analytics?.ordersReport?.[6] || 0)).toString()}
+          description="Cancelled or denied orders"
           icon={<AlertCircle className="h-4 w-4" />}
           trend={{ value: 0, isPositive: false }}
         />

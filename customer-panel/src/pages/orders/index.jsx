@@ -6,6 +6,17 @@ import { getThumbnailImage } from "../../utils/cloudinary";
 import moment from "moment";
 import Breadcrumb from "../../components/breadcrumb";
 
+const statusStyles = {
+    pending: "bg-yellow-100 text-yellow-800",
+    processing: "bg-blue-100 text-blue-800",
+    shipped: "bg-indigo-100 text-indigo-800",
+    ontheway: "bg-indigo-100 text-indigo-800",
+    delivered: "bg-green-100 text-green-800",
+    cancelled: "bg-red-100 text-red-800",
+    denied: "bg-red-100 text-red-800",
+    delivery_failed: "bg-red-100 text-red-800",
+};
+
 const OrdersPage = () => {
     const navigate = useNavigate();
 
@@ -36,6 +47,11 @@ const OrdersPage = () => {
     }, [page, limit]);
 
     const totalPages = Math.ceil(totalCount / limit);
+
+    const formatStatus = (status) => {
+        if (!status) return "Pending";
+        return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    };
 
     return (
         <div className="p-6 container">
@@ -106,7 +122,11 @@ const OrdersPage = () => {
                                     </td>
                                     <td className="px-4 py-3">{order.totalItems}</td>
                                     <td className="px-4 py-3">${order.total.toFixed(2)}</td>
-                                    <td className="px-4 py-3 capitalize">{order.status}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusStyles[order.status] || statusStyles.pending}`}>
+                                            {formatStatus(order.status)}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-3">
                                         {moment(order.createdAt).format("MMM DD, YYYY")}
                                     </td>

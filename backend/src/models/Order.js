@@ -67,6 +67,40 @@ const OrderSchema = new mongoose.Schema(
     estimatedDeliveryTime: {
       type: String,
     },
+    // Staff order-acceptance workflow fields
+    staffDenialReason: {
+      type: String,
+    },
+    staffAcceptedAt: {
+      type: Date,
+    },
+    staffDeniedAt: {
+      type: Date,
+    },
+    staffActionBy: {
+      _id: {
+        type: mongoose.Types.ObjectId,
+      },
+      name: {
+        type: String,
+      },
+    },
+    staffNotes: {
+      type: String,
+    },
+    // Refund and cancellation tracking
+    refundId: {
+      type: String,
+    },
+    refundAmount: {
+      type: Number,
+    },
+    refundError: {
+      type: String,
+    },
+    customerCancellationReason: {
+      type: String,
+    },
     items: {
       type: Array,
     },

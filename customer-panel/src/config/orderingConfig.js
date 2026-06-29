@@ -1,4 +1,4 @@
-// Temporary flag — set to false (or remove REACT_APP_ORDERING_DISABLED from .env)
-// to re-enable native ordering when Delvri API is ready.
-export const ORDERING_DISABLED = process.env.REACT_APP_ORDERING_DISABLED === 'true';
+// Native checkout is re-enabled. Staff manually accepts orders and requests drivers.
+// Set this to true only if you need to temporarily redirect to a partner page again.
+export const ORDERING_DISABLED = false;
 export const DOORDASH_ORDER_URL = 'https://nrsgo.com/balport';

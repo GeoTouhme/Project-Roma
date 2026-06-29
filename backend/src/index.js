@@ -133,11 +133,13 @@ app.use('/api', productRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', searchRoutes);
 app.use('/api', userRoutes);
-// === TEMPORARILY DISABLED — Using DoorDash for ordering ===
-// app.use('/api', cartRoutes);
-// app.use('/api', OrderRoutes);
-// app.use('/api', paymentRoutes);
-// app.use('/api', wishlistRoutes);
+// Native ordering re-enabled. Auto-delivery dispatch is disabled in order controller;
+// staff manually accepts orders and requests drivers via provider apps.
+app.use('/api', cartRoutes);
+app.use('/api', OrderRoutes);
+app.use('/api', paymentRoutes);
+app.use('/api', wishlistRoutes);
+// Webhooks disabled because there is no automatic delivery dispatch to receive updates from.
 // app.use('/api', doorDashWebhookRoutes);
 // app.use('/api', uberDirectWebhookRoutes);
 app.use('/api', couponCodeRoutes);

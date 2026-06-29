@@ -22,7 +22,7 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  // const [statusFilter, setStatusFilter] = useState("all"); // Backend doesn't support status filter yet
+  const [statusFilter, setStatusFilter] = useState("all");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -30,14 +30,23 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await ordersAPI.getOrders({
+      const params: any = {
         page: currentPage,
         limit: pageSize,
         search: searchQuery,
-      });
+      };
+      if (statusFilter && statusFilter !== "all") {
+        params.status = statusFilter;
+      }
+      const response = await ordersAPI.getOrders(params);
 
       if (response.data.success) {
-        setOrders(response.data.data);
+        // Client-side status filter fallback if backend doesn't support it yet
+        let data = response.data.data || [];
+        if (statusFilter && statusFilter !== "all") {
+          data = data.filter((o: any) => o.status === statusFilter);
+        }
+        setOrders(data);
         setTotalOrders(response.data.total);
       }
     } catch (error) {
@@ -54,13 +63,31 @@ const Orders = () => {
     }, 500); // Debounce search
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, pageSize, searchQuery]);
+  }, [currentPage, pageSize, searchQuery, statusFilter]);
 
   const handleRowClick = (order: any) => {
     navigate(`/orders/${order._id}`);
   };
 
   const totalPages = Math.ceil(totalOrders / pageSize);
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return "bg-green-100 text-green-800";
+      case "processing":
+        return "bg-blue-100 text-blue-800";
+      case "shipped":
+      case "ontheway":
+        return "bg-indigo-100 text-indigo-800";
+      case "cancelled":
+      case "denied":
+        return "bg-red-100 text-red-800";
+      case "pending":
+      default:
+        return "bg-yellow-100 text-yellow-800";
+    }
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -77,20 +104,20 @@ const Orders = () => {
           className="w-full sm:max-w-sm"
         />
 
-        {/* Status Filter - Commented out until backend support
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="delivered">Delivered</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="processing">Processing</SelectItem>
             <SelectItem value="shipped">Shipped</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="denied">Denied</SelectItem>
           </SelectContent>
         </Select>
-        */}
       </div>
 
       {/* Orders Table */}
@@ -130,11 +157,7 @@ const Orders = () => {
             {
               header: "Status",
               accessorKey: (item: any) => (
-                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize
-                  ${item.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                    item.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                      item.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'}`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColor(item.status)}`}>
                   {item.status}
                 </span>
               )

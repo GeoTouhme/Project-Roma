@@ -37,7 +37,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/admin">
+      <BrowserRouter>
         <AuthProvider>
           <Routes>
             {/* Public route */}

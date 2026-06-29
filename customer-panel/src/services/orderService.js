@@ -44,4 +44,15 @@ OrderService.getAllOrders = function (params) {
     })
 }
 
+OrderService.cancelOrder = function (id, reason) {
+    return fetch({
+        url: `/orders/${id}/cancel`,
+        method: "put",
+        headers: {
+            "public-request": "true",
+        },
+        data: { reason }
+    })
+}
+
 export default OrderService;

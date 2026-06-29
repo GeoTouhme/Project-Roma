@@ -53,7 +53,8 @@ const getDashboardAnalytics = async (req, res) => {
                   new Date(v.createdAt).getDate() ===
                     getLastWeeksDate().getDate() + 1 + i &&
                   v.status !== 'cancelled' &&
-                  v.status !== 'returned'
+                  v.status !== 'returned' &&
+                  v.status !== 'denied'
               )
               .reduce((partialSum, a) => partialSum + Number(a.total), 0)
           : prop === 'year'
@@ -62,7 +63,8 @@ const getDashboardAnalytics = async (req, res) => {
                 (v) =>
                   new Date(v.createdAt).getMonth() === i &&
                   v.status !== 'cancelled' &&
-                  v.status !== 'returned'
+                  v.status !== 'returned' &&
+                  v.status !== 'denied'
               )
               .reduce((partialSum, a) => partialSum + Number(a.total), 0)
           : newData
@@ -70,7 +72,8 @@ const getDashboardAnalytics = async (req, res) => {
                 (v) =>
                   new Date(v.createdAt).getDate() === i + 1 &&
                   v.status !== 'cancelled' &&
-                  v.status !== 'returned'
+                  v.status !== 'returned' &&
+                  v.status !== 'denied'
               )
               .reduce((partialSum, a) => partialSum + Number(a.total), 0)
       );
@@ -101,11 +104,11 @@ const getDashboardAnalytics = async (req, res) => {
     );
 
     const dailyEarning = todaysOrders
-      .filter((order) => order.status !== 'cancelled' && order.status !== 'returned')
+      .filter((order) => order.status !== 'cancelled' && order.status !== 'returned' && order.status !== 'denied')
       .reduce((partialSum, order) => partialSum + Number(order.total), 0);
 
     const yesterdayEarning = yesterdaysOrders
-      .filter((order) => order.status !== 'cancelled' && order.status !== 'returned')
+      .filter((order) => order.status !== 'cancelled' && order.status !== 'returned' && order.status !== 'denied')
       .reduce((partialSum, order) => partialSum + Number(order.total), 0);
 
     const newUsersToday = users.filter(u => new Date(u.createdAt).getTime() >= startOfToday).length;
@@ -124,10 +127,12 @@ const getDashboardAnalytics = async (req, res) => {
       bestSellingProducts: bestSellingProducts,
       ordersReport: [
         'pending',
+        'processing',
         'ontheway',
         'delivered',
         'returned',
         'cancelled',
+        'denied',
       ].map(
         (status) => ordersByYears.filter((v) => v.status === status).length
       ),

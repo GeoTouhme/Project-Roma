@@ -82,6 +82,12 @@ export const ordersAPI = {
     updateOrder: (id: string, data: any) =>
         api.put(`/api/admin/orders/${id}`, data),
 
+    acceptOrder: (id: string) =>
+        api.put(`/api/admin/orders/${id}/accept`),
+
+    denyOrder: (id: string, reason: string) =>
+        api.put(`/api/admin/orders/${id}/deny`, { reason }),
+
     deleteOrder: (id: string) =>
         api.delete(`/api/admin/orders/${id}`),
 };
