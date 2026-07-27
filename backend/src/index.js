@@ -117,6 +117,7 @@ const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
+const stripeWebhookRoutes = require('./routes/stripeWebhook');
 const analyticsRoutes = require('./routes/analytics');
 
 app.use('/api/store', publicReadLimiter, storeRoutes);
@@ -139,6 +140,8 @@ app.use('/api', apiLimiter, cartRoutes);
 app.use('/api', apiLimiter, OrderRoutes);
 app.use('/api', apiLimiter, paymentRoutes);
 app.use('/api', apiLimiter, wishlistRoutes);
+// Stripe webhook must be mounted BEFORE bodyParser.json so rawBody is preserved.
+app.use('/api/webhooks', stripeWebhookRoutes);
 // Webhooks disabled because there is no automatic delivery dispatch to receive updates from.
 // app.use('/api', doorDashWebhookRoutes);
 // app.use('/api', uberDirectWebhookRoutes);

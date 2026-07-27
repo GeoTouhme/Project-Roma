@@ -47,6 +47,17 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
+      enum: ['pending', 'payment_failed', 'accepted', 'shipped', 'delivered', 'cancelled', 'disputed', 'refunded'],
+      default: 'pending',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'succeeded', 'failed', 'refunded', 'disputed'],
+      default: 'pending',
+    },
+    refundedAmount: {
+      type: Number,
+      default: 0,
     },
     containsAlcohol: {
       type: Boolean,

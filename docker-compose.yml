@@ -17,7 +17,7 @@ services:
     environment:
       - PORT=5001
       - MONGODB_URI=mongodb://mongodb:27017/liquor_shop
-      - ALLOWED_ORIGINS=https://balportliquors.com,https://www.balportliquors.com
+      - ALLOWED_ORIGINS=https://balportliquors.com,https://www.balportliquors.com,https://admin.balportliquors.com
     env_file:
       - ./backend/.env
     depends_on:

@@ -191,9 +191,9 @@ const getFilters = async (req, res) => {
     }
     const mappedColors = totalProducts?.map((v) => v.colors);
     const mappedSizes = totalProducts?.map((v) => v.sizes);
-    const mappedPrices = totalProducts?.map((v) => v.price);
-    const min = mappedPrices[0] ? Math.min(...mappedPrices) : 0;
-    const max = mappedPrices[0] ? Math.max(...mappedPrices) : 100000;
+    const mappedPrices = totalProducts?.map((v) => v.priceSale ?? v.price).filter((v) => typeof v === 'number' && !isNaN(v));
+    const min = mappedPrices.length ? Math.min(...mappedPrices) : 0;
+    const max = mappedPrices.length ? Math.max(...mappedPrices) : 100000;
     const response = {
       colors: _.union(...mappedColors),
       sizes: _.union(...mappedSizes),
@@ -201,7 +201,7 @@ const getFilters = async (req, res) => {
       genders: totalGender.filter(onlyUnique),
       brands: brands,
     };
-    res.status(201).json({ success: true, data: response });
+    res.status(200).json({ success: true, data: response });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -547,9 +547,9 @@ const getFiltersByCategory = async (req, res) => {
     }
     const mappedColors = totalProducts?.map((v) => v.colors);
     const mappedSizes = totalProducts?.map((v) => v.sizes);
-    const mappedPrices = totalProducts?.map((v) => v.price);
-    const min = mappedPrices[0] ? Math.min(...mappedPrices[0]) : 0;
-    const max = mappedPrices[0] ? Math.max(...mappedPrices[0]) : 100000;
+    const mappedPrices = totalProducts?.map((v) => v.priceSale ?? v.price).filter((v) => typeof v === 'number' && !isNaN(v));
+    const min = mappedPrices.length ? Math.min(...mappedPrices) : 0;
+    const max = mappedPrices.length ? Math.max(...mappedPrices) : 100000;
     const response = {
       colors: _.union(...mappedColors),
       sizes: _.union(...mappedSizes),
@@ -604,9 +604,9 @@ const getFiltersBySubCategory = async (req, res) => {
     }
     const mappedColors = totalProducts?.map((v) => v.colors);
     const mappedSizes = totalProducts?.map((v) => v.sizes);
-    const mappedPrices = totalProducts?.map((v) => v.price);
-    const min = mappedPrices[0] ? Math.min(...mappedPrices[0]) : 0;
-    const max = mappedPrices[0] ? Math.max(...mappedPrices[0]) : 100000;
+    const mappedPrices = totalProducts?.map((v) => v.priceSale ?? v.price).filter((v) => typeof v === 'number' && !isNaN(v));
+    const min = mappedPrices.length ? Math.min(...mappedPrices) : 0;
+    const max = mappedPrices.length ? Math.max(...mappedPrices) : 100000;
     const response = {
       colors: _.union(...mappedColors),
       sizes: _.union(...mappedSizes),

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Notifications = require('../models/Notification');
 const Products = require('../models/Product');
 const Orders = require('../models/Order');
@@ -167,15 +168,8 @@ const createOrder = async (req, res) => {
 
     let containsAlcohol = false;
 
-    // Issue 3: Collect inventory update promises and await them
-    const inventoryUpdates = [];
-
     const updatedItems = items.map((item) => {
       const product = products.find((p) => p._id.toString() === item.pid);
-
-      if (product) {
-        console.log(`🔍 Checking Product: ${product.name} | Category: ${product.category ? product.category.name : 'N/A'} | Slug: ${product.category ? product.category.slug : 'N/A'}`);
-      }
 
       if (product && product.category && alcoholCategorySlugs.includes(product.category.slug)) {
         containsAlcohol = true;
@@ -184,20 +178,6 @@ const createOrder = async (req, res) => {
       const price = product ? product.priceSale : 0;
       const total = price * item.quantity;
 
-      // Issue 3: Collect the promise instead of fire-and-forget
-      inventoryUpdates.push(
-        Products.findOneAndUpdate(
-          { _id: item.pid, available: { $gte: item.quantity } },
-          { $inc: { available: -item.quantity, sold: item.quantity } },
-          { new: true, runValidators: true }
-        ).exec().then(result => {
-          if (!result) {
-            throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
-          }
-          return result;
-        })
-      );
-
       return {
         ...item,
         total,
@@ -205,15 +185,65 @@ const createOrder = async (req, res) => {
       };
     });
 
-    // Issue 3: Await all inventory updates - fail the order if any product is out of stock
+    // Atomic transaction: decrement stock, create order, and record coupon use together.
+    // If any step fails, all changes are rolled back.
+    const session = await mongoose.startSession();
+    let orderCreated;
     try {
-      await Promise.all(inventoryUpdates);
-    } catch (stockError) {
+      await session.withTransaction(async () => {
+        for (const item of updatedItems) {
+          const product = products.find((p) => p._id.toString() === item.pid);
+          const stockResult = await Products.findOneAndUpdate(
+            { _id: item.pid, available: { $gte: item.quantity } },
+            { $inc: { available: -item.quantity, sold: item.quantity } },
+            { new: true, runValidators: true, session }
+          );
+          if (!stockResult) {
+            throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
+          }
+        }
+
+        orderCreated = await Orders.create([{
+          paymentMethod,
+          paymentId,
+          discount,
+          tip: sanitizedTip,
+          tax,
+          crv: crvTotal,
+          total: orderTotal,
+          subTotal: grandTotal,
+          shipping,
+          items: updatedItems.map(({ image, ...others }) => others),
+          user: orderUser,
+          totalItems,
+          orderNo,
+          containsAlcohol,
+          status: 'pending',
+        }], { session });
+        orderCreated = orderCreated[0];
+
+        await User.findByIdAndUpdate(
+          req.user._id,
+          { $push: { orders: orderCreated._id } },
+          { session }
+        );
+
+        if (couponCode) {
+          await Coupons.findOneAndUpdate(
+            { code: couponCode },
+            { $addToSet: { usedBy: req.user.email } },
+            { session }
+          );
+        }
+      });
+    } catch (transactionError) {
+      await session.endSession();
       return res.status(400).json({
         success: false,
-        message: stockError.message || 'One or more items are out of stock.'
+        message: transactionError.message || 'Order could not be completed. Please try again.'
       });
     }
+    await session.endSession();
 
     const grandTotal = updatedItems.reduce((acc, item) => acc + item.total, 0);
 
@@ -224,9 +254,9 @@ const createOrder = async (req, res) => {
     let crvTotal = 0;
     let taxableSubtotal = 0;
     for (const item of updatedItems) {
-      const populated = await Products.findById(item.pid).populate('category');
-      const category = item.category || populated?.category;
-      const productSize = item.size || populated?.size;
+      const product = products.find((p) => p._id.toString() === item.pid);
+      const category = product?.category;
+      const productSize = product?.size;
       const itemTotal = item.total;
       const qty = item.quantity || 1;
       if (category?.taxable !== false) {
@@ -240,9 +270,10 @@ const createOrder = async (req, res) => {
     crvTotal = round2(crvTotal);
 
     let discount = 0;
+    let couponData = null;
 
     if (couponCode) {
-      const couponData = await Coupons.findOne({ code: couponCode });
+      couponData = await Coupons.findOne({ code: couponCode });
 
       if (!couponData) {
         return res
@@ -256,15 +287,11 @@ const createOrder = async (req, res) => {
           .status(400)
           .json({ success: false, message: 'CouponCode Is Expired' });
       }
-      await Coupons.findOneAndUpdate(
-        { code: couponCode },
-        { $addToSet: { usedBy: user.email } }
-      );
 
-      if (couponData && couponData.type === 'percent') {
+      if (couponData.type === 'percent') {
         const percentLess = couponData.discount;
         discount = (percentLess / 100) * grandTotal;
-      } else if (couponData) {
+      } else {
         discount = couponData.discount;
       }
     }
@@ -289,74 +316,52 @@ const createOrder = async (req, res) => {
     try {
       paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
     } catch (stripeError) {
-      // If we can't retrieve the payment intent (e.g., it's a payment method ID instead of payment intent ID),
-      // the frontend may need updating. For now, allow order to proceed but log a warning.
-      console.warn('⚠️ Could not retrieve Stripe payment intent. Payment verification skipped.', stripeError.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed. Please try again.'
+      });
     }
 
-    if (paymentIntent) {
-      if (paymentIntent.amount !== expectedAmountCents) {
-        return res.status(400).json({
-          success: false,
-          message: 'Payment amount mismatch. Please try again.'
-        });
-      }
-      if (paymentIntent.status !== 'succeeded') {
-        return res.status(400).json({
-          success: false,
-          message: 'Payment not confirmed. Please try again.'
-        });
-      }
+    if (!paymentIntent) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment not found. Please try again.'
+      });
     }
 
-    const existingUser = await User.findOne({ email: user.email });
-    const orderNo = await generateOrderNumber();
+    if (paymentIntent.amount !== expectedAmountCents) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment amount mismatch. Please try again.'
+      });
+    }
 
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment not confirmed. Please try again.'
+      });
+    }
+
+    // Use authenticated user from JWT, not client-provided user object
     const orderUser = {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phone,
-      address: user.address,
-      city: user.city,
-      state: user.state,
-      country: user.country,
-      zip: user.zip,
-      ...(existingUser ? { _id: existingUser._id } : {})
+      _id: req.user._id,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      email: req.user.email,
     };
 
-    // Issue 2: Wrap order creation in try-catch for duplicate key error
-    let orderCreated;
-    try {
-      orderCreated = await Orders.create({
-        paymentMethod,
-        paymentId,
-        discount,
-        tip: sanitizedTip,
-        tax,
-        crv: crvTotal,
-        total: orderTotal,
-        subTotal: grandTotal,
-        shipping,
-        items: updatedItems.map(({ image, ...others }) => others),
-        user: orderUser,
-        totalItems,
-        orderNo,
-        containsAlcohol,
-        status: 'pending',
-      });
-    } catch (err) {
-      if (err.code === 11000 && err.keyPattern?.paymentId) {
-        const duplicateOrder = await Orders.findOne({ paymentId });
-        return res.status(200).json({
-          success: true,
-          message: 'Order already placed',
-          orderId: duplicateOrder._id,
-          orderNo: duplicateOrder.orderNo,
-        });
-      }
-      throw err;
-    }
+    // Optional shipping details from the client must still come from a trusted source
+    const shippingDetails = user || {};
+    orderUser.phone = shippingDetails.phone || req.user.phone || '';
+    orderUser.address = shippingDetails.address || req.user.address || '';
+    orderUser.city = shippingDetails.city || req.user.city || '';
+    orderUser.state = shippingDetails.state || req.user.state || '';
+    orderUser.country = shippingDetails.country || req.user.country || '';
+    orderUser.zip = shippingDetails.zip || req.user.zip || '';
+
+    const orderNo = await generateOrderNumber();
+
 
     // --- Delivery Dispatch ---
     // NOTE: Automatic DoorDash/Uber Direct dispatch is disabled. Staff will
@@ -366,14 +371,14 @@ const createOrder = async (req, res) => {
     console.log(`⏸️ Auto-delivery dispatch disabled for Order ${orderNo}. Awaiting staff acceptance.`);
     // --------------------------------------
 
-    await Notifications.create({
+    await Notifications.create([{
       opened: false,
-      title: `${user.firstName} ${user.lastName} placed an order from ${user.city}.`,
+      title: `${orderUser.firstName} ${orderUser.lastName} placed an order from ${orderUser.city}.`,
       paymentMethod,
       orderId: orderCreated._id,
-      city: user.city,
-      cover: user?.cover?.url || '',
-    });
+      city: orderUser.city,
+      cover: req.user?.cover?.url || '',
+    }]);
 
     // Send order confirmation email (non-blocking)
     try {
@@ -381,7 +386,7 @@ const createOrder = async (req, res) => {
 
       htmlContent = htmlContent.replace(
         /{{recipientName}}/g,
-        `${user.firstName} ${user.lastName}`
+        `${orderUser.firstName} ${orderUser.lastName}`
       );
 
       let itemsHtml = '';
@@ -419,7 +424,7 @@ const createOrder = async (req, res) => {
 
       // Send email via OAuth2 utility
       await sendEmail({
-        to: user.email,
+        to: orderUser.email,
         subject: `Your Balport Order #${orderNo} Confirmation`,
         html: htmlContent
       });
@@ -432,7 +437,7 @@ const createOrder = async (req, res) => {
       success: true,
       message: 'Order Placed',
       orderId: orderCreated._id,
-      data: items.name,
+      data: orderCreated,
       orderNo,
     });
   } catch (error) {
