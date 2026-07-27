@@ -118,6 +118,7 @@ const uploadRoutes = require('./routes/upload');
 const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
 const stripeWebhookRoutes = require('./routes/stripeWebhook');
+const notificationRoutes = require('./routes/notification');
 const analyticsRoutes = require('./routes/analytics');
 
 app.use('/api/store', publicReadLimiter, storeRoutes);
@@ -149,6 +150,7 @@ app.use('/api', apiLimiter, couponCodeRoutes);
 app.use('/api', publicReadLimiter, reviewRoutes);
 app.use('/api', apiLimiter, delete_fileRoutes);
 app.use('/api', apiLimiter, uploadRoutes);
+app.use('/api', apiLimiter, notificationRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API
