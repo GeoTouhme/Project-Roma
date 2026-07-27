@@ -28,23 +28,47 @@ export const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [audioReady, setAudioReady] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const prevUnreadRef = useRef(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Play a short alarm beep using the Web Audio API so we don't depend on an MP3 file.
+  const playAlarm = () => {
+    if (!soundEnabled || !audioUnlocked) return;
+    try {
+      const AudioContext =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (err) {
+      console.warn("Notification alarm play failed", err);
+    }
+  };
 
   useEffect(() => {
-    const audio = new Audio("/notification-alarm.mp3");
-    audio.preload = "auto";
-    audio.oncanplaythrough = () => setAudioReady(true);
-    audioRef.current = audio;
-
     // Unlock audio context on first user interaction so autoplay policies allow it later.
     const unlockAudio = () => {
-      if (audioRef.current) {
-        audioRef.current.play().catch(() => {}).finally(() => {
-          audioRef.current?.pause();
-          if (audioRef.current) audioRef.current.currentTime = 0;
-        });
+      try {
+        const AudioContext =
+          (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          ctx.resume().then(() => setAudioUnlocked(true));
+        } else {
+          setAudioUnlocked(true);
+        }
+      } catch {
+        setAudioUnlocked(true);
       }
       window.removeEventListener("click", unlockAudio);
     };
@@ -65,8 +89,7 @@ export const NotificationBell: React.FC = () => {
         // Play alarm when a new unread notification arrives.
         if (
           soundEnabled &&
-          audioRef.current &&
-          audioReady &&
+          audioUnlocked &&
           newUnread > 0 &&
           newUnread > prevUnreadRef.current &&
           newNotifications.some(
@@ -74,10 +97,7 @@ export const NotificationBell: React.FC = () => {
               !notifications.find((existing) => existing._id === n._id && existing.opened)
           )
         ) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play().catch((err) => {
-            console.warn("Notification alarm play failed:", err.message);
-          });
+          playAlarm();
         }
 
         prevUnreadRef.current = newUnread;
@@ -93,7 +113,7 @@ export const NotificationBell: React.FC = () => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds
     return () => clearInterval(interval);
-  }, [soundEnabled, audioReady, notifications]);
+  }, [soundEnabled, audioUnlocked, notifications]);
 
   const handleMarkOpened = async (e: React.MouseEvent, notification: Notification) => {
     e.stopPropagation();

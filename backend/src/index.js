@@ -68,8 +68,16 @@ const createLimiter = (max, windowMinutes, messagePrefix) =>
       success: false,
       message: `${messagePrefix}. Please try again after ${windowMinutes} minutes.`,
     },
-    // Trust proxy and X-Forwarded-For are handled by app.set('trust proxy', 1) above;
-    // rely on express-rate-limit's built-in IPv6-safe key generator.
+    // Nginx -> Docker makes every request appear to come from the same proxy IP,
+    // so bucket authenticated users by their JWT token and unauthenticated clients
+    // by the trusted X-Forwarded-For IP.
+    keyGenerator: (req) => {
+      const authHeader = req.headers.authorization || '';
+      if (authHeader.startsWith('Bearer ') && authHeader.length > 7) {
+        return `user:${authHeader.slice(7)}`;
+      }
+      return `ip:${req.ip}`;
+    },
   });
 
 // Auth routes: strict to prevent brute-force / OTP abuse.
