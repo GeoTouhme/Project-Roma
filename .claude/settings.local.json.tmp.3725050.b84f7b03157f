@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m 'chore: remove legacy root-level CRA and related unused files *)",
+      "Bash(git push *)",
+      "Bash(nginx -v)",
+      "Read(//etc/nginx/sites-enabled/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://balportliquors.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://31.97.132.106:3000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://31.97.132.106:5001)",
+      "Bash(nginx -t)",
+      "Bash(systemctl reload *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://balportliquors.com)",
+      "Bash(curl -s https://balportliquors.com)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://balportliquors.com/api/store/status)",
+      "Bash(curl -s https://balportliquors.com/api/store/status)",
+      "Bash(docker compose *)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(rm -f .claude/settings.local.json.tmp.3725050.a0f01832638a)",
+      "Bash(git commit -m 'feat: point balportliquors.com to Project-Roma Docker stack + security hardening *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://balportliquors.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://balportliquors.com/api/store/status)",
+      "Bash(curl *)",
+      "Read(//etc/letsencrypt/live/**)",
+      "Bash(certbot --version)",
+      "Bash(certbot certonly *)",
+      "Bash(htpasswd -cb /etc/nginx/.htpasswd admin '123654Lina$')",
+      "Bash(git commit -m 'feat: critical production fixes for go-live *)",
+      "Bash(git commit -m 'chore: default delivery provider to store and clarify staff-only delivery *)"
+    ]
+  }
+}

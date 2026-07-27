@@ -363,12 +363,13 @@ const createOrder = async (req, res) => {
     const orderNo = await generateOrderNumber();
 
 
-    // --- Delivery Dispatch ---
-    // NOTE: Automatic DoorDash/Uber Direct dispatch is disabled. Staff will
-    // manually accept the order in the admin panel and request a driver through
-    // the provider app. The delivery service files are kept for future use.
+    // --- Staff-Only Delivery ---
+    // NOTE: This project uses staff-only delivery. DoorDash/Uber Direct auto-
+    // dispatch is intentionally disabled. Staff members accept orders in the admin
+    // panel and arrange delivery manually. Delivery service code is kept for
+    // future use only.
     let trackingUrl = null;
-    console.log(`⏸️ Auto-delivery dispatch disabled for Order ${orderNo}. Awaiting staff acceptance.`);
+    console.log(`⏸️ Staff-only delivery: order ${orderNo} awaiting staff acceptance.`);
     // --------------------------------------
 
     await Notifications.create([{

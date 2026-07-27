@@ -46,7 +46,7 @@ settingsSchema.statics.findOneOrCreate = async function () {
         settings = new this({
             key: 'storeConfig',
             timezone: 'America/Los_Angeles',
-            deliveryProvider: 'doordash',
+            deliveryProvider: 'store',
             operatingHours: [
                 { dayOfWeek: 0, day: 'Sunday', isOpen: true, open: '07:00', close: '02:00' },
                 { dayOfWeek: 1, day: 'Monday', isOpen: true, open: '06:00', close: '02:00' },
