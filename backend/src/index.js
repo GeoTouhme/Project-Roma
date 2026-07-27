@@ -55,34 +55,32 @@ app.use(bodyParser.json({
   }
 }));
 
-// Relaxed rate limiter for development/testing
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per 15 minutes per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many requests. Please try again after 15 minutes.' },
-});
+// Tiered rate limiting to balance customer browsing with abuse protection.
+// Limits are per IP per window. nginx sits in front as a single trusted proxy.
 
-// Skip rate limit for admin-authenticated requests
-const skipRateLimitForAdmin = (req, res, next) => {
-  const token = req.headers.authorization;
-  if (token) {
-    try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(
-        token.replace('Bearer ', ''),
-        process.env.JWT_SECRET || 'b2bda22377f71d92dcc55e75f7be2091cc1ad5775139c1312e407e0c51cb1ad3'
-      );
-      if (decoded.role === 'admin' || decoded.role === 'super admin') {
-        return next('router');
-      }
-    } catch (err) {
-      // Token invalid — fall through to rate limiter
-    }
-  }
-  next();
-};
+const createLimiter = (max, windowMinutes, messagePrefix) =>
+  rateLimit({
+    windowMs: windowMinutes * 60 * 1000,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      message: `${messagePrefix}. Please try again after ${windowMinutes} minutes.`,
+    },
+    // Trust proxy and X-Forwarded-For are handled by app.set('trust proxy', 1) above;
+    // rely on express-rate-limit's built-in IPv6-safe key generator.
+  });
+
+// Auth routes: strict to prevent brute-force / OTP abuse.
+const authLimiter = createLimiter(20, 15, 'Too many auth attempts');
+
+// Public read routes: generous so customers can browse 100+ departments and paginated products.
+const publicReadLimiter = createLimiter(2000, 15, 'Too many requests');
+
+// Authenticated / mutating routes: generous for normal cart/order/wishlist/admin activity.
+const apiLimiter = createLimiter(1000, 15, 'Too many requests');
+
 
 // Connect to MongoDB
 mongoose
@@ -112,6 +110,7 @@ const reviewRoutes = require('./routes/review');
 const wishlistRoutes = require('./routes/wishlist');
 const OrderRoutes = require('./routes/order');
 const paymentRoutes = require('./routes/payment-intents');
+const recommendationRoutes = require('./routes/recommendation');
 const delete_fileRoutes = require('./routes/file-delete');
 const storeRoutes = require('./routes/store');
 const settingsRoutes = require('./routes/settings');
@@ -120,32 +119,33 @@ const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
 const analyticsRoutes = require('./routes/analytics');
 
-app.use('/api/store', storeRoutes);
-app.use('/api', analyticsRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api', homeRoutes);
-app.use('/api', skipRateLimitForAdmin, authLimiter, authRoutes); // Keep auth enabled for admin panel
-app.use('/api', brandRoutes);
-app.use('/api', categoryRoutes);
-app.use('/api', subcategoryRoutes);
-app.use('/api', newsletterRoutes);
-app.use('/api', productRoutes);
-app.use('/api', dashboardRoutes);
-app.use('/api', searchRoutes);
-app.use('/api', userRoutes);
+app.use('/api/store', publicReadLimiter, storeRoutes);
+app.use('/api', apiLimiter, analyticsRoutes);
+app.use('/api/settings', publicReadLimiter, settingsRoutes);
+app.use('/api', publicReadLimiter, homeRoutes);
+app.use('/api', authRoutes); // Auth rate limiting is inside routes/auth.js
+app.use('/api', publicReadLimiter, brandRoutes);
+app.use('/api', publicReadLimiter, categoryRoutes);
+app.use('/api', publicReadLimiter, subcategoryRoutes);
+app.use('/api', publicReadLimiter, newsletterRoutes);
+app.use('/api', publicReadLimiter, productRoutes);
+app.use('/api', publicReadLimiter, recommendationRoutes);
+app.use('/api', apiLimiter, dashboardRoutes);
+app.use('/api', publicReadLimiter, searchRoutes);
+app.use('/api', apiLimiter, userRoutes);
 // Native ordering re-enabled. Auto-delivery dispatch is disabled in order controller;
 // staff manually accepts orders and requests drivers via provider apps.
-app.use('/api', cartRoutes);
-app.use('/api', OrderRoutes);
-app.use('/api', paymentRoutes);
-app.use('/api', wishlistRoutes);
+app.use('/api', apiLimiter, cartRoutes);
+app.use('/api', apiLimiter, OrderRoutes);
+app.use('/api', apiLimiter, paymentRoutes);
+app.use('/api', apiLimiter, wishlistRoutes);
 // Webhooks disabled because there is no automatic delivery dispatch to receive updates from.
 // app.use('/api', doorDashWebhookRoutes);
 // app.use('/api', uberDirectWebhookRoutes);
-app.use('/api', couponCodeRoutes);
-app.use('/api', reviewRoutes);
-app.use('/api', delete_fileRoutes);
-app.use('/api', uploadRoutes);
+app.use('/api', apiLimiter, couponCodeRoutes);
+app.use('/api', publicReadLimiter, reviewRoutes);
+app.use('/api', apiLimiter, delete_fileRoutes);
+app.use('/api', apiLimiter, uploadRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API

@@ -1,21 +1,9 @@
 import React, { useEffect, useState } from "react";
-import Header from "../../components/header";
-import Footer from "../../components/footer";
-import { BiSolidPencil } from "react-icons/bi";
 import Breadcrumb from "../../components/breadcrumb";
 import { LuUser, LuTable2 } from "react-icons/lu";
 import { IoMdHeartEmpty } from "react-icons/io";
 import { SlLogout } from "react-icons/sl";
-import Product from "../../assets/images/product.png";
 import ProductCard from "../../components/product-card";
-import ProductImage1 from "../../assets/images/product-img-1.png";
-import ProductImage2 from "../../assets/images/product-img-2.png";
-import ProductImage3 from "../../assets/images/product-img-3.png";
-import ProductImage4 from "../../assets/images/product-img-4.png";
-import ProductImage5 from "../../assets/images/product-img-5.png";
-import ProductImage6 from "../../assets/images/product-img-6.png";
-import ProductImage7 from "../../assets/images/product-img-7.png";
-import ProductImage8 from "../../assets/images/product-img-8.png";
 import { logout } from "../../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +22,6 @@ const Account = () => {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("myInfo");
-  const [ordersTab, setOrdersTab] = useState("active");
   const [editMode, setEditMode] = useState(false);
   const [userInfoLoading, setUserInfoLoading] = useState(true);
   const [userInfoSaving, setUserInfoSaving] = useState(false);

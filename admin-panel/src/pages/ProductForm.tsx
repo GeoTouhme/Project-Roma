@@ -29,6 +29,7 @@ const ProductForm = () => {
     const [salePrice, setSalePrice] = useState("");
     const [stock, setStock] = useState("");
     const [sku, setSku] = useState("");
+    const [size, setSize] = useState("");
     const [status, setStatus] = useState("active");
     const [description, setDescription] = useState("");
     const [featured, setFeatured] = useState(false);
@@ -46,7 +47,7 @@ const ProductForm = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await categoriesAPI.getCategories({ limit: 100 });
+                const response = await categoriesAPI.getCategories({ limit: 500 });
                 if (response.data.success) {
                     setCategories(response.data.data);
                 }
@@ -65,7 +66,7 @@ const ProductForm = () => {
                 setIsSubLoading(true);
                 try {
                     const response = await subCategoriesAPI.getSubCategories({
-                        limit: 100,
+                        limit: 500,
                         parentCategory: mainCategoryId
                     });
                     if (response.data.success) {
@@ -94,6 +95,7 @@ const ProductForm = () => {
                         const product = response.data.data;
                         setName(product.name);
                         setSku(product.sku || product.code || "");
+                        setSize(product.size || "");
                         setPrice(product.price?.toString() || "");
                         setSalePrice(product.priceSale?.toString() || "");
                         setStock(product.available?.toString() || "0");
@@ -108,8 +110,8 @@ const ProductForm = () => {
 
                         // Handle Categories
                         // Assuming category and subCategory are IDs or Objects with _id
-                        const catId = typeof product.category === 'object' ? product.category._id : product.category;
-                        const subId = typeof product.subCategory === 'object' ? product.subCategory._id : product.subCategory;
+                        const catId = product.category && typeof product.category === 'object' ? product.category._id : product.category;
+                        const subId = product.subCategory && typeof product.subCategory === 'object' ? product.subCategory._id : product.subCategory;
 
                         setMainCategoryId(catId || "");
                         // We need to set subCategory after mainCategoryId triggers the subcategory fetch, 
@@ -229,6 +231,7 @@ const ProductForm = () => {
                 price: price ? parseFloat(price) : 0,
                 priceSale: salePrice ? parseFloat(salePrice) : 0,
                 available: parseInt(stock),
+                size: size || null,
                 category: mainCategoryId,
                 subCategory: subCategory,
                 images: formattedImages,
@@ -286,6 +289,12 @@ const ProductForm = () => {
                         placeholder="SKU (Stock Keeping Unit)"
                         value={sku}
                         onChange={(e) => setSku(e.target.value)}
+                    />
+
+                    <Input
+                        placeholder="Size (e.g. 750ml, 12oz, 1.75L)"
+                        value={size}
+                        onChange={(e) => setSize(e.target.value)}
                     />
 
                     <div className="grid grid-cols-2 gap-4">
@@ -391,9 +400,14 @@ const ProductForm = () => {
                                     crossOrigin="anonymous"
                                     className="w-24 h-24 object-cover rounded border bg-gray-100"
                                     onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "https://placehold.co/100?text=Error";
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        const fallback = e.target.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'flex';
                                     }}
                                 />
+                                <div className="hidden w-24 h-24 rounded border bg-gray-100 items-center justify-center text-xs text-muted-foreground">
+                                    Error
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => handleRemoveImage(index)}

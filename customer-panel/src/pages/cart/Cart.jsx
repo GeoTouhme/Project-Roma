@@ -1,18 +1,69 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import Breadcrumb from "../../components/breadcrumb";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getThumbnailImage } from "../../utils/cloudinary";
 import { removeFromCart, updateQuantity } from "../../redux/cartSlice";
+import RecommendationSection from "../../components/recommendation-section";
+import OrderService from "../../services/orderService";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 
 const Cart = () => {
   const navigate = useNavigate();
-  // Dummy cart data
   const cartItems = useSelector((state) => state.cart.cartItems);
   const { isOpen: storeIsOpen } = useSelector((state) => state.storeStatus);
   const dispatch = useDispatch();
+
+  const [summary, setSummary] = useState({
+    subtotal: 0,
+    tax: 0,
+    crv: 0,
+    total: 0,
+  });
+
+  // Fetch estimated tax and CRV from the server whenever the cart changes.
+  useEffect(() => {
+    const loadSummary = async () => {
+      if (cartItems.length === 0) {
+        setSummary({ subtotal: 0, tax: 0, crv: 0, total: 0 });
+        return;
+      }
+
+      try {
+        const items = cartItems.map((item) => ({
+          pid: item.id,
+          quantity: item.quantity,
+        }));
+        const response = await OrderService.getCartSummary({ items });
+        if (response?.success && response.data) {
+          setSummary(response.data);
+        } else {
+          // Fallback to local subtotal only if server summary fails.
+          const localSubtotal = cartItems.reduce(
+            (total, item) =>
+              total +
+              (item.priceSale || item.salePrice || item.price || 0) *
+                item.quantity,
+            0
+          );
+          setSummary({ subtotal: localSubtotal, tax: 0, crv: 0, total: localSubtotal });
+        }
+      } catch (error) {
+        console.error("Failed to load cart summary:", error);
+        const localSubtotal = cartItems.reduce(
+          (total, item) =>
+            total +
+            (item.priceSale || item.salePrice || item.price || 0) *
+              item.quantity,
+          0
+        );
+        setSummary({ subtotal: localSubtotal, tax: 0, crv: 0, total: localSubtotal });
+      }
+    };
+
+    loadSummary();
+  }, [cartItems]);
 
   // Handle quantity change
   const handleQuantityChange = (id, newQuantity) => {
@@ -24,9 +75,12 @@ const Cart = () => {
     dispatch(removeFromCart(id));
   };
 
-  // Calculate total price
-  // Use item.price which is now normalized in reducer to be the effective selling price
-  const subtotal = cartItems.reduce((total, item) => total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity, 0);
+  const subtotal = summary.subtotal ??
+    cartItems.reduce(
+      (total, item) =>
+        total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity,
+      0
+    );
 
   const handleBillingNavigate = () => {
     const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
@@ -144,9 +198,17 @@ const Cart = () => {
               <p>Shipping:</p>
               <p>Free</p>
             </div>
+            <div className="flex justify-between text-gray-700 my-2">
+              <p>Tax:</p>
+              <p>${(summary.tax || 0).toFixed(2)}</p>
+            </div>
+            <div className="flex justify-between text-gray-700 my-2">
+              <p>CRV:</p>
+              <p>${(summary.crv || 0).toFixed(2)}</p>
+            </div>
             <div className="flex justify-between text-lg font-semibold mt-2">
               <p>Total:</p>
-              <p>${subtotal?.toFixed(2)}</p>
+              <p>${(summary.total || subtotal)?.toFixed(2)}</p>
             </div>
             <button
               className="w-full mt-6 bg-[#B5223B] text-white py-3 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -157,6 +219,15 @@ const Cart = () => {
             </button>
           </div>}
         </div>
+
+        {cartItems.length > 0 && (
+          <RecommendationSection
+            title="You May Also Like"
+            slugs={cartItems.map((item) => item.slug).filter(Boolean)}
+            productIds={cartItems.map((item) => item.id).filter(Boolean)}
+            limit={4}
+          />
+        )}
       </div >
     </>
   );

@@ -22,7 +22,7 @@ const getCart = async (request, response) => {
         'status',
       ]);
 
-      if (!product || product.status === 'disabled' || product.available <= 0) {
+      if (!product || product.status === 'disabled' || product.status === 'inactive' || product.available <= 0) {
         return response
           .status(400)
           .json({ success: false, message: 'Product is unavailable or out of stock.' });

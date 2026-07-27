@@ -133,7 +133,6 @@ const Dashboard = () => {
           description="vs. Yesterday"
           trend={ordersTrend}
           color="hsl(221, 83%, 53%)"
-          data={[]} // Let it generate dummy for now or map another metric
         />
 
         <StatsCard
@@ -142,7 +141,6 @@ const Dashboard = () => {
           description="New users growth"
           trend={usersTrend}
           color="hsl(142, 71%, 45%)"
-          data={[]}
         />
 
         <StatsCard
@@ -151,7 +149,6 @@ const Dashboard = () => {
           description="Active inventory items"
           trend={{ value: 0, isPositive: true }}
           color="hsl(250, 95%, 64%)"
-          data={[]}
         />
       </div>
 

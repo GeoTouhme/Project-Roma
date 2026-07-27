@@ -45,6 +45,23 @@ const CategorySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    taxable: {
+      type: Boolean,
+      default: true,
+    },
+    crvRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    order: {
+      type: Number,
+      default: 0,
+    },
+    productCount: {
+      type: Number,
+      default: 0,
+    },
     subCategories: [
       {
         type: mongoose.Schema.Types.ObjectId,

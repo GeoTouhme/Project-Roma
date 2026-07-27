@@ -62,6 +62,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Available quantity is required.'],
     },
+    size: {
+      type: String,
+      default: null,
+    },
     sold: {
       type: Number,
       default: 0,

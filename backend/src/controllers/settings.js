@@ -17,11 +17,34 @@ const getSettings = async (req, res) => {
 // @access  Private/Admin
 const updateSettings = async (req, res) => {
     try {
-        const { timezone, operatingHours, deliveryProvider } = req.body;
+        const { timezone, operatingHours, deliveryProvider, taxRate, defaultDeliveryFee, deliveryFeesByZip } = req.body;
 
         // Validate deliveryProvider if provided
-        if (deliveryProvider && !['doordash', 'uberdirect'].includes(deliveryProvider)) {
+        if (deliveryProvider && !['doordash', 'uberdirect', 'store'].includes(deliveryProvider)) {
             return res.status(400).json({ success: false, message: 'Invalid delivery provider.' });
+        }
+
+        if (taxRate !== undefined) {
+            if (typeof taxRate !== 'number' || taxRate < 0 || taxRate > 1) {
+                return res.status(400).json({ success: false, message: 'Tax rate must be a number between 0 and 1 (e.g. 0.0775 for 7.75%).' });
+            }
+        }
+
+        if (defaultDeliveryFee !== undefined) {
+            if (typeof defaultDeliveryFee !== 'number' || defaultDeliveryFee < 0) {
+                return res.status(400).json({ success: false, message: 'Default delivery fee must be a non-negative number.' });
+            }
+        }
+
+        if (deliveryFeesByZip !== undefined) {
+            if (!Array.isArray(deliveryFeesByZip)) {
+                return res.status(400).json({ success: false, message: 'Delivery fees by zip must be an array.' });
+            }
+            for (const row of deliveryFeesByZip) {
+                if (!row.zip || typeof row.fee !== 'number' || row.fee < 0) {
+                    return res.status(400).json({ success: false, message: 'Each delivery fee entry must have a zip and non-negative fee.' });
+                }
+            }
         }
 
         // Validate operatingHours only if provided
@@ -66,6 +89,9 @@ const updateSettings = async (req, res) => {
         if (timezone) updateData.timezone = timezone;
         if (operatingHours) updateData.operatingHours = operatingHours;
         if (deliveryProvider) updateData.deliveryProvider = deliveryProvider;
+        if (taxRate !== undefined) updateData.taxRate = taxRate;
+        if (defaultDeliveryFee !== undefined) updateData.defaultDeliveryFee = defaultDeliveryFee;
+        if (deliveryFeesByZip !== undefined) updateData.deliveryFeesByZip = deliveryFeesByZip;
 
         const settings = await Settings.findOneAndUpdate(
             { key: 'storeConfig' },

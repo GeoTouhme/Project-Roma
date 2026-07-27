@@ -42,8 +42,9 @@ const getTopRatedProducts = async (req, res) => {
       {
         $match: {
           category: { $in: ALCOHOLIC_CATEGORIES },
-          status: { $ne: 'disabled' },
+          status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
+          images: { $exists: true, $ne: [] },
         }
       },
       {
@@ -137,8 +138,9 @@ const getBestSellerProducts = async (req, res) => {
       {
         $match: {
           category: { $in: ALCOHOLIC_CATEGORIES },
-          status: { $ne: 'disabled' },
+          status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
+          images: { $exists: true, $ne: [] },
         }
       },
       {
@@ -221,8 +223,9 @@ const getFeaturedProducts = async (req, res) => {
         $match: {
           isFeatured: true,
           category: { $in: ALCOHOLIC_CATEGORIES },
-          status: { $ne: 'disabled' },
+          status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
+          images: { $exists: true, $ne: [] },
         },
       },
       {

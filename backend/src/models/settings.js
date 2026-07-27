@@ -19,9 +19,24 @@ const settingsSchema = new mongoose.Schema({
     operatingHours: [operatingHoursSchema],
     deliveryProvider: {
         type: String,
-        enum: ['doordash', 'uberdirect'],
-        default: 'doordash',
-    }
+        enum: ['doordash', 'uberdirect', 'store'],
+        default: 'store',
+    },
+    taxRate: {
+        type: Number,
+        default: 0.0775, // 7.75% for Newport Beach, CA
+        min: 0,
+    },
+    defaultDeliveryFee: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    deliveryFeesByZip: [{
+        zip: { type: String, required: true },
+        fee: { type: Number, required: true, min: 0 },
+        _id: false,
+    }],
 });
 
 // Create a default settings document if it doesn't exist

@@ -165,7 +165,7 @@ const loginUser = async (req, res) => {
       {
         $match: {
           _id: { $in: user.wishlist },
-          status: { $ne: 'disabled' },
+          status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
         },
       },

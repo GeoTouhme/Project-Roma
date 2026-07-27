@@ -1,47 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import Header from "../../components/header";
-import Footer from "../../components/footer";
-import Skeleton from "react-loading-skeleton";
-import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
-
-
 
 import Slide1Wine from "../../assets/images/slide-1-wine.jpg";
 import Slide2Cocktail from "../../assets/images/slide-2-cocktail.jpg";
 import Slide3Beer from "../../assets/images/slide-3-beer.jpg";
 import Slide4DeliveryNew from "../../assets/images/slide-4-delivery-new.jpg";
-import Slide4Delivery from "../../assets/images/slide-4-delivery.jpg";
 import Slide5Summer from "../../assets/images/slide-5-summer.jpg";
 
 import FixedBg from "../../assets/images/fixed-bg.png";
-import ProductImage1 from "../../assets/images/product-img-1.png";
-import ProductImage2 from "../../assets/images/product-img-2.png";
-import ProductImage3 from "../../assets/images/product-img-3.png";
-import ProductImage4 from "../../assets/images/product-img-4.png";
-import ProductImage5 from "../../assets/images/product-img-5.png";
-import ProductImage6 from "../../assets/images/product-img-6.png";
-import ProductImage7 from "../../assets/images/product-img-7.png";
-import ProductImage8 from "../../assets/images/product-img-8.png";
-import BannerImage from "../../assets/images/banner-img.png";
 import Shape1 from "../../assets/images/shape-1.png";
 import Shape2 from "../../assets/images/shape-2.png";
 import ProductCard from "../../components/product-card";
-import Image1 from "../../assets/images/image1.png";
-import Image2 from "../../assets/images/image2.png";
-import Client1 from "../../assets/images/client1.png";
-import Client2 from "../../assets/images/client2.png";
-import Client3 from "../../assets/images/client3.png";
 import Icons from "../../components/svg";
-import Rating from "../../components/rating-star";
 import Slider from "react-slick";
 import HomeService from "../../services/homeService";
 import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
 
 const Home = () => {
-  const [loading, setLoading] = useState(false);
-  const [topProducts, setTopProducts] = useState([]);
-  const [topProductsLoading, setTopProductsLoading] = useState(false);
   const [bestSellerProducts, setBestSellerProducts] = useState([]);
   const [bestSellerProductsLoading, setBestSellerProductsLoading] = useState(false);
   const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
@@ -51,28 +26,11 @@ const Home = () => {
     user_id = userInfo?._id
   }
 
-  const fetchTopProducts = () => {
-    setTopProductsLoading(true)
-    HomeService.topProducts({ user_id })
-      .then((response) => {
-        if (response?.success) {
-          console.log("fetchTopProducts response = ", response);
-          setTopProducts(response?.data)
-        }
-      })
-      .catch((error) => {
-        console.log("fetchTopProducts error = ", error);
-      })
-      .finally(() => {
-        setTopProductsLoading(false)
-      })
-  }
-  const fetchBestSellerProducts = () => {
+  const fetchBestSellerProducts = useCallback(() => {
     setBestSellerProductsLoading(true)
     HomeService.bestSellerProducts({ user_id })
       .then((response) => {
         if (response?.success) {
-          console.log("bestSellerProducts response = ", response);
           setBestSellerProducts(response?.data)
         }
       })
@@ -82,189 +40,12 @@ const Home = () => {
       .finally(() => {
         setBestSellerProductsLoading(false)
       })
-  }
+  }, [user_id])
 
   useEffect(() => {
-    fetchTopProducts();
     fetchBestSellerProducts();
-  }, [])
+  }, [fetchBestSellerProducts])
 
-  const BestSellerProducts = [
-    {
-      id: 1,
-      title: "Elegant Bordeaux Blend Reserve Precious Rose",
-      volume: "800 ML",
-      price: 49.99,
-      image: ProductImage1,
-      rating: 4.5,
-      isWishlisted: true,
-    },
-    {
-      id: 2,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "500 ML",
-      price: 49.99,
-      image: ProductImage2,
-      rating: 5,
-      isWishlisted: true,
-    },
-    {
-      id: 3,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "1000 ML",
-      price: 49.99,
-      image: ProductImage3,
-      rating: 4,
-      isWishlisted: false,
-    },
-    {
-      id: 4,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "500 ML",
-      price: 49.99,
-      image: ProductImage4,
-      rating: 3.5,
-      isWishlisted: false,
-    },
-    {
-      id: 5,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "600 ML",
-      price: 49.99,
-      image: ProductImage5,
-      rating: 4.5,
-      isWishlisted: false,
-    },
-    {
-      id: 6,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "500 ML",
-      price: 49.99,
-      image: ProductImage6,
-      rating: 4,
-      isWishlisted: false,
-    },
-    {
-      id: 7,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "1000 ML",
-      price: 49.99,
-      image: ProductImage7,
-      rating: 5,
-      isWishlisted: true,
-    },
-    {
-      id: 48,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "1200 ML",
-      price: 49.99,
-      image: ProductImage8,
-      rating: 4,
-      isWishlisted: false,
-    },
-  ];
-  const PopularProducts = [
-    {
-      id: 1,
-      title: "Elegant Bordeaux Blend Reserve Precious Rose",
-      volume: "800 ML",
-      price: 49.99,
-      image: ProductImage1,
-      rating: 4.5,
-      isWishlisted: true,
-    },
-    {
-      id: 2,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "500 ML",
-      price: 49.99,
-      image: ProductImage2,
-      rating: 5,
-      isWishlisted: true,
-    },
-    {
-      id: 3,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "1000 ML",
-      price: 49.99,
-      image: ProductImage3,
-      rating: 4,
-      isWishlisted: false,
-    },
-    {
-      id: 4,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "500 ML",
-      price: 49.99,
-      image: ProductImage4,
-      rating: 3.5,
-      isWishlisted: false,
-    },
-    {
-      id: 5,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "600 ML",
-      price: 49.99,
-      image: ProductImage5,
-      rating: 4.5,
-      isWishlisted: false,
-    },
-    {
-      id: 6,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "500 ML",
-      price: 49.99,
-      image: ProductImage6,
-      rating: 4,
-      isWishlisted: false,
-    },
-    {
-      id: 7,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "1000 ML",
-      price: 49.99,
-      image: ProductImage7,
-      rating: 5,
-      isWishlisted: true,
-    },
-    {
-      id: 48,
-      title: "Elegant Bordeaux Blend Reserve",
-      volume: "1200 ML",
-      price: 49.99,
-      image: ProductImage8,
-      rating: 4,
-      isWishlisted: false,
-    },
-  ];
-  const testimonials = [
-    {
-      id: 1,
-      comment:
-        "I've been a customer of this wine shop for years, and I can't recommend it enough! The selection is superb, with everything from everyday favorites to rare gems.",
-      rating: 4.5,
-      author: "Emily R.",
-      designation: "Wine Enthusiast",
-      image: Client1,
-    },
-    {
-      id: 2,
-      comment:
-        "Fantastic service and an incredible variety of wines. The staff is always helpful in finding the perfect bottle.",
-      rating: 5,
-      author: "Sophia M.",
-      designation: "Wine Collector",
-      image: Client2,
-    },
-    {
-      id: 3,
-      comment: "Love this place! Great prices, unique selections, and the atmosphere is amazing.",
-      rating: 4,
-      author: "Amelia L.",
-      designation: "Sommelier",
-      image: Client3,
-    },
-  ];
   const NextArrow = ({ onClick }) => {
     return (
       <div className="custom-arrow next" onClick={onClick}>
@@ -291,16 +72,32 @@ const Home = () => {
     );
   };
 
-  const TestimonialSliderSettings = {
-    dots: false,
+  const gallerySliderSettings = {
+    dots: true,
     infinite: true,
     speed: 500,
-    slidesToShow: 1,
+    slidesToShow: 3,
     slidesToScroll: 1,
-    autoplay: false,
+    autoplay: true,
     autoplaySpeed: 3000,
+    arrows: true,
     nextArrow: <NextArrow />,
     prevArrow: <PrevArrow />,
+    responsive: [
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 1,
+          arrows: false,
+        },
+      },
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 2,
+        },
+      },
+    ],
   };
 
 
@@ -538,7 +335,7 @@ const Home = () => {
                     rating: product.averageRating || 0,
                     isWishlisted: product.isWishlisted,
                   }}
-                  wishListDone={() => { fetchBestSellerProducts(); fetchTopProducts(); }}
+                  wishListDone={() => { fetchBestSellerProducts(); }}
                 />
               ))}
             </div>
@@ -558,42 +355,14 @@ const Home = () => {
           fade={true}
           className="banner-slider"
         >
-          {/* ── Slide 1 ── */}
-          <div>
-            <div className="banner-inner relative">
-              <img src={BannerImage} alt="banner" className="w-full md:h-full h-[400px] object-cover object-right" />
-              <div
-                className="banner-content absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 md:translate-x-0 -translate-y-1/2 text-center
-                    max-w-[500px] w-full md:text-center"
-              >
-                <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-white font-medium md:mb-3 mb-2 uppercase">
-                  Limited-Time Offer
-                </h6>
-                <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] text-white font-semibold mb-3">
-                  Exclusive Online Offer: Free Shipping
-                </h2>
-                <p className="text-[18px]/[28px] text-white tracking-[-0.1px]">
-                  Don't miss our Spring Clearance Sale! Enjoy incredible discounts on a wide selection of wines, including
-                  popular varietals
-                </p>
-                <Link
-                  to="/shop"
-                  className="bg-primary mt-8 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-white font-medium text-[18px]"
-                >
-                  Shop Now
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Slide 2 — Store Gallery ── */}
+          {/* ── Slide 1 — Store Gallery ── */}
           <div>
             <div className="banner-inner relative bg-gray-50 py-8 md:py-12">
               <div className="container">
                 <div className="section_head mb-6 md:mb-8 text-center">
                   <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">Store Gallery</h2>
                 </div>
-                <div className="gallery_grid grid grid-cols-2 md:grid-cols-4 md:gap-4 gap-2">
+                <Slider {...gallerySliderSettings} className="gallery-slider px-2 md:px-8">
                   {[
                     '/images/gallery/photo_2026-05-21_19-29-37.jpg',
                     '/images/gallery/photo_2026-05-21_19-29-58.jpg',
@@ -610,7 +379,7 @@ const Home = () => {
                     '/images/gallery/photo_2026-05-21_19-31-56.jpg',
                     '/images/gallery/photo_2026-05-21_19-32-02.jpg',
                   ].map((src, index) => (
-                    <div key={index} className="gallery_item overflow-hidden rounded-lg">
+                    <div key={index} className="gallery_item px-2 overflow-hidden rounded-lg">
                       <img
                         src={src}
                         alt={`Store gallery ${index + 1}`}
@@ -618,7 +387,7 @@ const Home = () => {
                       />
                     </div>
                   ))}
-                </div>
+                </Slider>
               </div>
             </div>
           </div>
@@ -644,7 +413,7 @@ const Home = () => {
                     rating: product.averageRating || 0,
                     isWishlisted: product.isWishlisted,
                   }}
-                  wishListDone={() => { fetchTopProducts(); fetchBestSellerProducts() }}
+                  wishListDone={() => { fetchBestSellerProducts(); }}
                 />
               ))}
             </div>

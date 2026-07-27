@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Slider from "react-slick";
 import { Star } from "lucide-react";
 import PaymentMethods from "../../assets/images/payment-methods.svg";
@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import ReviewsService from "../../services/reviewsService";
 import ReviewModal from "../../components/review-modal";
+import RecommendationSection from "../../components/recommendation-section";
 import moment from "moment";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 import { trackPageView } from "../../services/analyticsService";
@@ -27,7 +28,6 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [brand, setBrand] = useState(null);
   const [category, setCategory] = useState(null);
   // const images = [ProductImage1, ProductImage2, ProductImage3, ProductImage4, ProductImage5, ProductImage6];
   const [images, setImages] = useState([]);
@@ -82,12 +82,6 @@ const ProductPage = () => {
   const [totalReviews, setTotalReviews] = useState(0);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
-  useEffect(() => {
-    const url = window.location.href;
-    const lastSegment = url.substring(url.lastIndexOf('/') + 1);
-    fetchProduct(lastSegment);
-  }, []);
-
   const fetchReviews = (pid) => {
     ReviewsService.getReviews(pid)
       .then((response) => {
@@ -109,7 +103,7 @@ const ProductPage = () => {
       })
   }
 
-  const fetchProduct = (slug) => {
+  const fetchProduct = useCallback((slug) => {
     setLoading(true);
     ProductService.getProductBySlug(slug)
       .then((response) => {
@@ -121,7 +115,6 @@ const ProductPage = () => {
           trackPageView('product', { slug, name: response.data?.name || '' });
           // setReviews(response.data?.reviews);
           setCategory(response?.category);
-          setBrand(response?.brand);
           if (response.data.images?.length) {
             const imgs = response.data.images || [];
             setImages(imgs);
@@ -139,7 +132,13 @@ const ProductPage = () => {
       .finally(() => {
         setLoading(false); // Stop loading
       });
-  };
+  }, []);
+
+  useEffect(() => {
+    const url = window.location.href;
+    const lastSegment = url.substring(url.lastIndexOf('/') + 1);
+    fetchProduct(lastSegment);
+  }, [fetchProduct]);
 
   const renderSkeleton = () => (
     <>
@@ -381,6 +380,15 @@ const ProductPage = () => {
             )}
           </div>
 
+          {!loading && product && (
+            <RecommendationSection
+              title="Frequently Bought Together"
+              slug={product.slug}
+              productId={product._id}
+              limit={4}
+            />
+          )}
+
           <div className="mt-4 mb-24 w-full border border-[#CECECE] rounded-lg">
             {/* Tab Headers */}
             <div className="flex border-b border-[#CECECE]">
@@ -480,11 +488,9 @@ const ProductPage = () => {
                             {/* Left Side: Profile + Review */}
                             <div className="flex items-start space-x-4 w-full">
                               {/* Profile Image */}
-                              <img
-                                src={"https://dummyimage.com/200x200/000/fff&text=" + review.user.firstName}
-                                alt={review.user.firstName}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
+                              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600 shrink-0">
+                                {review.user.firstName?.charAt(0)?.toUpperCase() || "?"}
+                              </div>
 
                               {/* Review Content */}
                               <div className="flex-1">

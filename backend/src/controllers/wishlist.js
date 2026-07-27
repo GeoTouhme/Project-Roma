@@ -11,7 +11,7 @@ const getWishlist = async (req, res) => {
       {
         $match: {
           _id: { $in: wishlist },
-          status: { $ne: 'disabled' },
+          status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
         },
       },

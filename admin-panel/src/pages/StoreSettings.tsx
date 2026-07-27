@@ -32,7 +32,9 @@ interface OperatingHour {
 const StoreSettings = () => {
     const queryClient = useQueryClient();
     const [timezone, setTimezone] = useState('America/Los_Angeles');
-    const [deliveryProvider, setDeliveryProvider] = useState('doordash');
+    const [taxRate, setTaxRate] = useState(0.0775);
+    const [defaultDeliveryFee, setDefaultDeliveryFee] = useState(0);
+    const [deliveryFeesByZip, setDeliveryFeesByZip] = useState<{ zip: string; fee: number }[]>([]);
     const [operatingHours, setOperatingHours] = useState<OperatingHour[]>([]);
 
     // Fetch store settings using React Query
@@ -51,8 +53,14 @@ const StoreSettings = () => {
         if (settings?.data?.data?.timezone) {
             setTimezone(settings.data.data.timezone);
         }
-        if (settings?.data?.data?.deliveryProvider) {
-            setDeliveryProvider(settings.data.data.deliveryProvider);
+        if (settings?.data?.data?.taxRate !== undefined) {
+            setTaxRate(settings.data.data.taxRate);
+        }
+        if (settings?.data?.data?.defaultDeliveryFee !== undefined) {
+            setDefaultDeliveryFee(settings.data.data.defaultDeliveryFee);
+        }
+        if (settings?.data?.data?.deliveryFeesByZip) {
+            setDeliveryFeesByZip(settings.data.data.deliveryFeesByZip);
         }
     }, [settings]);
 
@@ -83,9 +91,23 @@ const StoreSettings = () => {
         const payload = {
             timezone,
             operatingHours,
-            deliveryProvider,
+            taxRate,
+            defaultDeliveryFee,
+            deliveryFeesByZip,
         };
         mutation.mutate(payload);
+    };
+
+    const addZipFee = () => {
+        setDeliveryFeesByZip(prev => [...prev, { zip: '', fee: 0 }]);
+    };
+
+    const removeZipFee = (index: number) => {
+        setDeliveryFeesByZip(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateZipFee = (index: number, field: 'zip' | 'fee', value: string | number) => {
+        setDeliveryFeesByZip(prev => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
     };
 
     if (isLoading) {
@@ -123,18 +145,74 @@ const StoreSettings = () => {
                         </Select>
                     </div>
 
-                    {/* Delivery Provider Selector */}
+                    {/* Tax Rate */}
                     <div className="flex flex-col space-y-2">
-                        <label className="text-sm font-medium text-gray-500">Delivery Provider</label>
-                        <Select value={deliveryProvider} onValueChange={setDeliveryProvider}>
-                            <SelectTrigger className="w-full md:w-[300px]">
-                                <SelectValue placeholder="Select provider" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="doordash">DoorDash</SelectItem>
-                                <SelectItem value="uberdirect">Uber Direct</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <label className="text-sm font-medium text-gray-500">Sales Tax Rate</label>
+                        <Input
+                            type="number"
+                            step="0.0001"
+                            min="0"
+                            max="1"
+                            value={taxRate}
+                            onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                            className="w-full md:w-[300px]"
+                        />
+                        <p className="text-xs text-gray-500">Default is 0.0775 (7.75% for Newport Beach, CA)</p>
+                    </div>
+
+                    {/* Default Delivery Fee */}
+                    <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-500">Default Delivery Fee ($)</label>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={defaultDeliveryFee}
+                            onChange={(e) => setDefaultDeliveryFee(parseFloat(e.target.value) || 0)}
+                            className="w-full md:w-[300px]"
+                        />
+                        <p className="text-xs text-gray-500">Used when no zip-specific fee is found.</p>
+                    </div>
+
+                    {/* Delivery Fees by Zip */}
+                    <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-500">Delivery Fees by Zip Code</label>
+                        {deliveryFeesByZip.map((row, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input
+                                    type="text"
+                                    placeholder="Zip Code"
+                                    value={row.zip}
+                                    onChange={(e) => updateZipFee(index, 'zip', e.target.value)}
+                                    className="w-32"
+                                />
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="Fee $"
+                                    value={row.fee}
+                                    onChange={(e) => updateZipFee(index, 'fee', parseFloat(e.target.value) || 0)}
+                                    className="w-32"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeZipFee(index)}
+                                >
+                                    Remove
+                                </Button>
+                            </div>
+                        ))}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={addZipFee}
+                        >
+                            + Add Zip Fee
+                        </Button>
                     </div>
 
                     {/* Operating Hours */}

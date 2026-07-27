@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye } from "react-icons/fa";
 import OrderService from "../../services/orderService";
@@ -27,7 +27,7 @@ const OrdersPage = () => {
     const [limit, setLimit] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
             const response = await OrderService.getAllOrders({ page, limit });
@@ -40,11 +40,11 @@ const OrdersPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, limit]);
 
     useEffect(() => {
         fetchOrders();
-    }, [page, limit]);
+    }, [fetchOrders]);
 
     const totalPages = Math.ceil(totalCount / limit);
 

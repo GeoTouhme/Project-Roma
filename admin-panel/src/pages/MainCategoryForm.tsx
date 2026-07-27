@@ -24,6 +24,8 @@ const MainCategoryForm = () => {
   const [name, setName] = useState("");
   const [status, setStatus] = useState("Active");
   const [imageUrl, setImageUrl] = useState("");
+  const [taxable, setTaxable] = useState(true);
+  const [crvRate, setCrvRate] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,6 +43,8 @@ const MainCategoryForm = () => {
         const data = response.data.data;
         setName(data.name);
         setStatus(data.status);
+        setTaxable(data.taxable !== false);
+        setCrvRate(data.crvRate || 0);
         if (data.cover && data.cover.url) {
           setImageUrl(data.cover.url);
         }
@@ -68,6 +72,8 @@ const MainCategoryForm = () => {
       const payload = {
         name,
         status,
+        taxable,
+        crvRate,
         cover: {
           url: imageUrl,
           _id: `img-${Date.now()}`, // Temporary ID
@@ -170,6 +176,28 @@ const MainCategoryForm = () => {
             <SelectContent>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2">
+            <input
+              id="taxable"
+              type="checkbox"
+              checked={taxable}
+              onChange={(e) => setTaxable(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="taxable" className="text-sm font-medium">Taxable</label>
+          </div>
+
+          <Select value={crvRate.toString()} onValueChange={(v) => setCrvRate(parseFloat(v))}>
+            <SelectTrigger>
+              <SelectValue placeholder="CRV Rate" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">No CRV</SelectItem>
+              <SelectItem value="0.05">$0.05 (under 24 oz)</SelectItem>
+              <SelectItem value="0.10">$0.10 (24 oz or larger)</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>

@@ -6,6 +6,7 @@ import Skeleton from "react-loading-skeleton";
 import { useLocation } from "react-router-dom";
 import CategoriesService from "../../services/categoriesService";
 import SearchService from "../../services/searchService";
+import getHierarchyCategories from "../../utils/getHierarchyCategories";
 import { getThumbnailImage } from "../../utils/cloudinary";
 import { useSelector } from "react-redux";
 import AnnouncementBar from "./AnnouncementBar";
@@ -17,10 +18,10 @@ const Header = () => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openMenu, setOpenMenu] = useState(null);
-  const [menuData, setMenuData] = useState([
+  const menuData = [
     { title: "Home", link: "/" },
     { title: "Products", link: "/products" },
-  ]);
+  ];
   const [categoryData, setCategoryData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState({ products: [], categories: [], brands: [] });
@@ -141,41 +142,25 @@ const Header = () => {
   const fetchAllCategories = () => {
     setLoading(true);
 
-    // Same IDs used in backend/src/controllers/product.js
-    const ALCOHOLIC_CATEGORY_IDS = new Set([
-      '69bc40b76f0fa539b06ef96a', // TEQUILA
-      '69bc40d16f0fa539b06ef988', // RUM
-      '69bc40df6f0fa539b06ef992', // WINE
-      '69bc40e26f0fa539b06ef997', // GIN
-      '69bc41066f0fa539b06ef9b4', // VODKA
-      '69bc42556f0fa539b06efa4f', // BEER
-      '69bc44f76f0fa539b06efb77', // WHISKEY
-      '69bd4c23013d204dfbd805e3', // COCKTAILS & SELTZERS
-      '69bd4c23013d204dfbd805e5', // LIQUEUR & SPIRITS
-    ]);
-
     CategoriesService.allCatgeories()
       .then((response) => {
         if (response?.success) {
-          // Sort: alcohol categories first, then the rest
-          const sortedData = [...response.data].sort((a, b) => {
-            const aIsAlcohol = ALCOHOLIC_CATEGORY_IDS.has(a._id);
-            const bIsAlcohol = ALCOHOLIC_CATEGORY_IDS.has(b._id);
-            if (aIsAlcohol && !bIsAlcohol) return -1;
-            if (!aIsAlcohol && bIsAlcohol) return 1;
-            return 0;
-          });
+          // Use only the approved 2-level hierarchy parents (order > 0)
+          const hierarchy = getHierarchyCategories(response.data);
 
-          const formattedData = sortedData.map((category) => ({
+          const formattedData = hierarchy.map((category) => ({
             title: category.name,
             link: `/products/${category.slug}`,
             subMenu: category.subCategories?.length
               ? [
                   {
-                    links: category.subCategories.map((sub) => ({
-                      name: sub.name,
-                      url: `/products/${category.slug}/${sub.slug}`,
-                    })),
+                    links: category.subCategories
+                      .filter((sub) => Number(sub.order) > 0)
+                      .sort((a, b) => Number(a.order) - Number(b.order))
+                      .map((sub) => ({
+                        name: sub.name,
+                        url: `/products/${category.slug}/${sub.slug}`,
+                      })),
                   },
                 ]
               : null,
@@ -449,8 +434,8 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Tier 3: Category Bar */}
-      <CategoryBar categories={categoryData} />
+      {/* Tier 3: Category Bar — home page only */}
+      {location.pathname === "/" && <CategoryBar categories={categoryData} />}
 
       {/* Mobile Drawer */}
       <div

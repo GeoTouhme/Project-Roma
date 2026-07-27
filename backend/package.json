@@ -34,5 +34,9 @@
     "otp-generator": "^4.0.1",
     "stripe": "^14.22.0",
     "uber-direct": "^0.1.8"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/preset-react": "^8.0.1"
   }
 }

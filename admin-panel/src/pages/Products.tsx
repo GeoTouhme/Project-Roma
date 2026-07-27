@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import PageSizeSelector from "@/components/PageSizeSelector";
 import Pagination from "@/components/Pagination";
+import CategoryFilter from "@/components/category-filter/CategoryFilter";
 import { Plus, Download, Upload, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { productsAPI, categoriesAPI } from "@/lib/api";
 import { getAdminThumbnail } from "@/lib/utils";
@@ -41,6 +42,11 @@ const Products = () => {
   // Data state
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const hierarchyCategories = React.useMemo(() => {
+    return categories
+      .filter((c: any) => Number(c.order) > 0)
+      .sort((a: any, b: any) => Number(a.order) - Number(b.order));
+  }, [categories]);
   const [loading, setLoading] = useState(true);
   const [totalProducts, setTotalProducts] = useState(0);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -49,7 +55,7 @@ const Products = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await categoriesAPI.getCategories({ limit: 100 });
+        const response = await categoriesAPI.getCategories({ limit: 500 });
         if (response.data.success) {
           setCategories(response.data.data);
         }
@@ -284,6 +290,17 @@ const Products = () => {
         </div>
       </div>
 
+      {/* Category chip filter */}
+      {hierarchyCategories.length > 0 && (
+        <div className="py-2">
+          <CategoryFilter
+            categories={hierarchyCategories}
+            selectedCategory={categoryFilter === "all" ? null : categoryFilter}
+            onChange={(slug) => setCategoryFilter(slug || "all")}
+          />
+        </div>
+      )}
+
       {/* Products Table */}
       <Table
         data={products}
@@ -293,12 +310,18 @@ const Products = () => {
             header: "Product",
             accessorKey: (row) => (
               <div className="flex items-center gap-3">
-                <img
-                  src={getAdminThumbnail(row.image?.url) || "https://dummyimage.com/100x100/ecf0f1/7f8c8d?text=No+Image"}
-                  alt={row.name}
-                  className="h-10 w-10 rounded-md object-cover border"
-                  loading="lazy"
-                />
+                {row.image?.url ? (
+                  <img
+                    src={getAdminThumbnail(row.image.url)}
+                    alt={row.name}
+                    className="h-10 w-10 rounded-md object-cover border"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-md bg-gray-100 border flex items-center justify-center text-xs text-gray-400">
+                    No img
+                  </div>
+                )}
                 <div>
                   <div className="font-medium">{row.name}</div>
                   <div className="text-xs text-muted-foreground">{row.sku || row.slug}</div>

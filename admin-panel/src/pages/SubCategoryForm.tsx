@@ -43,7 +43,7 @@ const SubCategoryForm = () => {
 
   const fetchMainCategories = async () => {
     try {
-      const response = await categoriesAPI.getCategories({ limit: 100 }); // Fetch all for dropdown
+      const response = await categoriesAPI.getCategories({ limit: 500 }); // Fetch all for dropdown
       if (response.data.success) {
         setMainCategories(response.data.data);
       }

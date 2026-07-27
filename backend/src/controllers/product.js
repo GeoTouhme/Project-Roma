@@ -30,8 +30,10 @@ const getProducts = async (req, res) => {
 
     // Build a clean match query from scratch
     let productSearchQuery = {
-      status: { $ne: 'disabled' },
+      // Hide disabled/inactive products and placeholder products without photos.
+      status: { $nin: ['disabled', 'inactive'] },
       available: { $gt: 0 },
+      images: { $exists: true, $ne: [] },
     };
 
     // 1. Handle Partial Search by Name with Security Sanitization
@@ -174,12 +176,13 @@ const getProducts = async (req, res) => {
 const getFilters = async (req, res) => {
   try {
     const totalProducts = await Product.find({
-      status: { $ne: 'disabled' },
+      status: { $nin: ['disabled', 'inactive'] },
       available: { $gt: 0 },
+      images: { $exists: true, $ne: [] },
     }).select(['colors', 'sizes', 'gender', 'price']);
 
     const brands = await Brand.find({
-      status: { $ne: 'disabled' },
+      status: { $nin: ['disabled', 'inactive'] },
     }).select(['name', 'slug']);
     const total = totalProducts.map((item) => item.gender);
     const totalGender = total.filter((item) => item !== '');
@@ -341,7 +344,7 @@ const createProductByAdmin = async (req, res) => {
   try {
     const admin = await getAdmin(req, res);
 
-    const { images, ...body } = req.body;
+    const { images, size, ...body } = req.body;
 
     const updatedImages = await Promise.all(
       images.map(async (image) => {
@@ -351,6 +354,7 @@ const createProductByAdmin = async (req, res) => {
     );
     const data = await Product.create({
       ...body,
+      size: size || null,
       images: updatedImages,
       likes: 0,
     });
@@ -372,15 +376,15 @@ const getOneProductByAdmin = async (req, res) => {
     if (!slug) {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
-    const product = await Product.findOne({ slug });
+    const product = await Product.findOne({ slug })
+      .populate('category', 'name slug')
+      .populate('subCategory', 'name slug');
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product Not Found' });
     }
-    const category = await Category.findById(product.category).select([
-      'name',
-      'slug',
-    ]);
+    const category = product.category;
+    const subCategory = product.subCategory;
     const brand = await Brand.findById(product.brand).select('name');
 
     const getProductRatingAndReviews = () => {
@@ -415,6 +419,7 @@ const getOneProductByAdmin = async (req, res) => {
       totalReviews: reviewReport[0]?.totalReviews,
       brand: brand,
       category: category,
+      subCategory: subCategory,
     });
   } catch (error) {
     return res.status(400).json({ success: false, error: error.message });
@@ -428,9 +433,10 @@ const updateProductByAdmin = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
 
-    const { images = [], category, subCategory, ...body } = req.body;
+    const { images = [], category, subCategory, size, ...body } = req.body;
 
     const updateFields = { ...body };
+    if (size !== undefined) updateFields.size = size;
 
     if (category) {
       const safeCat = safeObjectId(category);
@@ -523,12 +529,13 @@ const getFiltersByCategory = async (req, res) => {
         .json({ success: false, message: 'Category Not Found' });
     }
     const totalProducts = await Product.find({
-      status: { $ne: 'disabled' },
+      status: { $nin: ['disabled', 'inactive'] },
       available: { $gt: 0 },
       category: categoryData._id,
+      images: { $exists: true, $ne: [] },
     }).select(['colors', 'sizes', 'gender']);
     const brands = await Brand.find({
-      status: { $ne: 'disabled' },
+      status: { $nin: ['disabled', 'inactive'] },
     }).select(['name', 'slug']);
 
     const total = totalProducts.map((item) => item.gender);
@@ -579,12 +586,13 @@ const getFiltersBySubCategory = async (req, res) => {
         .json({ success: false, message: 'SubCategory Not Found' });
     }
     const totalProducts = await Product.find({
-      status: { $ne: 'disabled' },
+      status: { $nin: ['disabled', 'inactive'] },
       available: { $gt: 0 },
       subCategory: subCategoryData._id,
+      images: { $exists: true, $ne: [] },
     }).select(['colors', 'sizes', 'gender']);
     const brands = await Brand.find({
-      status: { $ne: 'disabled' },
+      status: { $nin: ['disabled', 'inactive'] },
     }).select(['name', 'slug']);
 
     const total = totalProducts.map((item) => item.gender);
@@ -616,7 +624,7 @@ const getFiltersBySubCategory = async (req, res) => {
 
 const getAllProductSlug = async (req, res) => {
   try {
-    const products = await Product.find({ status: { $ne: 'disabled' }, available: { $gt: 0 } }).select('slug');
+    const products = await Product.find({ status: { $nin: ['disabled', 'inactive'] }, available: { $gt: 0 }, images: { $exists: true, $ne: [] } }).select('slug');
 
     return res.status(200).json({
       success: true,
@@ -651,8 +659,9 @@ const relatedProducts = async (req, res) => {
         $match: {
           category: product.category,
           _id: { $ne: product._id },
-          status: { $ne: 'disabled' },
+          status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
+          images: { $exists: true, $ne: [] },
         },
       },
       {
@@ -688,7 +697,7 @@ const getOneProductBySlug = async (req, res) => {
     if (!slug) {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
-    const product = await Product.findOne({ slug, status: { $ne: 'disabled' }, available: { $gt: 0 } });
+    const product = await Product.findOne({ slug, status: { $nin: ['disabled', 'inactive'] }, available: { $gt: 0 }, images: { $exists: true, $ne: [] } });
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product Not Found' });
@@ -702,7 +711,7 @@ const getOneProductBySlug = async (req, res) => {
     const getProductRatingAndReviews = () => {
       return Product.aggregate([
         {
-          $match: { slug, status: { $ne: 'disabled' }, available: { $gt: 0 } },
+          $match: { slug, status: { $nin: ['disabled', 'inactive'] }, available: { $gt: 0 } },
         },
         {
           $lookup: {
@@ -914,6 +923,9 @@ const importInventoryCSV = async (req, res) => {
           const description = getVal(fields, 'description');
           if (description !== undefined) updateFields.description = description;
 
+          const size = getVal(fields, 'size');
+          if (size !== undefined) updateFields.size = size;
+
           const categoryName = getVal(fields, 'category');
           if (categoryName && catMap[categoryName.toLowerCase()]) {
             updateFields.category = catMap[categoryName.toLowerCase()];
@@ -988,6 +1000,7 @@ const importInventoryCSV = async (req, res) => {
             images: [],
             colors: [],
             sizes: [],
+            size: getVal(fields, 'size') || null,
           };
 
           // SubCategory (optional)

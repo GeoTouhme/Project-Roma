@@ -7,6 +7,9 @@ const doorDashService = require('../services/doorDashService');
 const uberDirectService = require('../services/uberDirectService');
 const Settings = require('../models/settings');
 const sendEmail = require('../utils/mailer');
+const Category = require('../models/Category');
+const { safeObjectId, safeNumber } = require('../utils/validators');
+const { getCrvPerItem } = require('../utils/crv');
 
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -40,11 +43,28 @@ function readHTMLTemplate() {
 
 async function getDeliveryService() {
   const settings = await Settings.findOneOrCreate();
-  const provider = settings.deliveryProvider || 'doordash';
+  const provider = settings.deliveryProvider || 'store';
   return {
     service: provider === 'uberdirect' ? uberDirectService : doorDashService,
     provider,
   };
+}
+
+/**
+ * Calculate delivery fee based on store settings.
+ * Uses zip-specific fee if found, otherwise falls back to default.
+ */
+async function getStoreDeliveryFee(zip) {
+  const settings = await Settings.findOneOrCreate();
+  const zipFee = settings.deliveryFeesByZip?.find((z) => z.zip === zip)?.fee;
+  return zipFee !== undefined ? zipFee : (settings.defaultDeliveryFee || 0);
+}
+
+/**
+ * Round a number to 2 decimal places.
+ */
+function round2(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 /**
@@ -130,7 +150,7 @@ const createOrder = async (req, res) => {
     }).populate('category');
 
     const validProducts = products.filter(
-      (p) => p.status !== 'disabled' && p.available > 0
+      (p) => p.status !== 'disabled' && p.status !== 'inactive' && p.available > 0
     );
     if (validProducts.length !== products.length) {
       return res.status(400).json({
@@ -196,6 +216,29 @@ const createOrder = async (req, res) => {
     }
 
     const grandTotal = updatedItems.reduce((acc, item) => acc + item.total, 0);
+
+    // Calculate tax and CRV based on product categories and size
+    const settings = await Settings.findOneOrCreate();
+    const taxRate = typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
+
+    let crvTotal = 0;
+    let taxableSubtotal = 0;
+    for (const item of updatedItems) {
+      const populated = await Products.findById(item.pid).populate('category');
+      const category = item.category || populated?.category;
+      const productSize = item.size || populated?.size;
+      const itemTotal = item.total;
+      const qty = item.quantity || 1;
+      if (category?.taxable !== false) {
+        taxableSubtotal += itemTotal;
+      }
+      if (category?.crvRate) {
+        crvTotal += qty * getCrvPerItem(productSize, category.crvRate);
+      }
+    }
+
+    crvTotal = round2(crvTotal);
+
     let discount = 0;
 
     if (couponCode) {
@@ -229,12 +272,18 @@ const createOrder = async (req, res) => {
     let discountedTotal = grandTotal - discount;
     discountedTotal = discountedTotal || 0;
 
+    const taxBase = Math.max(0, taxableSubtotal - discount);
+    const tax = round2(taxBase * taxRate);
+
     // Issue 5: Sanitize tip value
     const sanitizedTip = Math.max(0, Math.min(Number(tip) || 0, 100));
 
+    const deliveryFee = Number(shipping) || 0;
+    const orderTotal = round2(discountedTotal + tax + crvTotal + deliveryFee + sanitizedTip);
+
     // Issue 1: Verify Stripe payment amount matches server-calculated total
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    const expectedAmountCents = Math.round((discountedTotal + Number(shipping) + sanitizedTip) * 100);
+    const expectedAmountCents = Math.round(orderTotal * 100);
 
     let paymentIntent;
     try {
@@ -284,7 +333,9 @@ const createOrder = async (req, res) => {
         paymentId,
         discount,
         tip: sanitizedTip,
-        total: discountedTotal + Number(shipping) + sanitizedTip,
+        tax,
+        crv: crvTotal,
+        total: orderTotal,
         subTotal: grandTotal,
         shipping,
         items: updatedItems.map(({ image, ...others }) => others),
@@ -550,10 +601,105 @@ const deleteOrderByAdmin = async (req, res) => {
   }
 };
 
+/**
+ * Calculate tax and CRV for a cart without requiring delivery details.
+ * Used by the cart page to preview estimated taxes before checkout.
+ */
+const getCartSummary = async (req, res) => {
+  try {
+    const { items } = req.body || {};
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          subtotal: 0,
+          taxableSubtotal: 0,
+          tax: 0,
+          crv: 0,
+          total: 0,
+          itemCount: 0,
+        },
+      });
+    }
+
+    const pids = items
+      .map((item) => safeObjectId(item.pid || item._id || item.id))
+      .filter(Boolean);
+
+    const products = await Products.find({ _id: { $in: pids } }).populate(
+      'category',
+      'name slug taxable crvRate'
+    );
+
+    const productById = new Map(
+      products.map((p) => [p._id.toString(), p])
+    );
+
+    const settings = await Settings.findOneOrCreate();
+    const taxRate =
+      typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
+
+    let subtotal = 0;
+    let taxableSubtotal = 0;
+    let crvTotal = 0;
+    let itemCount = 0;
+
+    for (const item of items) {
+      const pid = safeObjectId(item.pid || item._id || item.id);
+      if (!pid) continue;
+
+      const product = productById.get(pid);
+      if (!product) continue;
+
+      const qty = Math.max(1, safeNumber(item.quantity, 1));
+      const unitPrice = product.priceSale || product.price || 0;
+      const lineTotal = round2(unitPrice * qty);
+
+      subtotal += lineTotal;
+      itemCount += qty;
+
+      if (product.category?.taxable !== false) {
+        taxableSubtotal += lineTotal;
+      }
+
+      if (product.category?.crvRate) {
+        crvTotal += qty * getCrvPerItem(product.size, product.category.crvRate);
+      }
+    }
+
+    subtotal = round2(subtotal);
+    taxableSubtotal = round2(taxableSubtotal);
+    crvTotal = round2(crvTotal);
+    const tax = round2(taxableSubtotal * taxRate);
+    const total = round2(subtotal + tax + crvTotal);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        subtotal,
+        taxableSubtotal,
+        tax,
+        crv: crvTotal,
+        total,
+        itemCount,
+        taxRate,
+      },
+    });
+  } catch (error) {
+    console.error('Cart summary error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to calculate cart summary.',
+      error: error.message,
+    });
+  }
+};
+
 const getDeliveryQuote = async (req, res) => {
   try {
     const { user, items } = req.body;
-    
+
     if (!user || !user.address) {
       return res.status(400).json({ success: false, message: 'Address is required for delivery quote.' });
     }
@@ -564,7 +710,7 @@ const getDeliveryQuote = async (req, res) => {
     }).populate('category');
 
     const validProducts = products.filter(
-      (p) => p.status !== 'disabled' && p.available > 0
+      (p) => p.status !== 'disabled' && p.status !== 'inactive' && p.available > 0
     );
     if (validProducts.length !== products.length) {
       return res.status(400).json({
@@ -600,6 +746,19 @@ const getDeliveryQuote = async (req, res) => {
       },
       containsAlcohol
     };
+
+    const settings = await Settings.findOneOrCreate();
+
+    // Store-managed delivery fees (no DoorDash/Uber call)
+    if (!settings.deliveryProvider || settings.deliveryProvider === 'store') {
+      const fee = await getStoreDeliveryFee(user.zip);
+      return res.status(200).json({
+        success: true,
+        data: { fee: fee * 100 },
+        deliveryFee: fee,
+        provider: 'store',
+      });
+    }
 
     const { service, provider } = await getDeliveryService();
 
@@ -932,6 +1091,7 @@ const refreshDeliveryStatus = async (req, res) => {
 
 module.exports = {
   createOrder,
+  getCartSummary,
   getDeliveryQuote,
   getOrderById,
   getOrdersByAdmin,

@@ -19,7 +19,7 @@ const Search=async(req,res)=> {
           $regex: safeQuery,
           $options: 'i'
         },
-        status: { $ne: 'disabled' }
+        status: { $nin: ['disabled', 'inactive'] }
       },
       null,
       { limit: 10 }
@@ -30,8 +30,9 @@ const Search=async(req,res)=> {
           $regex: safeQuery,
           $options: 'i'
         },
-        status: { $ne: 'disabled' },
+        status: { $nin: ['disabled', 'inactive'] },
         available: { $gt: 0 },
+        images: { $exists: true, $ne: [] },
       },
       null,
       { limit: 10 }
@@ -45,7 +46,7 @@ const Search=async(req,res)=> {
           $regex: safeQuery,
           $options: 'i'
         },
-        status: { $ne: 'disabled' }
+        status: { $nin: ['disabled', 'inactive'] }
       },
       null,
       { limit: 10 }

@@ -23,7 +23,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   trend,
   color = "hsl(var(--primary))",
 }) => {
-  const chartData = data || generateDummyData();
+  const hasData = data && data.length > 0;
 
   return (
     <Card className="overflow-hidden">
@@ -47,49 +47,45 @@ export const StatsCard: React.FC<StatsCardProps> = ({
             <p className="text-xs text-muted-foreground">{description}</p>
           )}
         </div>
-        <div className="h-[100px] mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.5} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis 
-                dataKey="name" 
-                hide 
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  border: 'none'
-                }}
-                labelStyle={{ fontWeight: 'bold' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={color}
-                strokeWidth={2}
-                fill={`url(#gradient-${title})`}
-                activeDot={{ r: 4, strokeWidth: 0 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="h-[100px] mt-4 flex items-center justify-center">
+          {hasData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={0.5} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="name"
+                  hide
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    border: 'none'
+                  }}
+                  labelStyle={{ fontWeight: 'bold' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={color}
+                  strokeWidth={2}
+                  fill={`url(#gradient-${title})`}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-xs text-muted-foreground">No trend data available</p>
+          )}
         </div>
       </CardContent>
     </Card>
   );
-};
-
-// Helper function to generate dummy data
-const generateDummyData = () => {
-  return Array.from({ length: 12 }, (_, i) => ({
-    name: `Day ${i + 1}`,
-    value: Math.floor(Math.random() * 100) + 20,
-  }));
 };
 
 export default StatsCard;

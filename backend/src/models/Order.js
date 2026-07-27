@@ -30,6 +30,14 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'ShippingFee is required.'],
     },
+    tax: {
+      type: Number,
+      default: 0,
+    },
+    crv: {
+      type: Number,
+      default: 0,
+    },
     discount: {
       type: Number,
     },
@@ -46,8 +54,8 @@ const OrderSchema = new mongoose.Schema(
     },
     deliveryProvider: {
       type: String,
-      enum: ['doordash', 'uberdirect'],
-      default: 'doordash',
+      enum: ['doordash', 'uberdirect', 'store'],
+      default: 'store',
     },
     deliveryId: {
       type: String,

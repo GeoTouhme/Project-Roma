@@ -46,13 +46,26 @@ const Billing = () => {
   const [checkoutError, setCheckoutError] = useState(null);
   const [tip, setTip] = useState(0);
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const taxRate = 0.0775;
+  const [tax, setTax] = useState(0);
+  const [crv, setCrv] = useState(0);
 
   // List of supported Zip Codes
   const supportedZipCodes = ["92663", "92646", "92612", "92647", "92661", "92707", "92648"];
 
-  // Initialize Google Maps Autocomplete
+  const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
+
+  // Load Google Maps Places library only when a valid key is configured.
   useEffect(() => {
-    if (window.google && addressInputRef.current) {
+    if (!googleMapsKey || googleMapsKey.includes("REACT_APP_GOOGLE_MAPS_KEY")) return;
+    if (window.google) return;
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (!addressInputRef.current) return;
       autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
         componentRestrictions: { country: "us" },
         fields: ["address_components", "geometry", "formatted_address"],
@@ -95,7 +108,15 @@ const Billing = () => {
           handleZipChange(extractedZip);
         }
       });
-    }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleZipChange = (val) => {
@@ -137,15 +158,15 @@ const Billing = () => {
 
     try {
       const response = await OrderService.getDeliveryQuote({
-        user: { 
-          firstName, 
-          lastName, 
-          phone, 
-          address, 
-          city, 
-          state, 
-          zip: zipCode, 
-          country 
+        user: {
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          state,
+          zip: zipCode,
+          country
         },
         items: cartItems.map(item => ({ pid: item.id, quantity: item.quantity }))
       });
@@ -155,6 +176,7 @@ const Billing = () => {
         setDeliveryFee(fee);
         setQuoteVerified(true);
         setCheckoutError(null);
+        recalcTaxCrv();
       } else {
         if (!silent) setCheckoutError(response.message || "Delivery not available for this address.");
       }
@@ -212,6 +234,8 @@ const Billing = () => {
       zip,
     };
 
+    // Recalculate tax and CRV server-side is source of truth; frontend shows estimate only.
+
     const items = cartItems.map((item) => {
       const effectivePrice = item.priceSale || item.salePrice || item.price || 0;
       return {
@@ -242,6 +266,9 @@ const Billing = () => {
       tip,
     };
 
+    // Frontend estimate for tax/CRV is for display only; backend recalculates from categories.
+    const estimatedTotal = subtotal + tax + crv + deliveryFee + tip;
+
     setProcessing(true);
     setCheckoutError(null);
 
@@ -254,7 +281,7 @@ const Billing = () => {
     }
 
     try {
-      const clientSecret = await PaymentService.paymentIntentCreate({ amount: subtotal + deliveryFee + tip }).then(res => res.client_secret);
+      const clientSecret = await PaymentService.paymentIntentCreate({ amount: estimatedTotal }).then(res => res.client_secret);
 
       const billingDetails = {
         name: `${firstName} ${lastName}`,
@@ -310,6 +337,22 @@ const Billing = () => {
       setProcessing(false);
     }
   };
+
+  const recalcTaxCrv = () => {
+    // Frontend estimate only. Server recalculates final tax/CRV from category flags.
+    let taxableSubtotal = 0;
+    for (const item of cartItems) {
+      const price = item.priceSale || item.salePrice || item.price || 0;
+      // Cart item doesn't reliably carry category.taxable; default to taxable for estimate.
+      taxableSubtotal += price * item.quantity;
+    }
+    setTax(round2(taxableSubtotal * taxRate));
+    setCrv(0); // Cannot know CRV without category info
+  };
+
+  function round2(value) {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
 
   const iframeStyles = {
     base: {
@@ -565,9 +608,18 @@ const Billing = () => {
                 </p>
               )}
               <hr />
+              <div className="flex justify-between">
+                <p>CRV:</p>
+                <p className="font-semibold">${crv.toFixed(2)}</p>
+              </div>
+              <div className="flex justify-between">
+                <p>Tax:</p>
+                <p className="font-semibold">${tax.toFixed(2)}</p>
+              </div>
+              <hr />
               <div className="flex justify-between font-semibold text-lg">
                 <p>Total:</p>
-                <p>${(subtotal + deliveryFee + tip).toFixed(2)}</p>
+                <p>${(subtotal + tax + crv + deliveryFee + tip).toFixed(2)}</p>
               </div>
             </div>
 

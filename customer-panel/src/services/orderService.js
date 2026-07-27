@@ -12,6 +12,17 @@ OrderService.creteOrder = function (data) {
     })
 }
 
+OrderService.getCartSummary = function (data) {
+    return fetch({
+        url: "/orders/cart-summary",
+        method: "post",
+        headers: {
+            "public-request": "true",
+        },
+        data: data
+    })
+}
+
 OrderService.getDeliveryQuote = function (data) {
     return fetch({
         url: "/orders/delivery-quote",

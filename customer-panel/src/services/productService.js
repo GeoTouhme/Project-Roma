@@ -22,6 +22,38 @@ ProductService.getProductBySlug = function (slug) {
     })
 }
 
+ProductService.getRecommendationsBySlug = function (slug, limit = 8) {
+    return fetch({
+        url: `/recommendations`,
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+        params: { product: slug, limit },
+    })
+}
+
+ProductService.getRecommendationsForCart = function (slugs, limit = 8) {
+    return fetch({
+        url: `/recommendations/cart`,
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+        params: { slugs: slugs.join(","), limit },
+    })
+}
+
+ProductService.getRelatedProducts = function (pid) {
+    return fetch({
+        url: `/related-products/${pid}`,
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+    })
+}
+
 ProductService.getFilters = function () {
     return fetch({
         url: `products/filters`,

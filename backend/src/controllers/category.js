@@ -32,10 +32,11 @@ const getAllCategories = async (req, res) => {
 		await SubCategories.findOne();
 		const categories = await Categories.find()
 			.sort({
+				order: 1,
 				createdAt: -1,
 			})
-			.select(["name", "slug", "subCategories", "status", "createdAt"])
-			.populate({ path: "subCategories", select: ["name", "slug"] });
+			.select(["name", "slug", "subCategories", "status", "taxable", "crvRate", "order", "productCount", "createdAt"])
+			.populate({ path: "subCategories", select: ["name", "slug", "order", "productCount"], options: { sort: { order: 1 } } });
 
 		res.status(201).json({
 			success: true,
@@ -79,6 +80,8 @@ const getCategoryBySlug = async (req, res) => {
 			"metaDescription",
 			"cover",
 			"slug",
+			"taxable",
+			"crvRate",
 		]);
 
 		if (!category) {
@@ -162,8 +165,10 @@ const getCategories = async (req, res) => {
 				limit: skip,
 			}
 		).sort({
+			order: 1,
 			createdAt: -1,
-		});
+		})
+		.select("name slug status taxable crvRate order productCount cover createdAt");
 
 		res.status(201).json({
 			success: true,

@@ -8,7 +8,7 @@ import Icons from "../svg";
 import WishlistService from "../../services/wishlistService";
 import toast from "react-hot-toast";
 import { getProductCardImage } from "../../utils/cloudinary";
-import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
+import { ORDERING_DISABLED } from "../../config/orderingConfig";
 
 const ProductCard = ({ product, wishListDone }) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);

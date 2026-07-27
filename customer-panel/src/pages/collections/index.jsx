@@ -10,6 +10,8 @@ import 'rc-slider/assets/index.css';
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css"
 import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
+import CategoryFilter from "../../components/category-filter";
+import getHierarchyCategories from "../../utils/getHierarchyCategories";
 
 const Collection = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1023);
@@ -30,8 +32,6 @@ const Collection = () => {
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("");
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -98,31 +98,30 @@ const Collection = () => {
         .catch((err) => console.error("Subcategory filters fetch failed:", err))
         .finally(() => setLoadingFilters(false));
     }
-  }, [location.pathname])
+  }, [category, subCategory])
 
   // Fetch categories on mount
   useEffect(() => {
-    setLoadingCategories(true);
     CategoriesService.allCatgeories()
       .then((response) => {
         if (response?.success) {
           setCategories(response.data);
         }
       })
-      .catch((err) => console.error("Categories fetch failed:", err))
-      .finally(() => setLoadingCategories(false));
+      .catch((err) => console.error("Categories fetch failed:", err));
   }, []);
 
   // Memoize dynamic filters to prevent regeneration on every render
   const dynamicFilters = useMemo(() => {
     const filters = [];
 
-    // Add categories filter
-    if (categories?.length) {
+    // Add categories filter — only approved hierarchy parents
+    const hierarchyCategories = getHierarchyCategories(categories);
+    if (hierarchyCategories?.length) {
       filters.push({
         name: "Categories",
         type: "category",
-        options: categories.map((cat) => ({
+        options: hierarchyCategories.map((cat) => ({
           label: cat.name,
           value: cat.slug,
         })),
@@ -235,7 +234,6 @@ const Collection = () => {
   }, [selectedColors, selectedSizes]);
 
   const handleCategoryChange = useCallback((categorySlug) => {
-    setSelectedCategory(categorySlug);
     if (categorySlug) {
       navigate(`/products/${categorySlug}`);
     } else {
@@ -390,34 +388,12 @@ const Collection = () => {
         </div>
       </div>
       <div className="container md:pb-[100px] pb-[40px]">
-        {/* Mobile Category Chips - Hidden per request */}
-        {/* {isMobile && categories?.length > 0 && (
-          <div className="mb-5 -mx-2.5 px-2.5">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-              <button
-                onClick={() => handleCategoryChange('')}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors flex-shrink-0 ${!category
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
-                All Products
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.slug}
-                  onClick={() => handleCategoryChange(cat.slug)}
-                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors flex-shrink-0 ${category === cat.slug
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
+        {/* Category chip filter — products page only */}
+        {categories?.length > 0 && (
+          <div className="mb-6">
+            <CategoryFilter categories={categories} />
           </div>
-        )} */}
+        )}
 
         <div className="collection_grid_filter grid lg:grid-cols-[300px,1fr] grid-cols-1 gap-5">
           <div className="filter">
