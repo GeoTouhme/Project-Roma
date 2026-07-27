@@ -2,7 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -76,7 +76,7 @@ const createLimiter = (max, windowMinutes, messagePrefix) =>
       if (authHeader.startsWith('Bearer ') && authHeader.length > 7) {
         return `user:${authHeader.slice(7)}`;
       }
-      return `ip:${req.ip}`;
+      return `ip:${ipKeyGenerator(req.ip)}`;
     },
   });
 
