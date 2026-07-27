@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { dashboardAPI, api } from "@/lib/api";
+import { dashboardAPI } from "@/lib/api";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -98,7 +99,10 @@ export const NotificationBell: React.FC = () => {
   const handleMarkOpened = async (e: React.MouseEvent, notification: Notification) => {
     e.stopPropagation();
     try {
-      await api.put(`/admin/notifications/${notification._id}/open`);
+      const token = localStorage.getItem('admin_token');
+      await axios.put(`/api/admin/notifications/${notification._id}/open`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       setNotifications((prev) =>
         prev.map((n) => (n._id === notification._id ? { ...n, opened: true } : n))
       );
@@ -111,7 +115,10 @@ export const NotificationBell: React.FC = () => {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      await api.delete(`/admin/notifications/${id}`);
+      const token = localStorage.getItem('admin_token');
+      await axios.delete(`/api/admin/notifications/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       setNotifications((prev) => prev.filter((n) => n._id !== id));
       const remainingUnread = notifications.filter(
         (n) => n._id !== id && !n.opened
@@ -125,7 +132,10 @@ export const NotificationBell: React.FC = () => {
 
   const handleClearAll = async () => {
     try {
-      await api.delete("/admin/notifications");
+      const token = localStorage.getItem('admin_token');
+      await axios.delete("/api/admin/notifications", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       setNotifications([]);
       setUnreadCount(0);
       toast.success("All notifications cleared");
@@ -137,7 +147,10 @@ export const NotificationBell: React.FC = () => {
   const handleNotificationClick = (notification: Notification) => {
     setOpen(false);
     if (!notification.opened) {
-      api.put(`/admin/notifications/${notification._id}/open`).catch(() => {});
+      const token = localStorage.getItem('admin_token');
+      axios.put(`/api/admin/notifications/${notification._id}/open`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }).catch(() => {});
       setNotifications((prev) =>
         prev.map((n) => (n._id === notification._id ? { ...n, opened: true } : n))
       );
