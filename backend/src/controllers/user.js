@@ -6,8 +6,9 @@ const { getUser } = require('../config/getUser');
 const getOneUser = async (req, res) => {
   try {
     const user = await getUser(req, res);
+    if (!user) return;
 
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
       data: user,
     });
@@ -58,6 +59,7 @@ const getUserByAdmin = async (req, res) => {
 };
 const updateUser = async (req, res) => {
   const user = await getUser(req, res);
+  if (!user) return;
 
   const uid = user._id.toString();
 
@@ -114,6 +116,7 @@ const updateUser = async (req, res) => {
 const getInvoice = async (req, res) => {
   try {
     const user = await getUser(req, res);
+    if (!user) return;
 
     const { limit = 10, page = 1 } = req.query;
 
@@ -140,6 +143,7 @@ const getInvoice = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const user = await getUser(req, res);
+    if (!user) return;
     const uid = user._id.toString();
     const { password, newPassword, confirmPassword } = await req.body;
 

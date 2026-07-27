@@ -13,11 +13,11 @@ services:
     build: ./backend
     container_name: balport-backend
     ports:
-      - "5001:5001"
+      - "127.0.0.1:5001:5001"
     environment:
       - PORT=5001
       - MONGODB_URI=mongodb://mongodb:27017/liquor_shop
-      - ALLOWED_ORIGINS=https://balportliquors.com,http://balportliquors.com,https://www.balportliquors.com,http://31.97.132.106:3000,http://31.97.132.106:5173,http://localhost:3000,http://localhost:5173
+      - ALLOWED_ORIGINS=https://balportliquors.com,https://www.balportliquors.com
     env_file:
       - ./backend/.env
     depends_on:
@@ -31,13 +31,14 @@ services:
     build:
       context: ./customer-panel
       args:
-        - REACT_APP_API_URL=
+        - REACT_APP_API_URL=https://balportliquors.com
         - REACT_APP_GOOGLE_MAPS_KEY=${REACT_APP_GOOGLE_MAPS_KEY}
         - REACT_APP_MAINTENANCE_MODE=false
         - REACT_APP_ORDERING_DISABLED=false
+        - REACT_APP_STRIPE_PUBLIC_KEY=${REACT_APP_STRIPE_PUBLIC_KEY}
     container_name: balport-customer-panel
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     networks:
       - balport-network
 
@@ -45,7 +46,7 @@ services:
     build:
       context: ./admin-panel
       args:
-        - VITE_API_URL=http://31.97.132.106:5001
+        - VITE_API_URL=https://balportliquors.com
     container_name: balport-admin-panel
     ports:
       - "5173:80"

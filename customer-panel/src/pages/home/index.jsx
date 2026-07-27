@@ -173,9 +173,7 @@ const Home = () => {
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Curated Selection for Every Occasion</p>
               <a
-                href="https://nrsgo.com/balport/department/1/category/33"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/category/wine"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Wine
@@ -197,9 +195,7 @@ const Home = () => {
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Premium Tequila, Vodka & Mixers</p>
               <a
-                href="https://nrsgo.com/balport/department/1/category/31"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/products"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Spirits
@@ -221,9 +217,7 @@ const Home = () => {
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Cold Beers & Your Favorite Snacks</p>
               <a
-                href="https://nrsgo.com/balport/department/1/category/23"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/products"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Shop Beer
@@ -245,9 +239,7 @@ const Home = () => {
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Your Favorite Liquor at Your Doorstep</p>
               <a
-                href="https://nrsgo.com/balport/"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/products"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Order Now
@@ -269,9 +261,7 @@ const Home = () => {
               </h1>
               <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Ice-Cold Beers & Hard Seltzers</p>
               <a
-                href="https://nrsgo.com/balport/department/10"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/products"
                 className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
               >
                 Refresh Now

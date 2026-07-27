@@ -343,6 +343,7 @@ const getProductsByAdmin = async (request, response) => {
 const createProductByAdmin = async (req, res) => {
   try {
     const admin = await getAdmin(req, res);
+    if (!admin) return;
 
     const { images, size, ...body } = req.body;
 

@@ -1,10 +1,8 @@
 import axios from 'axios';
 
 // Get API URL from environment variable or use default
-// TEMPORARY HARDCODE FOR DEBUGGING
-//const API_URL = 'http://10.134.155.238:5001';
 const envUrl = import.meta.env.VITE_API_URL;
-const API_URL = typeof envUrl === 'string' ? envUrl : 'http://localhost:5001';
+const API_URL = typeof envUrl === 'string' ? envUrl : 'https://balportliquors.com';
 
 // Create axios instance with default config
 const api = axios.create({

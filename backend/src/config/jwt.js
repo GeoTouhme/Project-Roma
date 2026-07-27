@@ -13,7 +13,7 @@ function verifyToken(req, res, next) {
 	// Verify the token
 	jwt.verify(
 		token.replace("Bearer ", ""),
-		process.env.JWT_SECRET || "b2bda22377f71d92dcc55e75f7be2091cc1ad5775139c1312e407e0c51cb1ad3",
+		process.env.JWT_SECRET,
 		(err, decoded) => {
 			if (err) {
 				return res.status(401).json({

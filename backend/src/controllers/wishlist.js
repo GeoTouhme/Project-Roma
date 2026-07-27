@@ -5,6 +5,7 @@ const { getUser } = require('../config/getUser');
 const getWishlist = async (req, res) => {
   try {
     const user = await getUser(req, res);
+    if (!user) return;
     //  Fetch wishlist and related products
     const wishlist = user.wishlist;
     const products = await Products.aggregate([
@@ -58,6 +59,7 @@ const getWishlist = async (req, res) => {
 const createWishlist = async (req, res) => {
   try {
     const user = await getUser(req, res);
+    if (!user) return;
     const uid = user._id.toString();
     const wishlist = user.wishlist;
     const { pid } = req.body;

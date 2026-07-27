@@ -50,6 +50,7 @@ const getReviewsbyPid = async (req, res) => {
 const createReview = async (req, res) => {
 	try {
 		const user = await getUser(req, res);
+		if (!user) return;
 		const uid = user._id.toString();
 		const { pid, rating, review: reviewText, images = [] } = req.body;
 
