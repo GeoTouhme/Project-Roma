@@ -158,10 +158,18 @@ function getTokenRole(token) {
   return null;
 }
 
-const createLimiter = (max, windowMinutes, messagePrefix) =>
+const createLimiter = (baseMax, windowMinutes, messagePrefix) =>
   rateLimit({
     windowMs: windowMinutes * 60 * 1000,
-    max,
+    // Admins and super admins get a much higher ceiling on the same bucket key
+    // so normal admin panel work never triggers a 429.
+    max: (req) => {
+      const role = getTokenRole(req.cookies?.token);
+      if (role === 'admin' || role === 'super admin') {
+        return 50000;
+      }
+      return baseMax;
+    },
     standardHeaders: true,
     legacyHeaders: false,
     message: {
