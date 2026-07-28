@@ -5,6 +5,7 @@ const cors = require('cors');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 // Load environment variables from .env file
 dotenv.config();
@@ -46,6 +47,8 @@ app.use(cors({
 
 // Body parser with explicit size limit to prevent DoS via large payloads
 // Preserve raw body buffer for webhook signature verification
+app.use(cookieParser());
+
 app.use(bodyParser.json({
   limit: '1mb',
   verify: (req, res, buf) => {
