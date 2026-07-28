@@ -65,6 +65,21 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+// 🛡️ SECURITY: Only allow safe CSS color syntax before injecting into a <style> tag.
+// Rejects strings that contain CSS-breaking metacharacters or dangerous functions (url, expression, javascript).
+function isValidColor(value: string): boolean {
+  if (!value || typeof value !== 'string') return false;
+  // Hex: #rgb, #rgba, #rrggbb, #rrggbbaa
+  if (/^#([0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6,8})$/.test(value)) return true;
+  // CSS variable: var(--name)
+  if (/^var\(--[a-zA-Z0-9_-]+\)$/.test(value)) return true;
+  // rgb/rgba/hsl/hsla with numeric/percentage values only
+  if (/^(rgb|hsl)a?\([\d\s,.%]+\)$/i.test(value)) return true;
+  // rgb/hsl wrapping a CSS variable, e.g. hsl(var(--primary))
+  if (/^(rgb|hsl)a?\(var\(--[a-zA-Z0-9_-]+\)\)$/i.test(value)) return true;
+  return false;
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
@@ -86,7 +101,7 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    return color && isValidColor(color) ? `  --color-${key}: ${color};` : null
   })
   .join("\n")}
 }

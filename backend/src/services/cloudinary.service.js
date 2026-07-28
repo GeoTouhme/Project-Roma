@@ -1,7 +1,7 @@
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { spawn } = require('child_process');
 const getBlurDataURL = require('../config/getBlurDataURL');
 
 const PYTHON = path.join(__dirname, '../../venv-rembg/bin/python');
@@ -23,8 +23,13 @@ class CloudinaryService {
         const ext = path.extname(inputPath);
         const base = inputPath.replace(ext, '');
         const outputPath = `${base}_white${ext}`;
-        const cmd = `${PYTHON} "${BG_SCRIPT}" "${inputPath}" "${outputPath}"`;
-        execSync(cmd, { stdio: 'pipe' });
+
+        // 🛡️ SECURITY: Use spawn with an argument array instead of execSync string concatenation.
+        // This avoids shell metacharacter injection if inputPath contains quotes, spaces, or semicolons.
+        const result = spawn.sync(PYTHON, [BG_SCRIPT, inputPath, outputPath], { encoding: 'utf-8' });
+        if (result.status !== 0) {
+            throw new Error(`Background removal failed: ${result.stderr || result.error?.message || 'unknown error'}`);
+        }
         return outputPath;
     }
 

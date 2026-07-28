@@ -1,14 +1,11 @@
 import fetch from "../interceptor/fetchInterceptor"
 const PaymentService = {}
 
-PaymentService.paymentIntentCreate = function (data) {
+PaymentService.paymentIntentCreate = function (orderPayload) {
     return fetch({
         url: "/payment-intents",
         method: "post",
-        headers: {
-            "public-request": "true",
-        },
-        data: data
+        data: orderPayload,
     })
 }
 

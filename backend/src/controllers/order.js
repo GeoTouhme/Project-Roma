@@ -11,6 +11,7 @@ const sendEmail = require('../utils/mailer');
 const Category = require('../models/Category');
 const { safeObjectId, safeNumber } = require('../utils/validators');
 const { getCrvPerItem } = require('../utils/crv');
+const { calculateOrderTotals } = require('../utils/orderCalculator');
 
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -146,107 +147,27 @@ const createOrder = async (req, res) => {
       });
     }
 
-    const products = await Products.find({
-      _id: { $in: items.map((item) => item.pid) },
-    }).populate('category');
-
-    const validProducts = products.filter(
-      (p) => p.status !== 'disabled' && p.status !== 'inactive' && p.available > 0
-    );
-    if (validProducts.length !== products.length) {
-      return res.status(400).json({
-        success: false,
-        message: 'One or more products are unavailable or out of stock.',
-      });
+    // 🛡️ SECURITY: Calculate the total from the authoritative product database,
+    // not from client-submitted prices. This prevents price/tax tampering.
+    let totals;
+    try {
+      totals = await calculateOrderTotals({ items, shipping, tip, couponCode });
+    } catch (calcError) {
+      return res.status(400).json({ success: false, message: calcError.message });
     }
 
-    const alcoholCategorySlugs = [
-      'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more',
-      'spirits', 'tequila', 'vodka', 'whiskey', 'wine',
-      'brandy-and-cognac', 'spiked', 'hard-seltzer'
-    ];
-
-    let containsAlcohol = false;
-
-    const updatedItems = items.map((item) => {
-      const product = products.find((p) => p._id.toString() === item.pid);
-
-      if (product && product.category && alcoholCategorySlugs.includes(product.category.slug)) {
-        containsAlcohol = true;
-      }
-
-      const price = product ? product.priceSale : 0;
-      const total = price * item.quantity;
-
-      return {
-        ...item,
-        total,
-        imageUrl: product.images.length > 0 ? product.images[0].url : '',
-      };
-    });
-
-    const grandTotal = updatedItems.reduce((acc, item) => acc + item.total, 0);
-
-    // Calculate tax and CRV based on product categories and size
-    const settings = await Settings.findOneOrCreate();
-    const taxRate = typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
-
-    let crvTotal = 0;
-    let taxableSubtotal = 0;
-    for (const item of updatedItems) {
-      const product = products.find((p) => p._id.toString() === item.pid);
-      const category = product?.category;
-      const productSize = product?.size;
-      const itemTotal = item.total;
-      const qty = item.quantity || 1;
-      if (category?.taxable !== false) {
-        taxableSubtotal += itemTotal;
-      }
-      if (category?.crvRate) {
-        crvTotal += qty * getCrvPerItem(productSize, category.crvRate);
-      }
-    }
-
-    crvTotal = round2(crvTotal);
-
-    let discount = 0;
-    let couponData = null;
-
-    if (couponCode) {
-      couponData = await Coupons.findOne({ code: couponCode });
-
-      if (!couponData) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Invalid Coupon Code' });
-      }
-
-      const expired = isExpired(couponData.expire);
-      if (expired) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'CouponCode Is Expired' });
-      }
-
-      if (couponData.type === 'percent') {
-        const percentLess = couponData.discount;
-        discount = (percentLess / 100) * grandTotal;
-      } else {
-        discount = couponData.discount;
-      }
-    }
-
-    let discountedTotal = grandTotal - discount;
-    discountedTotal = discountedTotal || 0;
-
-    const taxBase = Math.max(0, taxableSubtotal - discount);
-    const tax = round2(taxBase * taxRate);
-
-    // Issue 5: Sanitize tip value
-    const sanitizedTip = Math.max(0, Math.min(Number(tip) || 0, 100));
-
-    const deliveryFee = Number(shipping) || 0;
-    const orderTotal = round2(discountedTotal + tax + crvTotal + deliveryFee + sanitizedTip);
+    const {
+      products,
+      updatedItems,
+      containsAlcohol,
+      grandTotal,
+      discount,
+      tax,
+      crvTotal,
+      sanitizedTip,
+      deliveryFee,
+      orderTotal,
+    } = totals;
 
     // Issue 1: Verify Stripe payment amount matches server-calculated total
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);

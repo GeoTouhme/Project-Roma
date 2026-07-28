@@ -281,7 +281,7 @@ const Billing = () => {
     }
 
     try {
-      const clientSecret = await PaymentService.paymentIntentCreate({ amount: estimatedTotal }).then(res => res.client_secret);
+      const clientSecret = await PaymentService.paymentIntentCreate(orderPayload).then(res => res.client_secret);
 
       const billingDetails = {
         name: `${firstName} ${lastName}`,
