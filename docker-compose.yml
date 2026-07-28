@@ -1,5 +1,7 @@
 # Secrets are sourced from /etc/project-roma/.env (chmod 600, owned by root).
-# Run with: docker compose --env-file /etc/project-roma/.env up --build
+# A symlink at /var/www/Project-Roma/.env points to that file so Docker Compose
+# automatically loads the variables for both substitution and container env.
+# Run with: docker compose up --build
 # The backend/.env.example file lists every variable this compose file expects.
 
 services:
