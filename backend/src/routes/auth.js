@@ -34,4 +34,6 @@ router.post("/auth/resend-otp", authLimiter, authController.resendOtp);
 
 // router.get("/profile", verifyToken, userController.getProfile);
 
+router.post("/auth/logout", verifyToken, authController.logoutUser);
+
 module.exports = router;

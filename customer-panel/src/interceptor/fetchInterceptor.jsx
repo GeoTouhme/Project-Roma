@@ -5,26 +5,17 @@ import { API_BASE_URL } from "../config/AppConfig";
 const service = axios.create({
   baseURL: API_BASE_URL,
   timeout: 100000,
+  withCredentials: true,
 });
 
 // Config
-const TOKEN_PAYLOAD_KEY = "authorization";
 const PUBLIC_REQUEST_KEY = "public-request";
 
 // API Request interceptor
 service.interceptors.request.use(
   (config) => {
-    const jwtToken = localStorage.getItem("auth_token");
-
-    if (jwtToken) {
-      config.headers[TOKEN_PAYLOAD_KEY] = "Bearer " + jwtToken;
-    }
-
-    if (!jwtToken && !config.headers[PUBLIC_REQUEST_KEY]) {
-      const navigate = useNavigate();
-      navigate("/");
-    }
-
+    // 🛡️ SECURITY: JWT is now stored in an HttpOnly cookie sent automatically by the browser.
+    // Do not read or inject the token from localStorage/Authorization header.
     return config;
   },
   (error) => {

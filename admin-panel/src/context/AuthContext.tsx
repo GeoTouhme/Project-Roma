@@ -34,9 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const checkAuth = () => {
       const savedUser = localStorage.getItem("admin_user");
-      const token = localStorage.getItem("admin_token");
 
-      if (savedUser && token) {
+      if (savedUser) {
         setUser(JSON.parse(savedUser));
       }
       setIsLoading(false);
@@ -53,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (response.data.success) {
         const userData = response.data.user;
-        const token = response.data.token;
 
         // Check if user is admin or super admin
         if (userData.role !== 'admin' && userData.role !== 'super admin') {
@@ -74,7 +72,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         localStorage.setItem("admin_user", JSON.stringify(formattedUser));
-        localStorage.setItem("admin_token", token);
         setUser(formattedUser);
         toast.success("Login successful");
         navigate("/dashboard");
@@ -90,12 +87,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("admin_user");
-    localStorage.removeItem("admin_token");
-    setUser(null);
-    toast.success("Logged out successfully");
-    navigate("/login");
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("admin_user");
+      setUser(null);
+      toast.success("Logged out successfully");
+      navigate("/login");
+    }
   };
 
   return (

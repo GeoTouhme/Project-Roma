@@ -5,26 +5,15 @@ const envUrl = import.meta.env.VITE_API_URL;
 const API_URL = typeof envUrl === 'string' ? envUrl : 'https://balportliquors.com';
 
 // Create axios instance with default config
+// 🛡️ SECURITY: withCredentials sends the HttpOnly JWT cookie automatically.
+// Do not read the token from localStorage or inject an Authorization header.
 const api = axios.create({
     baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
 });
-
-// Add request interceptor to include auth token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('admin_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
 
 // Add response interceptor for error handling
 api.interceptors.response.use(
@@ -32,7 +21,6 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Handle unauthorized access
-            localStorage.removeItem('admin_token');
             localStorage.removeItem('admin_user');
             window.location.href = '/login';
         }
@@ -49,6 +37,9 @@ export const authAPI = {
 
     register: (userData: any) =>
         api.post('/api/auth/register', userData),
+
+    logout: () =>
+        api.post('/api/auth/logout'),
 };
 
 export const userAPI = {

@@ -9,6 +9,25 @@ const fs = require('fs');
 const path = require('path');
 const sendEmail = require('../utils/mailer');
 
+const TOKEN_COOKIE_NAME = 'token';
+
+// 🛡️ SECURITY: Issue auth token as an HttpOnly, Secure, SameSite=Strict cookie.
+// Tokens are no longer returned in the response body or stored in localStorage.
+function setAuthCookie(res, token, maxAgeMs) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookie(TOKEN_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict',
+    maxAge: maxAgeMs,
+    path: '/',
+  });
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie(TOKEN_COOKIE_NAME, { path: '/' });
+}
+
 const registerUser = async (req, res) => {
   try {
     // Create user in the database
@@ -97,10 +116,11 @@ const registerUser = async (req, res) => {
       console.error("Email sending failed:", emailError.message);
     }
 
+    setAuthCookie(res, token, 47 * 24 * 60 * 60 * 1000);
+
     res.status(201).json({
       success: true,
       message: 'Created User Successfully. Please check your email to verify your account.',
-      token,
       user: {
         _id: user._id,
         firstName: user.firstName,
@@ -199,6 +219,8 @@ const loginUser = async (req, res) => {
         },
       },
     ]);
+
+    setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
 
     return res.status(201).json({
       success: true,
@@ -444,9 +466,22 @@ const resendOtp = async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+const logoutUser = async (req, res) => {
+  try {
+    clearAuthCookie(res);
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully.',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  logoutUser,
   forgetPassword,
   resetPassword,
   verifyOtp,

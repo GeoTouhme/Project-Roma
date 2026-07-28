@@ -75,9 +75,9 @@ const createLimiter = (max, windowMinutes, messagePrefix) =>
     // so bucket authenticated users by their JWT token and unauthenticated clients
     // by the trusted X-Forwarded-For IP.
     keyGenerator: (req) => {
-      const authHeader = req.headers.authorization || '';
-      if (authHeader.startsWith('Bearer ') && authHeader.length > 7) {
-        return `user:${authHeader.slice(7)}`;
+      const token = req.cookies?.token;
+      if (token && token.length > 0) {
+        return `user:${token}`;
       }
       return `ip:${ipKeyGenerator(req.ip)}`;
     },
