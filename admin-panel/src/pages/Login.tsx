@@ -4,11 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ArrowRight, User, Shield } from "lucide-react";
 import { Navigate } from "react-router-dom";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 
 const Login = () => {
   const { login, verifyMfa, isAuthenticated, isLoading } = useAuth();
@@ -30,9 +25,9 @@ const Login = () => {
     setIsSubmitting(true);
     try {
       const result = await login(email, password);
-      console.log("[Login] login result:", result);
+      console.log("[Login] login result:", JSON.stringify(result));
       if (result.mfaRequired && result.tempToken) {
-        console.log("[Login] MFA required — showing code entry");
+        console.log("[Login] MFA required — switching to code entry");
         setTempToken(result.tempToken);
         setShowMfa(true);
       }
@@ -43,10 +38,14 @@ const Login = () => {
 
   const handleMfaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mfaCode.replace(/\s/g, "").length !== 6) return;
+    const code = mfaCode.replace(/\s/g, "");
+    if (code.length !== 6) {
+      console.log("[Login] MFA code too short:", code.length);
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await verifyMfa(tempToken, mfaCode.replace(/\s/g, ""));
+      await verifyMfa(tempToken, code);
     } finally {
       setIsSubmitting(false);
     }
@@ -57,14 +56,22 @@ const Login = () => {
       <div className="animate-slide-up w-full max-w-md glassmorphism rounded-2xl p-8 shadow-xl">
         <div className="flex justify-center mb-6">
           <div className="bg-primary/10 p-3 rounded-full">
-            <User className="h-10 w-10 text-primary" />
+            {!showMfa ? (
+              <User className="h-10 w-10 text-primary" />
+            ) : (
+              <Shield className="h-10 w-10 text-primary" />
+            )}
           </div>
         </div>
 
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {!showMfa ? "Admin Panel" : "Two-Factor Authentication"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Sign in to your admin account
+            {!showMfa
+              ? "Sign in to your admin account"
+              : "Enter the 6-digit code from your authenticator app"}
           </p>
         </div>
 
@@ -132,49 +139,22 @@ const Login = () => {
           </form>
         ) : (
           <form onSubmit={handleMfaSubmit} className="space-y-6">
-            <div className="flex justify-center">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-
-            <div className="text-center space-y-1">
-              <h2 className="text-lg font-semibold">Two-Factor Authentication</h2>
-              <p className="text-sm text-muted-foreground">
-                Enter the 6-digit code from your authenticator app.
-              </p>
-            </div>
-
             <div className="space-y-2">
-              <label className="text-sm font-medium text-center block">
+              <label htmlFor="mfa-code" className="text-sm font-medium text-center block">
                 6-digit authenticator code
               </label>
-              <div className="flex justify-center">
-                <InputOTP
-                  value={mfaCode}
-                  onChange={setMfaCode}
-                  maxLength={6}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              {/* Fallback plain input in case the OTP slots don't render in some browsers */}
               <Input
+                id="mfa-code"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]{6}"
                 maxLength={6}
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="Or type code here (6 digits)"
-                className="h-11 text-center tracking-[0.5em] font-semibold"
+                placeholder="123456"
+                autoFocus
+                className="h-12 text-center text-2xl tracking-[0.5em] font-semibold"
+                required
               />
             </div>
 
@@ -198,6 +178,7 @@ const Login = () => {
               onClick={() => {
                 setShowMfa(false);
                 setMfaCode("");
+                setTempToken("");
               }}
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
             >
