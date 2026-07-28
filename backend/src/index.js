@@ -111,6 +111,7 @@ app.use(helmet({
     preload: true,
   },
   contentSecurityPolicy: {
+    useDefaults: false,
     directives: helmetDirectives,
   },
 }));
