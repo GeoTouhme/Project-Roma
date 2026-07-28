@@ -1,35 +1,24 @@
-# Plan: Debug Admin Login Stuck on Login Page
+# Plan: Admin-Friendly Rate Limiting
 
-## Problem
-User reports: after entering password, no errors appear, but the page stays on `/login` instead of redirecting to `/dashboard`.
+## Goal
+Make admin users effectively not hit rate limits during normal use, while preserving brute-force protection on auth and basic protection for public/authenticated user endpoints.
 
-## Likely causes
-1. The login API succeeds and returns `mfaRequired: true` + `tempToken`, but the frontend does **not** show the MFA step because the response is still `success: true` and the user has MFA disabled? Wait — if MFA is disabled, login should set the cookie and navigate. If it stays, maybe the cookie is not being accepted by the browser because the cookie domain is wrong or `secure`/`sameSite` prevents it on the current origin.
-2. The user may have **MFA enabled** from a previous attempt, so the backend returns `mfaRequired: true`, but the UI doesn't visibly switch to the MFA form (maybe state doesn't update).
-3. The cookie `domain=.balportliquors.com` + `sameSite=strict` may not be sent when the request is cross-origin from `admin.balportliquors.com` to `balportliquors.com` because `SameSite=Strict` blocks cross-site cookies on cross-origin navigations/AJAX. However, the request is initiated by JS from `admin.balportliquors.com` to `balportliquors.com` (subdomain → apex). Browsers treat subdomains as cross-site for SameSite unless they are the same registrable domain? Actually, for cookie purposes, `SameSite` considers the site as registrable domain. `.balportliquors.com` with `SameSite=Strict` should be sent for same-site requests, including `admin.balportliquors.com` to `balportliquors.com`. But the **first** navigation after login may be considered cross-site? No, they are same-site.
-4. More likely: the user **does not have MFA enabled**, the login sets the cookie, but the response body still contains `token` and the frontend `AuthContext` expects `user` in response and navigates. Wait, we removed token from body? We still return `token` in login response for non-MFA. So that should work.
-5. Maybe the issue is the **basic auth popup** in nginx for admin subdomain? The user already passed basic auth to load the page, so subsequent API calls should work.
-6. The user might be using the **customer panel** login or a saved old URL.
+## Approach
+1. **Decode the JWT inside the rate-limit `keyGenerator`** to determine the user's role.
+2. If the role is `admin` or `super admin`, use a dedicated `adminLimiter` with a very high ceiling (effectively unlimited for real admin work).
+3. If the user is authenticated but not admin, keep the current `apiLimiter`.
+4. Unauthenticated requests keep the existing per-IP limits.
 
-## Diagnostic steps to ask the user
-We need browser network tab data. Specifically:
-1. Open browser DevTools → Network tab → log in.
-2. Find the `login` request to `https://balportliquors.com/api/auth/login`.
-3. Share:
-   - Response status
-   - Response body (or whether it shows `mfaRequired: true`)
-   - Response headers tab: whether `Set-Cookie: token=...` appears
-4. If `mfaRequired: true`, check whether the login form changes to the MFA code input.
-5. If it does change, find the `verify-mfa` request and share status/response/headers.
+## Files to change
+- `backend/src/index.js` — update the limiter factory to accept a role-aware admin limit, and decode JWT in the key generator.
+- `backend/src/routes/auth.js` — keep strict auth limits, but allow admin login attempts a slightly higher ceiling than regular users (optional, but reasonable).
 
-We should not guess further. Instead, add quick client-side debug logging to make diagnosis faster, then ask the user to reproduce and report.
+## Implementation details
+- Use `jwt.decode` (not verify) in the key generator for performance; actual verification is still done by `verifyToken` middleware later.
+- Add a new `adminLimiter` at 50,000 requests / 15 min.
+- Update route mounting so admin-only routes use `adminLimiter`, and mixed routes (orders, user, upload) use the role-aware limiter.
+- Keep auth routes on `authLimiter` but raise it for admins? Better: keep auth limiter simpler and raise its ceiling globally to 200 / 15 min for everyone, since we already fixed the IP bucketing.
 
-## Minimal code change
-Add `console.log` in `AuthContext.tsx` login and verifyMfa to expose the exact server response, and in `Login.tsx` to log the `result` object and `step` transitions. This is temporary diagnostic instrumentation.
-
-## Files
-- `admin-panel/src/context/AuthContext.tsx`
-- `admin-panel/src/pages/Login.tsx`
-
-## Note
-We must not modify the login logic permanently; just add logs so the user can tell us whether the server returns `mfaRequired`, a cookie, or an error.
+## Trade-offs
+- `jwt.decode` is fast and safe here because it only reads role, but it trusts the token payload without signature verification. However, the actual route still runs `verifyToken`, so a forged token cannot access admin data.
+- Very high admin limit removes practical protection against accidental DoS from an admin's own script/browser, but that's acceptable per user request.

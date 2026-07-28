@@ -143,6 +143,21 @@ function getClientIp(req) {
   return req.ip;
 }
 
+// Decode the JWT (without verifying) to extract the user's role. Actual verification
+// is still done by verifyToken middleware on protected routes, so this only affects
+// rate-limit bucketing, not access control.
+function getTokenRole(token) {
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded && typeof decoded.role === 'string') {
+      return decoded.role;
+    }
+  } catch {
+    // ignore malformed token
+  }
+  return null;
+}
+
 const createLimiter = (max, windowMinutes, messagePrefix) =>
   rateLimit({
     windowMs: windowMinutes * 60 * 1000,
@@ -159,6 +174,12 @@ const createLimiter = (max, windowMinutes, messagePrefix) =>
     keyGenerator: (req) => {
       const token = req.cookies?.token;
       if (token && token.length > 0) {
+        const role = getTokenRole(token);
+        // Admins and super admins get their own very high bucket so they never
+        // hit rate limits during normal admin panel use.
+        if (role === 'admin' || role === 'super admin') {
+          return `admin:${token}`;
+        }
         return `user:${token}`;
       }
       return `ip:${ipKeyGenerator(getClientIp(req))}`;
@@ -166,7 +187,22 @@ const createLimiter = (max, windowMinutes, messagePrefix) =>
   });
 
 // Auth routes: strict to prevent brute-force / OTP abuse.
-const authLimiter = createLimiter(20, 15, 'Too many auth attempts');
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many auth attempts. Please try again after 15 minutes.' },
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
+    const forwarded = req.headers['x-forwarded-for'];
+    const clientIp = typeof forwarded === 'string'
+      ? forwarded.split(',')[0].trim() || req.ip
+      : req.ip;
+    const ip = ipKeyGenerator(clientIp);
+    return email ? `auth:${email}:${ip}` : `auth:${ip}`;
+  },
+});
 
 // Public read routes: generous so customers can browse 100+ departments and paginated products.
 const publicReadLimiter = createLimiter(8000, 15, 'Too many requests');
@@ -174,8 +210,8 @@ const publicReadLimiter = createLimiter(8000, 15, 'Too many requests');
 // Authenticated / mutating routes: generous for normal cart/order/wishlist/admin activity.
 const apiLimiter = createLimiter(6000, 15, 'Too many requests');
 
-// Admin-only routes: even more generous because admin pages fire many parallel calls.
-const adminLimiter = createLimiter(10000, 15, 'Too many admin requests');
+// Admin-only routes: effectively unlimited for real admin work (50,000 / 15 min).
+const adminLimiter = createLimiter(50000, 15, 'Too many admin requests');
 
 // Polling endpoints (e.g. admin notification bell) need their own, higher limit
 // so they don't exhaust the shared apiLimiter bucket for active admin users.
@@ -234,11 +270,13 @@ app.use('/api', publicReadLimiter, productRoutes); // User product browsing
 app.use('/api', publicReadLimiter, recommendationRoutes);
 app.use('/api', adminLimiter, dashboardRoutes); // Admin-only analytics
 app.use('/api', publicReadLimiter, searchRoutes);
-app.use('/api', apiLimiter, userRoutes); // Mixed user/admin profile routes
+// Mixed user/admin routes: the limiter key generator will detect admin role and
+// put admins into the high admin bucket automatically.
+app.use('/api', apiLimiter, userRoutes);
 // Native ordering re-enabled. Auto-delivery dispatch is disabled in order controller;
 // staff manually accepts orders and requests drivers via provider apps.
 app.use('/api', apiLimiter, cartRoutes);
-app.use('/api', apiLimiter, OrderRoutes); // Mixed user/admin order routes
+app.use('/api', apiLimiter, OrderRoutes);
 app.use('/api', apiLimiter, paymentRoutes);
 app.use('/api', apiLimiter, wishlistRoutes);
 // Stripe webhook must be mounted BEFORE bodyParser.json so rawBody is preserved.

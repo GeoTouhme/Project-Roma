@@ -155,6 +155,8 @@ const registerUser = async (req, res) => {
     const token = jwt.sign(
       {
         _id: user._id,
+        email: user.email,
+        role: user.role,
         // email: user.email,
       },
       process.env.JWT_SECRET,
@@ -269,6 +271,7 @@ const loginUser = async (req, res) => {
       {
         _id: user._id,
         email: user.email,
+        role: user.role,
       },
       process.env.JWT_SECRET,
       {
@@ -706,6 +709,7 @@ const verifyMfa = async (req, res) => {
       {
         _id: user._id,
         email: user.email,
+        role: user.role,
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }

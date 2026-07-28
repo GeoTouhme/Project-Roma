@@ -1,20 +1,41 @@
 const express = require("express");
 const router = express.Router();
+const jwt = require("jsonwebtoken");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const authController = require("../controllers/auth");
 const verifyToken = require("../config/jwt");
+
+// Helpers to decode role for rate-limit bucketing (access control still happens via verifyToken).
+function getTokenRole(token) {
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded && typeof decoded.role === 'string') return decoded.role;
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 // Rate limit for auth endpoints to prevent brute-force / OTP abuse.
 // Behind Nginx+Docker all requests share the same proxy IP, so bucket by email
 // when provided and fall back to the real client IP from X-Forwarded-For.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: (req) => {
+    const role = getTokenRole(req.cookies?.token);
+    return role === 'admin' || role === 'super admin' ? 1000 : 100;
+  },
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many auth attempts. Please try again after 15 minutes.' },
   keyGenerator: (req) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
+    // Admins and super admins get a separate, much higher bucket.
+    const token = req.cookies?.token;
+    const role = getTokenRole(token);
+    if (role === 'admin' || role === 'super admin') {
+      return `auth-admin:${token}`;
+    }
     // Use the real client IP from X-Forwarded-For instead of the Docker gateway IP.
     const forwarded = req.headers['x-forwarded-for'];
     const clientIp = typeof forwarded === 'string'
