@@ -266,9 +266,6 @@ const Billing = () => {
       tip,
     };
 
-    // Frontend estimate for tax/CRV is for display only; backend recalculates from categories.
-    const estimatedTotal = subtotal + tax + crv + deliveryFee + tip;
-
     setProcessing(true);
     setCheckoutError(null);
 

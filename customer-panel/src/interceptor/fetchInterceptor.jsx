@@ -8,9 +8,6 @@ const service = axios.create({
   withCredentials: true,
 });
 
-// Config
-const PUBLIC_REQUEST_KEY = "public-request";
-
 // API Request interceptor
 service.interceptors.request.use(
   (config) => {
