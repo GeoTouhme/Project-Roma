@@ -7,7 +7,10 @@ const otpGenerator = require('otp-generator');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const sendEmail = require('../utils/mailer');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 const TOKEN_COOKIE_NAME = 'token';
 
@@ -60,6 +63,53 @@ function clearAuthCookie(res) {
     cookieOptions.domain = domain;
   }
   res.clearCookie(TOKEN_COOKIE_NAME, cookieOptions);
+}
+
+// 🛡️ MFA: deterministic 32-byte AES key derived from a dedicated env secret.
+// Using a dedicated MFA_SECRET_KEY lets JWT rotation happen without invalidating MFA enrollments.
+const MFA_KEY = crypto.scryptSync(
+  process.env.MFA_SECRET_KEY || process.env.JWT_SECRET || 'project-roma-mfa-fallback-key',
+  'project-roma-mfa',
+  32
+);
+const MFA_ALGORITHM = 'aes-256-gcm';
+
+function encryptMfaSecret(plaintext) {
+  if (!plaintext) return null;
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(MFA_ALGORITHM, MFA_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+}
+
+function decryptMfaSecret(encryptedBase64) {
+  if (!encryptedBase64) return null;
+  const buffer = Buffer.from(encryptedBase64, 'base64');
+  const iv = buffer.subarray(0, 16);
+  const authTag = buffer.subarray(16, 32);
+  const encrypted = buffer.subarray(32);
+  const decipher = crypto.createDecipheriv(MFA_ALGORITHM, MFA_KEY, iv);
+  decipher.setAuthTag(authTag);
+  return decipher.update(encrypted) + decipher.final('utf8');
+}
+
+function signMfaTempToken(userId) {
+  return jwt.sign(
+    { _id: userId.toString(), mfa: true },
+    process.env.JWT_SECRET,
+    { expiresIn: '5m' }
+  );
+}
+
+function verifyMfaTempToken(token) {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || decoded.mfa !== true) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
 }
 
 const registerUser = async (req, res) => {
@@ -202,6 +252,17 @@ const loginUser = async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: 'Incorrect Password' });
+    }
+
+    // 🛡️ MFA: if TOTP is enabled, require a second factor before issuing the auth cookie.
+    if (user.mfaEnabled) {
+      const tempToken = signMfaTempToken(user._id);
+      return res.status(200).json({
+        success: true,
+        message: 'MFA code required',
+        mfaRequired: true,
+        tempToken,
+      });
     }
 
     const token = jwt.sign(
@@ -512,6 +573,260 @@ const logoutUser = async (req, res) => {
   }
 };
 
+// 🛡️ MFA — generate a TOTP secret and QR code for enrollment.
+const setupMfa = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User Not Found' });
+    }
+
+    const secret = speakeasy.generateSecret({
+      name: `Balport Liquors (${user.email})`,
+      length: 32,
+    });
+
+    const encryptedTemp = encryptMfaSecret(secret.base32);
+    user.mfaTempSecret = encryptedTemp;
+    await user.save();
+
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    return res.status(200).json({
+      success: true,
+      qrCode,
+      manualEntryKey: secret.base32,
+    });
+  } catch (error) {
+    console.error('MFA setup error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 🛡️ MFA — confirm enrollment by verifying the first TOTP code.
+const confirmMfaSetup = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { code } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ success: false, message: 'MFA code is required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User Not Found' });
+    }
+    if (!user.mfaTempSecret) {
+      return res.status(400).json({ success: false, message: 'MFA setup has not been started' });
+    }
+
+    const tempSecret = decryptMfaSecret(user.mfaTempSecret);
+    if (!tempSecret) {
+      return res.status(500).json({ success: false, message: 'Failed to decrypt MFA secret' });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: tempSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1,
+    });
+
+    if (!verified) {
+      return res.status(400).json({ success: false, message: 'Invalid MFA code' });
+    }
+
+    user.mfaSecret = user.mfaTempSecret;
+    user.mfaTempSecret = null;
+    user.mfaEnabled = true;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'MFA enabled successfully',
+      mfaEnabled: true,
+    });
+  } catch (error) {
+    console.error('MFA confirm error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 🛡️ MFA — verify TOTP code after password login and issue the final auth cookie.
+const verifyMfa = async (req, res) => {
+  try {
+    const { tempToken, code } = req.body;
+
+    if (!tempToken || typeof tempToken !== 'string') {
+      return res.status(400).json({ success: false, message: 'MFA token is required' });
+    }
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ success: false, message: 'MFA code is required' });
+    }
+
+    const decoded = verifyMfaTempToken(tempToken);
+    if (!decoded) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired MFA session' });
+    }
+
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User Not Found' });
+    }
+    if (!user.mfaEnabled || !user.mfaSecret) {
+      return res.status(400).json({ success: false, message: 'MFA is not enabled for this account' });
+    }
+
+    const mfaSecret = decryptMfaSecret(user.mfaSecret);
+    if (!mfaSecret) {
+      return res.status(500).json({ success: false, message: 'Failed to decrypt MFA secret' });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: mfaSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1,
+    });
+
+    if (!verified) {
+      return res.status(400).json({ success: false, message: 'Invalid MFA code' });
+    }
+
+    const token = jwt.sign(
+      {
+        _id: user._id,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const products = await Products.aggregate([
+      {
+        $match: {
+          _id: { $in: user.wishlist },
+          status: { $nin: ['disabled', 'inactive'] },
+          available: { $gt: 0 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'reviews',
+          localField: 'reviews',
+          foreignField: '_id',
+          as: 'reviews',
+        },
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: '$reviews.rating' },
+          image: { $arrayElemAt: ['$images', 0] },
+        },
+      },
+      {
+        $project: {
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          name: 1,
+          slug: 1,
+          colors: 1,
+          discount: 1,
+          available: 1,
+          likes: 1,
+          priceSale: 1,
+          price: 1,
+          averageRating: 1,
+          createdAt: 1,
+        },
+      },
+    ]);
+
+    setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login Successfully',
+      token,
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        cover: user.cover,
+        phone: user.phone,
+        role: user.role,
+        wishlist: products,
+        mfaEnabled: user.mfaEnabled,
+      },
+    });
+  } catch (error) {
+    console.error('MFA verify error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 🛡️ MFA — disable MFA for the authenticated user after verifying a current code.
+const disableMfa = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { code } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ success: false, message: 'MFA code is required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User Not Found' });
+    }
+    if (!user.mfaEnabled || !user.mfaSecret) {
+      return res.status(400).json({ success: false, message: 'MFA is not enabled for this account' });
+    }
+
+    const mfaSecret = decryptMfaSecret(user.mfaSecret);
+    if (!mfaSecret) {
+      return res.status(500).json({ success: false, message: 'Failed to decrypt MFA secret' });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: mfaSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1,
+    });
+
+    if (!verified) {
+      return res.status(400).json({ success: false, message: 'Invalid MFA code' });
+    }
+
+    user.mfaEnabled = false;
+    user.mfaSecret = null;
+    user.mfaTempSecret = null;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'MFA disabled successfully',
+      mfaEnabled: false,
+    });
+  } catch (error) {
+    console.error('MFA disable error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -520,4 +835,8 @@ module.exports = {
   resetPassword,
   verifyOtp,
   resendOtp,
+  setupMfa,
+  confirmMfaSetup,
+  verifyMfa,
+  disableMfa,
 };

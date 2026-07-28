@@ -1,86 +1,112 @@
-# Plan: Product Labels for Best Sellers & Top Collections
+# Plan: TOTP MFA for Admin Login
 
 ## Goal
-Add visual "Best Seller" and "Top Collection" badges/labels to product cards across the storefront, with manual on/off toggles in the admin product form.
+Add Google Authenticator / Microsoft Authenticator compatible TOTP-based multi-factor authentication to the admin panel login flow, with an opt-in setup page in the admin account area.
 
-## Decisions from clarifying questions
-- **Label determination:** Manual toggles in admin (add new `isBestSeller` and `isTopCollection` booleans to products).
-- **Visibility:** Everywhere product cards appear (home page, collections, product detail, wishlist, account, recommendations).
+## Security decisions
+- **Opt-in per admin user.** Existing admins keep working with password-only until they enable MFA.
+- **Two-step login flow.** When MFA is enabled, `POST /api/auth/login` only validates credentials and returns `{ mfaRequired: true, tempToken: <...> }`; it does **not** set the HttpOnly auth cookie. The final cookie is issued only after `POST /api/auth/verify-mfa` validates the 6-digit TOTP.
+- **Short-lived MFA token.** `tempToken` is a JWT with a distinct `mfa: true` claim, valid for 5 minutes, and usable only for the verify endpoint.
+- **Encrypted secrets at rest.** The TOTP base32 secret is encrypted with AES-256-GCM before storage. Key comes from `MFA_SECRET_KEY` env var (fallback to `JWT_SECRET` for bootstrap, but a dedicated key is recommended).
+- **Temp secret during enrollment.** MFA setup uses a temporary secret until the user verifies the first code, preventing lockout from a half-completed scan.
+- **Rate-limited MFA endpoints.** `verify-mfa` and setup endpoints are protected by the existing strict auth rate limiter to slow brute-force attempts.
 
 ## Files to change
 
-### 1. Backend — Data model & API
+### 1. Backend — dependencies & model
 | File | Change |
 |------|--------|
-| `backend/src/models/Product.js` | Add `isBestSeller: Boolean` and `isTopCollection: Boolean` to schema. |
-| `backend/src/controllers/product.js` | • `createProductByAdmin`: persist new flags.<br>• `updateProductByAdmin`: persist new flags.<br>• `getProducts` (storefront): project `isBestSeller` and `isTopCollection`.<br>• `getProductsByAdmin`: project both flags.<br>• `getOneProductByAdmin`: return both flags.<br>• `getOneProductBySlug`: return both flags.<br>• `exportInventoryCSV`: add two columns.<br>• `importInventoryCSV`: read optional `Best Seller`/`Top Collection` columns. |
-| `backend/src/controllers/home.js` | • `getBestSellerProducts`: filter/prioritize by `isBestSeller: true` instead of only sorting by `sold`.<br>• `getFeaturedProducts`: rename internally to filter by `isTopCollection: true` (projection still returns both flags). |
-| `backend/src/controllers/recommendation.js` | Include `isBestSeller` and `isTopCollection` in the aggregate `$project` so recommendation cards can show labels. |
+| `backend/package.json` | Add `speakeasy` and `qrcode` dependencies. |
+| `backend/src/models/User.js` | Add `mfaEnabled: Boolean` (default `false`), `mfaSecret: String` (encrypted base32), and `mfaTempSecret: String` (encrypted temporary secret during setup). |
 
-### 2. Admin panel — Product form
+### 2. Backend — MFA helpers and encryption
 | File | Change |
 |------|--------|
-| `admin-panel/src/pages/ProductForm.tsx` | • Add two `Checkbox` states: `isBestSeller`, `isTopCollection`.<br>• Load existing values when editing.<br>• Include both booleans in create/update payload. |
-| `admin-panel/src/pages/Products.tsx` | Optional: show small `Badge` indicators in the products table for quick scanning. |
+| `backend/src/controllers/auth.js` | Add MFA helper functions: `encryptSecret`/`decryptSecret` using `crypto`, `generateMfaSetup` using `speakeasy`, `verifyMfaCode`. Add controller methods: `setupMfa`, `confirmMfaSetup`, `verifyMfa`, `disableMfa`. Modify `loginUser` so that when `user.mfaEnabled` is true it issues a 5-minute `tempToken` and returns `{ success: true, mfaRequired: true, tempToken }` **without** calling `setAuthCookie`. |
 
-### 3. Customer panel — Product card & callers
+### 3. Backend — routes
 | File | Change |
 |------|--------|
-| `customer-panel/src/components/product-card/index.jsx` | Add a small label stack (absolute on image or above title) that renders:<br>• Red/primary "Best Seller" badge when `product.isBestSeller` is true.<br>• Dark/gold "Top Collection" badge when `product.isTopCollection` is true.<br>Style matches existing Tailwind tokens (`primary` #B5223B). |
-| `customer-panel/src/pages/home/index.jsx` | • Fix "Top Collections" section to fetch and render `featuredProducts` instead of duplicating `bestSellerProducts`.<br>• Add `HomeService.featuredProducts()` method.<br>• Pass `isBestSeller`/`isTopCollection` into each `ProductCard`. |
-| `customer-panel/src/services/homeService.js` | Add `featuredProducts(params)` calling `GET /home/products/featured`. |
-| `customer-panel/src/pages/collections/index.jsx` | Map `product.isBestSeller` / `product.isTopCollection` into the `ProductCard` product object. |
-| `customer-panel/src/pages/product/index.jsx` | Pass flags to related-product `ProductCard`s (requires backend `relatedProducts` to project them). |
-| `customer-panel/src/pages/wishlist/index.jsx` | Pass flags into wishlist `ProductCard`s (requires backend wishlist controller to populate them). |
-| `customer-panel/src/pages/account/Account.jsx` | Pass flags into wishlist `ProductCard`s. |
-| `customer-panel/src/components/recommendation-section/index.jsx` | Pass flags into recommendation `ProductCard`s. |
+| `backend/src/routes/auth.js` | Add `POST /api/auth/setup-mfa` (verifyToken, authLimiter), `POST /api/auth/confirm-mfa` (verifyToken, authLimiter), `POST /api/auth/verify-mfa` (authLimiter), and `POST /api/auth/disable-mfa` (verifyToken, authLimiter). |
 
-### 4. Backend — Populate labels for related/wishlist/recommendation endpoints
+### 4. Backend — user profile MFA exposure
 | File | Change |
 |------|--------|
-| `backend/src/controllers/product.js` | `relatedProducts` aggregate: project `isBestSeller`, `isTopCollection`. |
-| `backend/src/controllers/wishlist.js` | Ensure wishlist response includes `isBestSeller` and `isTopCollection` from populated product docs. |
+| `backend/src/controllers/user.js` | `getOneUser` / `updateUser` responses will naturally include the new booleans (they are not in `select('-password')` exclusion). No controller mass-assignment changes are needed because `mfaEnabled`/`mfaSecret` are not in the update whitelist. |
 
-### 5. Migration script
+### 5. Admin panel — API helpers
 | File | Change |
 |------|--------|
-| `backend/scripts/migrate-product-labels.js` (new) | • Set `isTopCollection = isFeatured` for all existing products.<br>• Optionally set `isBestSeller = true` for top N products by `sold` count as a starting dataset.<br>• Run once against MongoDB. |
+| `admin-panel/src/lib/api.ts` | Add `authAPI.setupMfa()`, `authAPI.confirmMfa(code)`, `authAPI.verifyMfa(tempToken, code)`, `authAPI.disableMfa(code)`. |
+
+### 6. Admin panel — login flow
+| File | Change |
+|------|--------|
+| `admin-panel/src/context/AuthContext.tsx` | Extend `login` return signature to detect `mfaRequired`. Add `verifyMfa(tempToken, code)` method that calls the verify endpoint and, on success, stores user and navigates to dashboard. Keep existing localStorage-based user cache. |
+| `admin-panel/src/pages/Login.tsx` | Add a second-step UI for the 6-digit MFA code. After the first-step password login returns `mfaRequired: true`, show the TOTP input and call `verifyMfa`. Use `input-otp` for a clean digit entry. |
+
+### 7. Admin panel — MFA enrollment page
+| File | Change |
+|------|--------|
+| `admin-panel/src/pages/MyAccount.tsx` | Add an "Authenticator App" card showing whether MFA is enabled. If disabled, show a "Enable MFA" button that calls `setupMfa`, displays the returned QR code (data URL), and prompts for the first 6-digit code via `confirmMfa`. If enabled, show a "Disable MFA" button that requires a code via `disableMfa`. |
+
+### 8. Admin panel — routing
+| File | Change |
+|------|--------|
+| `admin-panel/src/App.tsx` | No new route required; MFA enrollment lives inside the existing `/account` page. |
+
+### 9. Environment secrets
+| File | Change |
+|------|--------|
+| `backend/.env.example` | Add `MFA_SECRET_KEY` placeholder. |
+| `/etc/project-roma/.env` | Add a 32-byte `MFA_SECRET_KEY` value (user must do this manually or we append during deployment). |
+| `docker-compose.yml` | Pass `MFA_SECRET_KEY` into the backend container environment block. |
 
 ## Implementation details
 
-### ProductCard label design
-- Position: top-left of the product image, stacked vertically with ~4px gap.
-- Badges: small pill-style chips (`text-[10px]` / `text-xs`, uppercase, tracking-wide).
-  - Best Seller: `bg-primary text-white`
-  - Top Collection: `bg-black text-white` or `bg-amber-600 text-white` (to be decided at implementation time; default to dark/black to match site palette).
-- Hide on skeleton state.
+### Encryption helper
+```js
+const crypto = require('crypto');
+const ALGORITHM = 'aes-256-gcm';
+const KEY = crypto.scryptSync(process.env.MFA_SECRET_KEY || process.env.JWT_SECRET, 'project-roma-mfa', 32);
+function encrypt(text) { /* IV + authTag + ciphertext, base64 */ }
+function decrypt(encrypted) { /* reverse */ }
+```
 
-### Home page sections
-- Keep the existing "Best Sellers" heading and use `getBestSellerProducts`.
-- "Top Collections" heading will use the new `featuredProducts` service (`/home/products/featured`) that returns products flagged as `isTopCollection`.
-- This fixes the current bug where both sections render identical `bestSellerProducts`.
+### TOTP setup
+- `speakeasy.generateSecret({ name: 'Balport Liquors (user@email.com)', length: 32 })`.
+- `otpauth_url` is converted to a QR code PNG data URL via `qrcode.toDataURL(...)`.
+- Endpoint returns `{ qrCode, manualEntryKey: secret.base32 }`.
 
-### Admin form additions
-- Place the two checkboxes directly below the existing "Featured Product" checkbox in `ProductForm.tsx`.
-- If existing `isFeatured` is currently used as the "Top Collection" concept, we keep `isFeatured` untouched in the database but migrate its value into `isTopCollection` via the migration script. The admin UI will expose `isTopCollection` going forward.
+### TOTP verification
+- `speakeasy.totp.verify({ secret: decryptedSecret, encoding: 'base32', token: code, window: 1 })`.
+- Window of 1 allows 30-second clock skew.
 
-### CSV round-trip
-- Export columns: `Best Seller` (`true`/`false`), `Top Collection` (`true`/`false`).
-- Import accepts case-insensitive `true`/`yes`/`1` for `true`; everything else is `false`.
+### Login flow changes
+1. User submits email + password.
+2. `loginUser` validates password.
+3. If `!user.mfaEnabled`: set auth cookie and return user (unchanged behavior for non-MFA users).
+4. If `user.mfaEnabled`: issue `tempToken` JWT (claim `{ _id, mfa: true }`, expiry `5m`) and return `{ success: true, mfaRequired: true, tempToken }`.
+5. Frontend prompts for TOTP code, sends `{ tempToken, code }` to `verify-mfa`.
+6. Backend verifies tempToken, extracts `_id`, verifies TOTP, then sets the final HttpOnly auth cookie and returns user.
+
+### Disable / re-enrollment safety
+- `disable-mfa` requires a valid TOTP code (and the final auth cookie), then clears `mfaSecret`, `mfaTempSecret`, and `mfaEnabled`.
+- `confirm-mfa` moves `mfaTempSecret` → `mfaSecret` and sets `mfaEnabled: true`.
 
 ## Testing checklist
-- [ ] Migration script runs without errors and populates initial labels.
-- [ ] Admin can create and edit a product with both toggles.
-- [ ] Exported CSV includes the two new columns.
-- [ ] CSV import correctly updates the two new columns.
-- [ ] Home page "Best Sellers" only shows products with `isBestSeller: true`.
-- [ ] Home page "Top Collections" only shows products with `isTopCollection: true`.
-- [ ] Product cards in collections, product detail, wishlist, account, and recommendations show labels when flags are set.
-- [ ] Docker builds (`docker-compose up --build`) succeed for all three services.
+- [ ] `npm install` succeeds in `backend/` with `speakeasy` + `qrcode`.
+- [ ] Existing non-MFA admin login still works end-to-end.
+- [ ] Enabling MFA in `/account` shows a scannable QR code and succeeds after entering a valid code.
+- [ ] After enabling MFA, login requires the TOTP code.
+- [ ] Invalid TOTP code returns 400 and does not set the auth cookie.
+- [ ] `tempToken` expires after 5 minutes and cannot be reused for normal API calls.
+- [ ] Disabling MFA requires a valid code and returns the account to password-only login.
+- [ ] Docker builds (`docker compose up --build`) succeed for backend and admin-panel.
 
 ## Rollout steps
-1. Merge migration script and run it against the live DB.
-2. Deploy backend change.
-3. Deploy admin-panel change.
-4. Deploy customer-panel change.
-5. Spot-check home page and one collection page for badge rendering.
+1. Install backend dependencies.
+2. Add `MFA_SECRET_KEY` to `/etc/project-roma/.env` and `docker-compose.yml`.
+3. Deploy backend changes.
+4. Deploy admin-panel changes.
+5. Log in as a super admin, navigate to Account, and enable MFA as a smoke test.

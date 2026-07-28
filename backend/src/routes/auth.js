@@ -36,4 +36,10 @@ router.post("/auth/resend-otp", authLimiter, authController.resendOtp);
 
 router.post("/auth/logout", verifyToken, authController.logoutUser);
 
+// 🛡️ MFA endpoints
+router.post("/auth/setup-mfa", verifyToken, authLimiter, authController.setupMfa);
+router.post("/auth/confirm-mfa", verifyToken, authLimiter, authController.confirmMfaSetup);
+router.post("/auth/verify-mfa", authLimiter, authController.verifyMfa);
+router.post("/auth/disable-mfa", verifyToken, authLimiter, authController.disableMfa);
+
 module.exports = router;

@@ -35,6 +35,7 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - CURRENCY=${CURRENCY:-usd}
       - JWT_SECRET=${JWT_SECRET}
+      - MFA_SECRET_KEY=${MFA_SECRET_KEY:-${JWT_SECRET}}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://balportliquors.com,https://www.balportliquors.com,https://admin.balportliquors.com}
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_PUBLISHABLE_KEY=${CLOUDINARY_PUBLISHABLE_KEY}

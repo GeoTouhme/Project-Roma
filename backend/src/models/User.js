@@ -67,6 +67,22 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    // 🛡️ Multi-factor authentication (TOTP / Authenticator app)
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    // AES-256-GCM encrypted TOTP secret (base32)
+    mfaSecret: {
+      type: String,
+      default: null,
+    },
+    // Temporary secret while enrollment is in progress (not active until confirmed)
+    mfaTempSecret: {
+      type: String,
+      default: null,
+    },
     lastOtpSentAt: {
       type: Date,
     },

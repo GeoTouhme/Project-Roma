@@ -4,8 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Save, Loader2, Upload } from "lucide-react";
-import { userAPI, uploadAPI } from "@/lib/api";
+import { Save, Loader2, Upload, Shield, ShieldCheck, ShieldOff } from "lucide-react";
+import { userAPI, uploadAPI, authAPI } from "@/lib/api";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 const MyAccount = () => {
   const [firstName, setFirstName] = useState("");
@@ -23,6 +28,16 @@ const MyAccount = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // MFA state
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [isMfaLoading, setIsMfaLoading] = useState(false);
+  const [showMfaSetup, setShowMfaSetup] = useState(false);
+  const [qrCode, setQrCode] = useState("");
+  const [manualKey, setManualKey] = useState("");
+  const [setupCode, setSetupCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
+  const [showDisable, setShowDisable] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -43,6 +58,7 @@ const MyAccount = () => {
           setCover(user.cover);
           setPreview(typeof user.cover === 'string' ? user.cover : user.cover.url);
         }
+        setMfaEnabled(user.mfaEnabled === true);
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
@@ -146,6 +162,76 @@ const MyAccount = () => {
       toast.error(error.response?.data?.message || "Failed to change password");
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleSetupMfa = async () => {
+    setIsMfaLoading(true);
+    try {
+      const response = await authAPI.setupMfa();
+      if (response.data.success) {
+        setQrCode(response.data.qrCode);
+        setManualKey(response.data.manualEntryKey);
+        setShowMfaSetup(true);
+        setSetupCode("");
+      } else {
+        toast.error(response.data.message || "Failed to start MFA setup");
+      }
+    } catch (error: any) {
+      console.error("MFA setup failed:", error);
+      toast.error(error.response?.data?.message || "Failed to start MFA setup");
+    } finally {
+      setIsMfaLoading(false);
+    }
+  };
+
+  const handleConfirmMfa = async () => {
+    if (setupCode.length !== 6) {
+      toast.error("Please enter the 6-digit code");
+      return;
+    }
+    setIsMfaLoading(true);
+    try {
+      const response = await authAPI.confirmMfa(setupCode);
+      if (response.data.success) {
+        setMfaEnabled(true);
+        setShowMfaSetup(false);
+        setQrCode("");
+        setManualKey("");
+        setSetupCode("");
+        toast.success("MFA enabled successfully");
+      } else {
+        toast.error(response.data.message || "Invalid MFA code");
+      }
+    } catch (error: any) {
+      console.error("MFA confirm failed:", error);
+      toast.error(error.response?.data?.message || "Invalid MFA code");
+    } finally {
+      setIsMfaLoading(false);
+    }
+  };
+
+  const handleDisableMfa = async () => {
+    if (disableCode.length !== 6) {
+      toast.error("Please enter the 6-digit code");
+      return;
+    }
+    setIsMfaLoading(true);
+    try {
+      const response = await authAPI.disableMfa(disableCode);
+      if (response.data.success) {
+        setMfaEnabled(false);
+        setShowDisable(false);
+        setDisableCode("");
+        toast.success("MFA disabled successfully");
+      } else {
+        toast.error(response.data.message || "Invalid MFA code");
+      }
+    } catch (error: any) {
+      console.error("MFA disable failed:", error);
+      toast.error(error.response?.data?.message || "Invalid MFA code");
+    } finally {
+      setIsMfaLoading(false);
     }
   };
 
@@ -302,6 +388,174 @@ const MyAccount = () => {
               {isChangingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Update Password
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* MFA Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              {mfaEnabled ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <Shield className="h-4 w-4" />}
+              Authenticator App
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  {mfaEnabled ? "MFA is enabled" : "MFA is disabled"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {mfaEnabled
+                    ? "Your account requires a code from your authenticator app at sign-in."
+                    : "Add an extra layer of security with Google/Microsoft Authenticator."}
+                </p>
+              </div>
+            </div>
+
+            {!mfaEnabled && !showMfaSetup && (
+              <Button
+                className="w-full"
+                onClick={handleSetupMfa}
+                disabled={isMfaLoading}
+              >
+                {isMfaLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Shield className="mr-2 h-4 w-4" />
+                )}
+                Enable MFA
+              </Button>
+            )}
+
+            {!mfaEnabled && showMfaSetup && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Scan the QR code with your authenticator app, then enter the 6-digit code to confirm.
+                </p>
+                {qrCode && (
+                  <div className="flex justify-center">
+                    <img
+                      src={qrCode}
+                      alt="MFA QR Code"
+                      className="rounded-lg border"
+                    />
+                  </div>
+                )}
+                {manualKey && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Manual entry key</label>
+                    <Input
+                      value={manualKey}
+                      readOnly
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Verification code</label>
+                  <div className="flex justify-center">
+                    <InputOTP
+                      value={setupCode}
+                      onChange={setSetupCode}
+                      maxLength={6}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    onClick={handleConfirmMfa}
+                    disabled={isMfaLoading || setupCode.length !== 6}
+                  >
+                    {isMfaLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowMfaSetup(false);
+                      setQrCode("");
+                      setManualKey("");
+                      setSetupCode("");
+                    }}
+                    disabled={isMfaLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {mfaEnabled && !showDisable && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowDisable(true);
+                  setDisableCode("");
+                }}
+              >
+                <ShieldOff className="mr-2 h-4 w-4" />
+                Disable MFA
+              </Button>
+            )}
+
+            {mfaEnabled && showDisable && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Enter a current code from your authenticator app to disable MFA.
+                </p>
+                <div className="flex justify-center">
+                  <InputOTP
+                    value={disableCode}
+                    onChange={setDisableCode}
+                    maxLength={6}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={handleDisableMfa}
+                    disabled={isMfaLoading || disableCode.length !== 6}
+                  >
+                    {isMfaLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Disable
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowDisable(false);
+                      setDisableCode("");
+                    }}
+                    disabled={isMfaLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

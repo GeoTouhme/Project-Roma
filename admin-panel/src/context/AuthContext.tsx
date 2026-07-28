@@ -17,7 +17,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mfaRequired: boolean; tempToken?: string }>;
+  verifyMfa: (tempToken: string, code: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -44,6 +45,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     checkAuth();
   }, []);
 
+  const formatUser = (userData: any): User => ({
+    _id: userData._id,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    name: `${userData.firstName} ${userData.lastName}`,
+    email: userData.email,
+    role: userData.role,
+    avatar: (typeof userData.cover === 'string' ? userData.cover : userData.cover?.url) || `https://ui-avatars.com/api/?name=${userData.firstName}+${userData.lastName}&background=0D8ABC&color=fff`,
+  });
+
   const login = async (email: string, password: string) => {
     setIsLoading(true);
 
@@ -51,37 +62,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const response = await authAPI.login(email, password);
 
       if (response.data.success) {
+        // 🛡️ MFA: credentials valid but TOTP code still required.
+        if (response.data.mfaRequired) {
+          return { mfaRequired: true, tempToken: response.data.tempToken };
+        }
+
         const userData = response.data.user;
 
         // Check if user is admin or super admin
         if (userData.role !== 'admin' && userData.role !== 'super admin') {
           toast.error("Access denied. Admin privileges required.");
-          setIsLoading(false);
+          return { mfaRequired: false };
+        }
+
+        const formattedUser = formatUser(userData);
+
+        localStorage.setItem("admin_user", JSON.stringify(formattedUser));
+        setUser(formattedUser);
+        toast.success("Login successful");
+        navigate("/dashboard");
+        return { mfaRequired: false };
+      } else {
+        toast.error(response.data.message || "Login failed");
+        return { mfaRequired: false };
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "An error occurred during login";
+      toast.error(errorMessage);
+      console.error("Login error:", error);
+      return { mfaRequired: false };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyMfa = async (tempToken: string, code: string) => {
+    setIsLoading(true);
+
+    try {
+      const response = await authAPI.verifyMfa(tempToken, code);
+
+      if (response.data.success) {
+        const userData = response.data.user;
+
+        if (userData.role !== 'admin' && userData.role !== 'super admin') {
+          toast.error("Access denied. Admin privileges required.");
           return;
         }
 
-        // Transform user data to match interface
-        const formattedUser: User = {
-          _id: userData._id,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          name: `${userData.firstName} ${userData.lastName}`,
-          email: userData.email,
-          role: userData.role,
-          avatar: (typeof userData.cover === 'string' ? userData.cover : userData.cover?.url) || `https://ui-avatars.com/api/?name=${userData.firstName}+${userData.lastName}&background=0D8ABC&color=fff`,
-        };
+        const formattedUser = formatUser(userData);
 
         localStorage.setItem("admin_user", JSON.stringify(formattedUser));
         setUser(formattedUser);
         toast.success("Login successful");
         navigate("/dashboard");
       } else {
-        toast.error(response.data.message || "Login failed");
+        toast.error(response.data.message || "MFA verification failed");
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "An error occurred during login";
+      const errorMessage = error.response?.data?.message || "Invalid MFA code";
       toast.error(errorMessage);
-      console.error("Login error:", error);
+      console.error("MFA verify error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -107,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isAuthenticated: !!user,
         isLoading,
         login,
+        verifyMfa,
         logout,
       }}
     >

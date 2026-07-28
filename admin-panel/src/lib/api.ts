@@ -40,6 +40,18 @@ export const authAPI = {
 
     logout: () =>
         api.post('/api/auth/logout'),
+
+    setupMfa: () =>
+        api.post('/api/auth/setup-mfa'),
+
+    confirmMfa: (code: string) =>
+        api.post('/api/auth/confirm-mfa', { code }),
+
+    verifyMfa: (tempToken: string, code: string) =>
+        api.post('/api/auth/verify-mfa', { tempToken, code }),
+
+    disableMfa: (code: string) =>
+        api.post('/api/auth/disable-mfa', { code }),
 };
 
 export const userAPI = {
