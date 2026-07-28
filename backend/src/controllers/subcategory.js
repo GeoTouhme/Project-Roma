@@ -2,6 +2,11 @@ const SubCategories = require("../models/SubCategory");
 const Category = require("../models/Category");
 const getBlurDataURL = require("../config/getBlurDataURL");
 const CloudinaryService = require("../services/cloudinary.service");
+const { safeObjectId } = require("../utils/validators");
+
+// Escapes special regex characters to prevent ReDoS and NoSQL injection
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$u0026');
+
 const createSubCategory = async (req, res) => {
 	try {
 		const { cover, ...others } = req.body;
@@ -34,8 +39,9 @@ const getAllSubCategories = async (req, res) => {
 		const { limit = 10, page = 1, search = "", parentCategory } = req.query;
 
 		const skip = parseInt(limit) || 10;
+		const safeSearch = escapeRegex(search);
 		const query = {
-			name: { $regex: search, $options: "i" },
+			name: { $regex: safeSearch, $options: "i" },
 		};
 		if (parentCategory) {
 			query.parentCategory = parentCategory;

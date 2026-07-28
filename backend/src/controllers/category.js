@@ -152,12 +152,13 @@ const getCategories = async (req, res) => {
 		const { limit = 10, page = 1, search = "" } = req.query;
 
 		const skip = parseInt(limit) || 10;
+		const safeSearch = escapeRegex(search);
 		const totalCategories = await Categories.find({
-			name: { $regex: search, $options: "i" },
+			name: { $regex: safeSearch, $options: "i" },
 		});
 		const categories = await Categories.find(
 			{
-				name: { $regex: search, $options: "i" },
+				name: { $regex: safeSearch, $options: "i" },
 			},
 			null,
 			{
