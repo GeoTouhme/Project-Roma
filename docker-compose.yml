@@ -1,3 +1,7 @@
+# Secrets are sourced from /etc/project-roma/.env (chmod 600, owned by root).
+# Run with: docker compose --env-file /etc/project-roma/.env up --build
+# The backend/.env.example file lists every variable this compose file expects.
+
 services:
   mongodb:
     image: mongo:latest
@@ -16,10 +20,31 @@ services:
       - "127.0.0.1:5001:5001"
     environment:
       - PORT=5001
-      - MONGODB_URI=mongodb://mongodb:27017/liquor_shop
-      - ALLOWED_ORIGINS=https://balportliquors.com,https://www.balportliquors.com,https://admin.balportliquors.com
-    env_file:
-      - ./backend/.env
+      - MONGODB_URI=${MONGODB_URI}
+      - EMAIL=${EMAIL}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}
+      - RECEIVING_EMAIL=${RECEIVING_EMAIL:-}
+      - SHIPPING_FEE=${SHIPPING_FEE:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - CURRENCY=${CURRENCY:-usd}
+      - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://balportliquors.com,https://www.balportliquors.com,https://admin.balportliquors.com}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_PUBLISHABLE_KEY=${CLOUDINARY_PUBLISHABLE_KEY}
+      - CLOUDINARY_SECRET_KEY=${CLOUDINARY_SECRET_KEY}
+      - DOORDASH_DEVELOPER_ID=${DOORDASH_DEVELOPER_ID}
+      - DOORDASH_KEY_ID=${DOORDASH_KEY_ID}
+      - DOORDASH_SIGNING_SECRET=${DOORDASH_SIGNING_SECRET}
+      - DOORDASH_ENV=${DOORDASH_ENV:-sandbox}
+      - UBER_DIRECT_CLIENT_ID=${UBER_DIRECT_CLIENT_ID}
+      - UBER_DIRECT_CLIENT_SECRET=${UBER_DIRECT_CLIENT_SECRET}
+      - UBER_DIRECT_CUSTOMER_ID=${UBER_DIRECT_CUSTOMER_ID}
+      - UBER_DIRECT_WEBHOOK_SECRET=${UBER_DIRECT_WEBHOOK_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-https://balportliquors.com}
     depends_on:
       - mongodb
     volumes:
