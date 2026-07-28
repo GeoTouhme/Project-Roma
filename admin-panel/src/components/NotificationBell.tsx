@@ -79,9 +79,15 @@ export const NotificationBell: React.FC = () => {
     };
   }, []);
 
+  const [isRateLimited, setIsRateLimited] = useState(false);
+
   const fetchNotifications = async () => {
+    if (isRateLimited) return;
+
     try {
       const response = await dashboardAPI.getNotifications();
+      setIsRateLimited(false);
+
       if (response.data.success) {
         const newNotifications = response.data.data || [];
         const newUnread = response.data.totalUnread || 0;
@@ -104,16 +110,26 @@ export const NotificationBell: React.FC = () => {
         setNotifications(newNotifications);
         setUnreadCount(newUnread);
       }
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+    } catch (error: any) {
+      // Avoid console spam: only log the first 429, then back off polling.
+      if (error.response?.status === 429) {
+        if (!isRateLimited) {
+          console.warn("Notification polling rate-limited; backing off.");
+          setIsRateLimited(true);
+        }
+      } else {
+        console.error("Failed to fetch notifications:", error);
+      }
     }
   };
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds
+    // Poll every 30 seconds. Active admin work can exhaust the shared API rate bucket,
+    // so notifications use their own dedicated polling limit.
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [soundEnabled, audioUnlocked, notifications]);
+  }, [soundEnabled, audioUnlocked, notifications, isRateLimited]);
 
   const handleMarkOpened = async (e: React.MouseEvent, notification: Notification) => {
     e.stopPropagation();

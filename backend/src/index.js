@@ -161,7 +161,11 @@ const authLimiter = createLimiter(20, 15, 'Too many auth attempts');
 const publicReadLimiter = createLimiter(2000, 15, 'Too many requests');
 
 // Authenticated / mutating routes: generous for normal cart/order/wishlist/admin activity.
-const apiLimiter = createLimiter(1000, 15, 'Too many requests');
+const apiLimiter = createLimiter(1500, 15, 'Too many requests');
+
+// Polling endpoints (e.g. admin notification bell) need their own, higher limit
+// so they don't exhaust the shared apiLimiter bucket for active admin users.
+const pollLimiter = createLimiter(600, 15, 'Too many notification polls');
 
 
 // Connect to MongoDB
@@ -232,7 +236,7 @@ app.use('/api', apiLimiter, couponCodeRoutes);
 app.use('/api', publicReadLimiter, reviewRoutes);
 app.use('/api', apiLimiter, delete_fileRoutes);
 app.use('/api', apiLimiter, uploadRoutes);
-app.use('/api', apiLimiter, notificationRoutes);
+app.use('/api', pollLimiter, notificationRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API
