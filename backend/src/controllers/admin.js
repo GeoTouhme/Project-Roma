@@ -121,8 +121,8 @@ const deleteUserByAdmin = async (req, res) => {
 			return res.status(404).json({ success: false, message: "User Not Found." });
 		}
 
-		// Prevent self-deletion
-		if (req.user && req.user.id === id) {
+		// Prevent self-deletion — JWT payload uses _id, not id
+		if (req.user && req.user._id?.toString() === id) {
 			return res.status(403).json({ success: false, message: "Cannot delete your own account." });
 		}
 
