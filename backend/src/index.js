@@ -47,6 +47,63 @@ app.use(cors({
 }));
 
 // 🛡️ SECURITY: Set security headers (HSTS, CSP, X-Content-Type-Options, etc.)
+const helmetDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    'https://www.googletagmanager.com',
+    'https://www.google-analytics.com',
+    'https://js.stripe.com',
+  ],
+  styleSrc: [
+    "'self'",
+    "'unsafe-inline'",
+    'https://fonts.googleapis.com',
+  ],
+  fontSrc: [
+    "'self'",
+    'https://fonts.gstatic.com',
+  ],
+  imgSrc: [
+    "'self'",
+    'data:',
+    'blob:',
+    'https://res.cloudinary.com',
+    'https://ui-avatars.com',
+    'https://www.google.com',
+    'https://*.googleusercontent.com',
+    'https://www.googletagmanager.com',
+  ],
+  connectSrc: [
+    "'self'",
+    'https://balportliquors.com',
+    'https://admin.balportliquors.com',
+    'http://localhost:5001',
+    'https://api.stripe.com',
+    'https://maps.googleapis.com',
+    'https://www.google-analytics.com',
+    'https://nrsgo.com',
+    'https://res.cloudinary.com',
+  ],
+  frameSrc: [
+    "'self'",
+    'https://js.stripe.com',
+    'https://checkout.stripe.com',
+    'https://pay.google.com',
+  ],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
+  formAction: ["'self'"],
+  frameAncestors: ["'none'"],
+};
+
+// Only add upgrade-insecure-requests in production; helmet rejects undefined/conditional undefined.
+if (process.env.NODE_ENV === 'production') {
+  helmetDirectives.upgradeInsecureRequests = [];
+}
+
 app.use(helmet({
   hsts: {
     maxAge: 31536000,
@@ -54,58 +111,7 @@ app.use(helmet({
     preload: true,
   },
   contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'",
-        "'unsafe-inline'",
-        "'unsafe-eval'",
-        'https://www.googletagmanager.com',
-        'https://www.google-analytics.com',
-        'https://js.stripe.com',
-      ],
-      styleSrc: [
-        "'self'",
-        "'unsafe-inline'",
-        'https://fonts.googleapis.com',
-      ],
-      fontSrc: [
-        "'self'",
-        'https://fonts.gstatic.com',
-      ],
-      imgSrc: [
-        "'self'",
-        'data:',
-        'blob:',
-        'https://res.cloudinary.com',
-        'https://ui-avatars.com',
-        'https://www.google.com',
-        'https://*.googleusercontent.com',
-        'https://www.googletagmanager.com',
-      ],
-      connectSrc: [
-        "'self'",
-        'https://balportliquors.com',
-        'https://admin.balportliquors.com',
-        'http://localhost:5001',
-        'https://api.stripe.com',
-        'https://maps.googleapis.com',
-        'https://www.google-analytics.com',
-        'https://nrsgo.com',
-        'https://res.cloudinary.com',
-      ],
-      frameSrc: [
-        "'self'",
-        'https://js.stripe.com',
-        'https://checkout.stripe.com',
-        'https://pay.google.com',
-      ],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'none'"],
-      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : undefined,
-    },
+    directives: helmetDirectives,
   },
 }));
 
