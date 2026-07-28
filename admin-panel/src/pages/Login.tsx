@@ -16,7 +16,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [step, setStep] = useState<"password" | "mfa">("password");
+  const [showMfa, setShowMfa] = useState(false);
   const [tempToken, setTempToken] = useState("");
   const [mfaCode, setMfaCode] = useState("");
 
@@ -32,8 +32,9 @@ const Login = () => {
       const result = await login(email, password);
       console.log("[Login] login result:", result);
       if (result.mfaRequired && result.tempToken) {
+        console.log("[Login] MFA required — showing code entry");
         setTempToken(result.tempToken);
-        setStep("mfa");
+        setShowMfa(true);
       }
     } finally {
       setIsSubmitting(false);
@@ -42,10 +43,10 @@ const Login = () => {
 
   const handleMfaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mfaCode.length !== 6) return;
+    if (mfaCode.replace(/\s/g, "").length !== 6) return;
     setIsSubmitting(true);
     try {
-      await verifyMfa(tempToken, mfaCode);
+      await verifyMfa(tempToken, mfaCode.replace(/\s/g, ""));
     } finally {
       setIsSubmitting(false);
     }
@@ -67,7 +68,7 @@ const Login = () => {
           </p>
         </div>
 
-        {step === "password" ? (
+        {!showMfa ? (
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
@@ -144,27 +145,43 @@ const Login = () => {
               </p>
             </div>
 
-            <div className="flex justify-center">
-              <InputOTP
-                value={mfaCode}
-                onChange={setMfaCode}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-center block">
+                6-digit authenticator code
+              </label>
+              <div className="flex justify-center">
+                <InputOTP
+                  value={mfaCode}
+                  onChange={setMfaCode}
+                  maxLength={6}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              {/* Fallback plain input in case the OTP slots don't render in some browsers */}
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
                 maxLength={6}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="Or type code here (6 digits)"
+                className="h-11 text-center tracking-[0.5em] font-semibold"
+              />
             </div>
 
             <Button
               type="submit"
               className="w-full h-11 group"
-              disabled={isSubmitting || isLoading || mfaCode.length !== 6}
+              disabled={isSubmitting || isLoading || mfaCode.replace(/\s/g, "").length !== 6}
             >
               {isSubmitting || isLoading ? (
                 <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -178,7 +195,10 @@ const Login = () => {
 
             <button
               type="button"
-              onClick={() => setStep("password")}
+              onClick={() => {
+                setShowMfa(false);
+                setMfaCode("");
+              }}
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
             >
               Back to password sign-in
