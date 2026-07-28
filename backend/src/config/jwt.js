@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 
 function verifyToken(req, res, next) {
-	// Get the token from the request headers
-	const token = req.headers.authorization;
+	// 🛡️ SECURITY: Read token from HttpOnly cookie, not the Authorization header.
+	const token = req.cookies?.token;
 
 	if (!token) {
 		return res
@@ -12,7 +12,7 @@ function verifyToken(req, res, next) {
 
 	// Verify the token
 	jwt.verify(
-		token.replace("Bearer ", ""),
+		token,
 		process.env.JWT_SECRET,
 		(err, decoded) => {
 			if (err) {
