@@ -456,6 +456,13 @@ const getOrderById = async (req, res) => {
         .json({ success: false, message: 'Order Not Found' });
     }
 
+    // 🛡️ AUTHORIZATION: Ensure customers can only read their own orders.
+    const orderUserId = orderGet.user?._id?.toString();
+    const authUserId = req.user?._id?.toString();
+    if (orderUserId && orderUserId !== authUserId) {
+      return res.status(403).json({ success: false, message: 'You are not authorized to view this order.' });
+    }
+
     return res.status(200).json({
       success: true,
       data: orderGet,
