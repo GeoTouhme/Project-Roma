@@ -21,6 +21,7 @@ services:
     ports:
       - "127.0.0.1:5001:5001"
     environment:
+      - NODE_ENV=production
       - PORT=5001
       - MONGODB_URI=${MONGODB_URI}
       - EMAIL=${EMAIL}
