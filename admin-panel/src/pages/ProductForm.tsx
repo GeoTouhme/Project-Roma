@@ -33,6 +33,8 @@ const ProductForm = () => {
     const [status, setStatus] = useState("active");
     const [description, setDescription] = useState("");
     const [featured, setFeatured] = useState(false);
+    const [isBestSeller, setIsBestSeller] = useState(false);
+    const [isTopCollection, setIsTopCollection] = useState(false);
     const [images, setImages] = useState<string[]>([]);
     const [imageUrlInput, setImageUrlInput] = useState("");
 
@@ -101,6 +103,8 @@ const ProductForm = () => {
                         setStock(product.available?.toString() || "0");
                         setDescription(product.description || "");
                         setFeatured(product.isFeatured || false);
+                        setIsBestSeller(product.isBestSeller || false);
+                        setIsTopCollection(product.isTopCollection || false);
                         setStatus(product.status || "active");
 
                         // Handle images
@@ -236,6 +240,8 @@ const ProductForm = () => {
                 subCategory: subCategory,
                 images: formattedImages,
                 isFeatured: featured,
+                isBestSeller,
+                isTopCollection,
                 status: status
             };
 
@@ -363,6 +369,18 @@ const ProductForm = () => {
                         label="Featured Product"
                         checked={featured}
                         onCheckedChange={(state: boolean) => setFeatured(state)}
+                    />
+
+                    <Checkbox
+                        label="Best Seller"
+                        checked={isBestSeller}
+                        onCheckedChange={(state: boolean) => setIsBestSeller(state)}
+                    />
+
+                    <Checkbox
+                        label="Top Collection"
+                        checked={isTopCollection}
+                        onCheckedChange={(state: boolean) => setIsTopCollection(state)}
                     />
 
                     <div className="flex gap-2">

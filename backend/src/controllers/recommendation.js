@@ -72,6 +72,8 @@ async function _fetchRecommendations(sourceIds, excludeIds, limit) {
         image: { $arrayElemAt: ['$product.images', 0] },
         score: { $round: ['$score', 4] },
         count: 1,
+        isBestSeller: '$product.isBestSeller',
+        isTopCollection: '$product.isTopCollection',
       },
     },
     { $limit: limit },

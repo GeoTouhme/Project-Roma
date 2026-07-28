@@ -61,7 +61,9 @@ const WishlistPage = () => {
                                 priceSale: product.priceSale,
                                 price: product.price,
                                 rating: product.averageRating || 0,
-                                isWishlisted: true, // Adjust if you have logic to determine wishlist status
+                                isWishlisted: true,
+                                isBestSeller: product.isBestSeller,
+                                isTopCollection: product.isTopCollection,
                             }}
                             wishListDone={() => { fetchWishlistProducts(); }}
                         />

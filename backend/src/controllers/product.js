@@ -130,6 +130,8 @@ const getProducts = async (req, res) => {
           available: 1,
           createdAt: 1,
           isAlcoholic: 1,
+          isBestSeller: 1,
+          isTopCollection: 1,
         },
       },
       {
@@ -324,6 +326,8 @@ const getProductsByAdmin = async (request, response) => {
           subCategoryData: 1,
           status: 1,
           createdAt: 1,
+          isBestSeller: 1,
+          isTopCollection: 1,
         },
       },
     ]);
@@ -345,7 +349,7 @@ const createProductByAdmin = async (req, res) => {
     const admin = await getAdmin(req, res);
     if (!admin) return;
 
-    const { images, size, ...body } = req.body;
+    const { images, size, isBestSeller, isTopCollection, ...body } = req.body;
 
     const updatedImages = await Promise.all(
       images.map(async (image) => {
@@ -358,6 +362,8 @@ const createProductByAdmin = async (req, res) => {
       size: size || null,
       images: updatedImages,
       likes: 0,
+      isBestSeller: isBestSeller === true,
+      isTopCollection: isTopCollection === true,
     });
 
     res.status(201).json({
@@ -434,10 +440,12 @@ const updateProductByAdmin = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
 
-    const { images = [], category, subCategory, size, ...body } = req.body;
+    const { images = [], category, subCategory, size, isBestSeller, isTopCollection, ...body } = req.body;
 
     const updateFields = { ...body };
     if (size !== undefined) updateFields.size = size;
+    updateFields.isBestSeller = isBestSeller === true;
+    updateFields.isTopCollection = isTopCollection === true;
 
     if (category) {
       const safeCat = safeObjectId(category);
@@ -680,7 +688,8 @@ const relatedProducts = async (req, res) => {
           priceSale: 1,
           price: 1,
           averageRating: 1,
-
+          isBestSeller: 1,
+          isTopCollection: 1,
           createdAt: 1,
         },
       },
@@ -809,7 +818,7 @@ const exportInventoryCSV = async (req, res) => {
       .populate('subCategory', 'name')
       .lean();
 
-    const headers = ['UPC', 'Name', 'Price', 'Sale Price', 'Stock', 'Category', 'SubCategory', 'Status', 'Code', 'Description', 'Image URL'];
+    const headers = ['UPC', 'Name', 'Price', 'Sale Price', 'Stock', 'Category', 'SubCategory', 'Status', 'Code', 'Description', 'Image URL', 'Best Seller', 'Top Collection'];
     const csvRows = [headers.join(',')];
 
     for (const p of products) {
@@ -826,6 +835,8 @@ const exportInventoryCSV = async (req, res) => {
         csvEscape(p.code || ''),
         csvEscape(p.description || ''),
         csvEscape(imageUrl),
+        csvEscape(p.isBestSeller ? 'true' : 'false'),
+        csvEscape(p.isTopCollection ? 'true' : 'false'),
       ];
       csvRows.push(row.join(','));
     }
@@ -946,6 +957,16 @@ const importInventoryCSV = async (req, res) => {
             }];
           }
 
+          const bestSellerVal = getVal(fields, 'best seller');
+          if (bestSellerVal !== undefined) {
+            updateFields.isBestSeller = /^(true|yes|1)$/i.test(bestSellerVal);
+          }
+
+          const topCollectionVal = getVal(fields, 'top collection');
+          if (topCollectionVal !== undefined) {
+            updateFields.isTopCollection = /^(true|yes|1)$/i.test(topCollectionVal);
+          }
+
           if (Object.keys(updateFields).length > 0) {
             await Product.findByIdAndUpdate(existingProduct._id, updateFields, { runValidators: true });
           }
@@ -1002,6 +1023,8 @@ const importInventoryCSV = async (req, res) => {
             colors: [],
             sizes: [],
             size: getVal(fields, 'size') || null,
+            isBestSeller: /^(true|yes|1)$/i.test(getVal(fields, 'best seller') || ''),
+            isTopCollection: /^(true|yes|1)$/i.test(getVal(fields, 'top collection') || ''),
           };
 
           // SubCategory (optional)

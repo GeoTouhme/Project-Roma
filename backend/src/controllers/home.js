@@ -61,7 +61,6 @@ const getTopRatedProducts = async (req, res) => {
           image: { $arrayElemAt: ['$images', 0] },
         },
       },
-
       {
         $sort: {
           averageRating: -1,
@@ -82,7 +81,8 @@ const getTopRatedProducts = async (req, res) => {
           priceSale: 1,
           price: 1,
           averageRating: 1,
-
+          isBestSeller: 1,
+          isTopCollection: 1,
           createdAt: 1,
         },
       },
@@ -158,6 +158,11 @@ const getBestSellerProducts = async (req, res) => {
         },
       },
       {
+        $match: {
+          isBestSeller: true,
+        },
+      },
+      {
         $sort: {
           sold: -1,
         },
@@ -177,6 +182,8 @@ const getBestSellerProducts = async (req, res) => {
           priceSale: 1,
           price: 1,
           averageRating: 1,
+          isBestSeller: 1,
+          isTopCollection: 1,
           createdAt: 1,
         },
       },
@@ -221,7 +228,7 @@ const getFeaturedProducts = async (req, res) => {
       },
       {
         $match: {
-          isFeatured: true,
+          isTopCollection: true,
           category: { $in: ALCOHOLIC_CATEGORIES },
           status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
@@ -243,7 +250,8 @@ const getFeaturedProducts = async (req, res) => {
           priceSale: 1,
           price: 1,
           averageRating: 1,
-
+          isBestSeller: 1,
+          isTopCollection: 1,
           createdAt: 1,
         },
       },

@@ -23,4 +23,15 @@ HomeService.bestSellerProducts = function (params) {
     })
 }
 
+HomeService.featuredProducts = function (params) {
+    return fetch({
+        url: "/home/products/featured",
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+        params
+    })
+}
+
 export default HomeService;

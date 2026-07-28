@@ -19,6 +19,8 @@ import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
 const Home = () => {
   const [bestSellerProducts, setBestSellerProducts] = useState([]);
   const [bestSellerProductsLoading, setBestSellerProductsLoading] = useState(false);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [featuredProductsLoading, setFeaturedProductsLoading] = useState(false);
   const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
   let user_id = ""
   if (isAuthenticated) {
@@ -42,9 +44,26 @@ const Home = () => {
       })
   }, [user_id])
 
+  const fetchFeaturedProducts = useCallback(() => {
+    setFeaturedProductsLoading(true)
+    HomeService.featuredProducts({ user_id })
+      .then((response) => {
+        if (response?.success) {
+          setFeaturedProducts(response?.data)
+        }
+      })
+      .catch((error) => {
+        console.log("featuredProducts error = ", error);
+      })
+      .finally(() => {
+        setFeaturedProductsLoading(false)
+      })
+  }, [user_id])
+
   useEffect(() => {
     fetchBestSellerProducts();
-  }, [fetchBestSellerProducts])
+    fetchFeaturedProducts();
+  }, [fetchBestSellerProducts, fetchFeaturedProducts])
 
   const NextArrow = ({ onClick }) => {
     return (
@@ -324,6 +343,8 @@ const Home = () => {
                     price: product.price,
                     rating: product.averageRating || 0,
                     isWishlisted: product.isWishlisted,
+                    isBestSeller: product.isBestSeller,
+                    isTopCollection: product.isTopCollection,
                   }}
                   wishListDone={() => { fetchBestSellerProducts(); }}
                 />
@@ -390,7 +411,7 @@ const Home = () => {
           </div>
           <div className="section_content">
             <div className="products_list grid grid-cols-2 md:grid-cols-4 md:gap-7 gap-2">
-              {bestSellerProductsLoading ? <ProductCardSkeleton count={8} /> : bestSellerProducts.map((product) => (
+              {featuredProductsLoading ? <ProductCardSkeleton count={8} /> : featuredProducts.map((product) => (
                 <ProductCard
                   key={product._id}
                   product={{
@@ -402,8 +423,10 @@ const Home = () => {
                     price: product.price,
                     rating: product.averageRating || 0,
                     isWishlisted: product.isWishlisted,
+                    isBestSeller: product.isBestSeller,
+                    isTopCollection: product.isTopCollection,
                   }}
-                  wishListDone={() => { fetchBestSellerProducts(); }}
+                  wishListDone={() => { fetchFeaturedProducts(); }}
                 />
               ))}
             </div>

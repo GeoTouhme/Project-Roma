@@ -99,6 +99,8 @@ const RecommendationSection = ({
                 price: product.price,
                 rating: 0,
                 isWishlisted: false,
+                isBestSeller: product.isBestSeller,
+                isTopCollection: product.isTopCollection,
               }}
             />
           ))}

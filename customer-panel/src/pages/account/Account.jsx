@@ -563,6 +563,8 @@ const Account = () => {
                               price: product.price,
                               rating: product.averageRating || 0,
                               isWishlisted: true,
+                              isBestSeller: product.isBestSeller,
+                              isTopCollection: product.isTopCollection,
                             }}
                             wishListDone={() => { fetchWishlistProducts(); }}
                           />

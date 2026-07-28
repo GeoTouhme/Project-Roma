@@ -527,6 +527,8 @@ const Collection = () => {
                         price: product.price,
                         rating: product.averageRating || 0,
                         isWishlisted: product.isWishlisted,
+                        isBestSeller: product.isBestSeller,
+                        isTopCollection: product.isTopCollection,
                       }}
                       wishListDone={() => setReload(!reload)}
                     />

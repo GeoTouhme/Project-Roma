@@ -25,6 +25,7 @@ import CategoryFilter from "@/components/category-filter/CategoryFilter";
 import { Plus, Download, Upload, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { productsAPI, categoriesAPI } from "@/lib/api";
 import { getAdminThumbnail } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const Products = () => {
   const navigate = useNavigate();
@@ -326,6 +327,23 @@ const Products = () => {
                   <div className="font-medium">{row.name}</div>
                   <div className="text-xs text-muted-foreground">{row.sku || row.slug}</div>
                 </div>
+              </div>
+            ),
+          },
+          {
+            header: "Labels",
+            accessorKey: (row) => (
+              <div className="flex gap-1 flex-wrap">
+                {row.isBestSeller && (
+                  <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
+                    Best Seller
+                  </Badge>
+                )}
+                {row.isTopCollection && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                    Top Collection
+                  </Badge>
+                )}
               </div>
             ),
           },

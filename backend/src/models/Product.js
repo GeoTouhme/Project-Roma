@@ -14,6 +14,14 @@ const productSchema = new mongoose.Schema(
     isFeatured: {
       type: Boolean,
     },
+    isBestSeller: {
+      type: Boolean,
+      default: false,
+    },
+    isTopCollection: {
+      type: Boolean,
+      default: false,
+    },
     brand: {
       type: mongoose.Types.ObjectId,
       ref: 'Brand',

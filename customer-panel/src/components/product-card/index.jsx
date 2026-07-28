@@ -63,6 +63,20 @@ const ProductCard = ({ product, wishListDone }) => {
             loading="lazy"
           />
         </Link>
+        {(product.isBestSeller || product.isTopCollection) && (
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-[1]">
+            {product.isBestSeller && (
+              <span className="bg-primary text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded shadow-sm">
+                Best Seller
+              </span>
+            )}
+            {product.isTopCollection && (
+              <span className="bg-black text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded shadow-sm">
+                Top Collection
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="product_info">
