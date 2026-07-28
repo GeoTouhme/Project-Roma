@@ -2,23 +2,29 @@ const Brands = require('../models/Brand');
 const getBlurDataURL = require('../config/getBlurDataURL');
 const CloudinaryService = require('../services/cloudinary.service');
 
+// 🛡️ Whitelist allowed fields to prevent mass assignment
+const ALLOWED_BRAND_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status'];
+
 const createBrand = async (req, res) => {
   try {
-    const { logo, ...others } = req.body;
+    const { logo, ...body } = req.body;
 
     // Validate if the 'logo' property and its 'url' property exist in the request body
     if (!logo || !logo.url) {
       return res.status(400).json({ message: 'Invalid Logo Data' });
     }
 
-    // Validate if the 'blurDataURL' property exists in the logo object
+    const safeData = {};
+    for (const field of ALLOWED_BRAND_FIELDS) {
+      if (body[field] !== undefined) safeData[field] = body[field];
+    }
 
     // If blurDataURL is not provided, generate it using the 'getBlurDataURL' function
     const blurDataURL = await getBlurDataURL(logo.url);
 
     // Creating a new brand
     const newBrand = await Brands.create({
-      ...others,
+      ...safeData,
       logo: {
         ...logo,
         blurDataURL,
@@ -72,7 +78,17 @@ const getBrandBySlug = async (req, res) => {
 const updateBrandBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { logo, ...others } = req.body;
+    const { logo, ...body } = req.body;
+
+    if (!logo || !logo.url) {
+      return res.status(400).json({ message: 'Invalid Logo Data' });
+    }
+
+    const safeData = {};
+    for (const field of ALLOWED_BRAND_FIELDS) {
+      if (body[field] !== undefined) safeData[field] = body[field];
+    }
+
     // Validate if the 'blurDataURL' property exists in the logo object
     if (!logo.blurDataURL) {
       // If blurDataURL is not provided, generate it using the 'getBlurDataURL' function
@@ -81,7 +97,7 @@ const updateBrandBySlug = async (req, res) => {
     const updatedBrand = await Brands.findOneAndUpdate(
       { slug },
       {
-        ...others,
+        ...safeData,
         logo: {
           ...logo,
         },
