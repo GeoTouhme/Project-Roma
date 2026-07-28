@@ -169,17 +169,17 @@ const createLimiter = (max, windowMinutes, messagePrefix) =>
 const authLimiter = createLimiter(20, 15, 'Too many auth attempts');
 
 // Public read routes: generous so customers can browse 100+ departments and paginated products.
-const publicReadLimiter = createLimiter(3000, 15, 'Too many requests');
+const publicReadLimiter = createLimiter(8000, 15, 'Too many requests');
 
 // Authenticated / mutating routes: generous for normal cart/order/wishlist/admin activity.
-const apiLimiter = createLimiter(2500, 15, 'Too many requests');
+const apiLimiter = createLimiter(6000, 15, 'Too many requests');
 
 // Admin-only routes: even more generous because admin pages fire many parallel calls.
-const adminLimiter = createLimiter(4000, 15, 'Too many admin requests');
+const adminLimiter = createLimiter(10000, 15, 'Too many admin requests');
 
 // Polling endpoints (e.g. admin notification bell) need their own, higher limit
 // so they don't exhaust the shared apiLimiter bucket for active admin users.
-const pollLimiter = createLimiter(1200, 15, 'Too many notification polls');
+const pollLimiter = createLimiter(3000, 15, 'Too many notification polls');
 
 
 // Connect to MongoDB
