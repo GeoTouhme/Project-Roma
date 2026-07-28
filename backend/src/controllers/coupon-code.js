@@ -1,5 +1,8 @@
 const CouponCode = require("../models/CouponCode");
 
+// 🛡️ Whitelist allowed fields to prevent mass assignment
+const ALLOWED_COUPON_FIELDS = ['name', 'code', 'discount', 'expire', 'description', 'type'];
+
 const getCouponCodeByCode = async (req, res) => {
 	try {
 		const code = req.params.code;
@@ -75,7 +78,12 @@ const createCouponCodeByAdmin = async (req, res) => {
 				.json({ success: false, message: "CouponCode Not Found" });
 		}
 
-		const newCouponCode = await CouponCode.create({ ...data });
+		const safeData = {};
+		for (const field of ALLOWED_COUPON_FIELDS) {
+			if (data[field] !== undefined) safeData[field] = data[field];
+		}
+
+		const newCouponCode = await CouponCode.create(safeData);
 
 		return res.status(201).json({
 			success: true,
@@ -113,9 +121,14 @@ const updatedCouponCodeByAdmin = async (req, res) => {
 
 		const data = await req.body;
 
+		const safeData = {};
+		for (const field of ALLOWED_COUPON_FIELDS) {
+			if (data[field] !== undefined) safeData[field] = data[field];
+		}
+
 		const updatedCouponCode = await CouponCode.findOneAndUpdate(
 			{ _id: id },
-			{ ...data },
+			{ $set: safeData },
 			{ new: true }
 		);
 		if (!updatedCouponCode) {
