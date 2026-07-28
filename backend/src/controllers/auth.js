@@ -11,21 +11,55 @@ const sendEmail = require('../utils/mailer');
 
 const TOKEN_COOKIE_NAME = 'token';
 
-// 🛡️ SECURITY: Issue auth token as an HttpOnly, Secure, SameSite=Strict cookie.
-// Tokens are no longer returned in the response body or stored in localStorage.
+/**
+ * 🛡️ SECURITY: Issue auth token as an HttpOnly, Secure, SameSite=Strict cookie.
+ * Tokens are no longer returned in the response body or stored in localStorage.
+ *
+ * In production we set the cookie domain to the root domain (e.g. .balportliquors.com)
+ * so the same cookie is sent to both the storefront and the admin subdomain.
+ */
+function getCookieDomain() {
+  if (process.env.NODE_ENV !== 'production') return undefined;
+  const frontendUrl = process.env.FRONTEND_URL || '';
+  try {
+    const hostname = new URL(frontendUrl).hostname;
+    // Only set a shared domain if the hostname has at least two labels (e.g. example.com).
+    // Do not set domain for localhost / IP addresses.
+    if (hostname && !hostname.includes('localhost') && !/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+      const parts = hostname.split('.');
+      if (parts.length >= 2) {
+        return `.${parts.slice(-2).join('.')}`;
+      }
+    }
+  } catch {
+    // Ignore malformed FRONTEND_URL and fall back to no explicit domain.
+  }
+  return undefined;
+}
+
 function setAuthCookie(res, token, maxAgeMs) {
   const isProduction = process.env.NODE_ENV === 'production';
-  res.cookie(TOKEN_COOKIE_NAME, token, {
+  const cookieOptions = {
     httpOnly: true,
     secure: isProduction,
     sameSite: 'strict',
     maxAge: maxAgeMs,
     path: '/',
-  });
+  };
+  const domain = getCookieDomain();
+  if (domain) {
+    cookieOptions.domain = domain;
+  }
+  res.cookie(TOKEN_COOKIE_NAME, token, cookieOptions);
 }
 
 function clearAuthCookie(res) {
-  res.clearCookie(TOKEN_COOKIE_NAME, { path: '/' });
+  const cookieOptions = { path: '/' };
+  const domain = getCookieDomain();
+  if (domain) {
+    cookieOptions.domain = domain;
+  }
+  res.clearCookie(TOKEN_COOKIE_NAME, cookieOptions);
 }
 
 const registerUser = async (req, res) => {

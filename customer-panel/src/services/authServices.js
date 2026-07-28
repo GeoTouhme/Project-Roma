@@ -4,33 +4,24 @@ const AuthService = {};
 
 AuthService.login = function (data) {
   return fetch({
-    url: "/auth/login",
+    url: "auth/login",
     method: "post",
-    headers: {
-      "public-request": "true",
-    },
     data: data,
   });
 };
 
 AuthService.register = function (data) {
   return fetch({
-    url: "/auth/register",
+    url: "auth/register",
     method: "post",
-    headers: {
-      "public-request": "true",
-    },
     data: data,
   });
 };
 
 AuthService.verifyOtp = function (data) {
   return fetch({
-    url: "/auth/verify-otp",
+    url: "auth/verify-otp",
     method: "post",
-    headers: {
-      "public-request": "true",
-    },
     data: data,
   });
 };
