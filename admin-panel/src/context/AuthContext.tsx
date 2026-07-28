@@ -56,8 +56,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-
     try {
       const response = await authAPI.login(email, password);
       console.log("[login] response:", response.status, response.data);
@@ -92,14 +90,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       toast.error(errorMessage);
       console.error("Login error:", error);
       return { mfaRequired: false };
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const verifyMfa = async (tempToken: string, code: string) => {
-    setIsLoading(true);
-
     try {
       const response = await authAPI.verifyMfa(tempToken, code);
       console.log("[verifyMfa] response:", response.status, response.data);
@@ -125,8 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const errorMessage = error.response?.data?.message || "Invalid MFA code";
       toast.error(errorMessage);
       console.error("MFA verify error:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
