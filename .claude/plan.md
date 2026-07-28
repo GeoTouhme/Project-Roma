@@ -1,30 +1,35 @@
-# Plan: Resolve Persistent 429 Errors (Including Login)
+# Plan: Debug Admin Login Stuck on Login Page
 
-## Current situation
-- Admin dashboard/products/orders still show `AxiosError: Request failed with status code 429`.
-- Login itself now returns 429 after the user logged out and tried again.
-- Nginx has no rate limiting; the 429s are from `express-rate-limit`.
+## Problem
+User reports: after entering password, no errors appear, but the page stays on `/login` instead of redirecting to `/dashboard`.
 
-## Root causes identified
-1. **Auth limiter is too tight:** `backend/src/routes/auth.js` limits auth endpoints to **20 requests per 15 minutes** per `email:ip`. Behind Nginx+Docker the IP is the Docker gateway, so the user alone can exhaust this bucket with a few failed login/MFA attempts.
-2. **Authenticated limits are still too low for real admin usage:** Even after raising limits, the admin panel fires many parallel API calls on every navigation (products, categories, dashboard, orders, upload, notifications). The current ceilings are not generous enough for production admin work.
-3. **Auth limiter does not use `X-Forwarded-For`:** It buckets by `req.ip`, which is the Docker gateway IP, making the non-email fallback bucket shared by all visitors.
+## Likely causes
+1. The login API succeeds and returns `mfaRequired: true` + `tempToken`, but the frontend does **not** show the MFA step because the response is still `success: true` and the user has MFA disabled? Wait — if MFA is disabled, login should set the cookie and navigate. If it stays, maybe the cookie is not being accepted by the browser because the cookie domain is wrong or `secure`/`sameSite` prevents it on the current origin.
+2. The user may have **MFA enabled** from a previous attempt, so the backend returns `mfaRequired: true`, but the UI doesn't visibly switch to the MFA form (maybe state doesn't update).
+3. The cookie `domain=.balportliquors.com` + `sameSite=strict` may not be sent when the request is cross-origin from `admin.balportliquors.com` to `balportliquors.com` because `SameSite=Strict` blocks cross-site cookies on cross-origin navigations/AJAX. However, the request is initiated by JS from `admin.balportliquors.com` to `balportliquors.com` (subdomain → apex). Browsers treat subdomains as cross-site for SameSite unless they are the same registrable domain? Actually, for cookie purposes, `SameSite` considers the site as registrable domain. `.balportliquors.com` with `SameSite=Strict` should be sent for same-site requests, including `admin.balportliquors.com` to `balportliquors.com`. But the **first** navigation after login may be considered cross-site? No, they are same-site.
+4. More likely: the user **does not have MFA enabled**, the login sets the cookie, but the response body still contains `token` and the frontend `AuthContext` expects `user` in response and navigates. Wait, we removed token from body? We still return `token` in login response for non-MFA. So that should work.
+5. Maybe the issue is the **basic auth popup** in nginx for admin subdomain? The user already passed basic auth to load the page, so subsequent API calls should work.
+6. The user might be using the **customer panel** login or a saved old URL.
 
-## Proposed fix
-1. **Raise auth limiter** in `backend/src/routes/auth.js`:
-   - `max: 100` per 15 minutes (still blocks brute force, allows normal retries/MFA setup).
-   - Use `getClientIp(req)` helper to use the real `X-Forwarded-For` IP.
-2. **Raise all other limits much higher** in `backend/src/index.js`:
-   - `publicReadLimiter`: 8000 / 15 min
-   - `apiLimiter`: 6000 / 15 min
-   - `adminLimiter`: 10000 / 15 min
-   - `pollLimiter`: 3000 / 15 min
-3. **Export `getClientIp` from index.js** or create a small shared helper so auth routes can reuse it (to avoid duplication). Simpler: just inline the same X-Forwarded-For logic in `auth.js`.
-4. **Temporarily monitor**: after deploy, ask the user to refresh and confirm 429s stop.
+## Diagnostic steps to ask the user
+We need browser network tab data. Specifically:
+1. Open browser DevTools → Network tab → log in.
+2. Find the `login` request to `https://balportliquors.com/api/auth/login`.
+3. Share:
+   - Response status
+   - Response body (or whether it shows `mfaRequired: true`)
+   - Response headers tab: whether `Set-Cookie: token=...` appears
+4. If `mfaRequired: true`, check whether the login form changes to the MFA code input.
+5. If it does change, find the `verify-mfa` request and share status/response/headers.
 
-## Files to change
-- `backend/src/routes/auth.js` — raise `max` to 100 and use real client IP in key generator.
-- `backend/src/index.js` — raise all limiter ceilings.
+We should not guess further. Instead, add quick client-side debug logging to make diagnosis faster, then ask the user to reproduce and report.
 
-## Trade-offs
-- Much more permissive. We accept this because the current limits are actively blocking legitimate admin use. The long-term fix is per-user-account bucketing (email/userId) rather than per-token, but that requires decoding JWT in middleware. For now we raise ceilings to unblock operations.
+## Minimal code change
+Add `console.log` in `AuthContext.tsx` login and verifyMfa to expose the exact server response, and in `Login.tsx` to log the `result` object and `step` transitions. This is temporary diagnostic instrumentation.
+
+## Files
+- `admin-panel/src/context/AuthContext.tsx`
+- `admin-panel/src/pages/Login.tsx`
+
+## Note
+We must not modify the login logic permanently; just add logs so the user can tell us whether the server returns `mfaRequired`, a cookie, or an error.

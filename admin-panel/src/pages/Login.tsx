@@ -30,6 +30,7 @@ const Login = () => {
     setIsSubmitting(true);
     try {
       const result = await login(email, password);
+      console.log("[Login] login result:", result);
       if (result.mfaRequired && result.tempToken) {
         setTempToken(result.tempToken);
         setStep("mfa");
