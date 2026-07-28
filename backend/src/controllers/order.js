@@ -185,66 +185,6 @@ const createOrder = async (req, res) => {
       };
     });
 
-    // Atomic transaction: decrement stock, create order, and record coupon use together.
-    // If any step fails, all changes are rolled back.
-    const session = await mongoose.startSession();
-    let orderCreated;
-    try {
-      await session.withTransaction(async () => {
-        for (const item of updatedItems) {
-          const product = products.find((p) => p._id.toString() === item.pid);
-          const stockResult = await Products.findOneAndUpdate(
-            { _id: item.pid, available: { $gte: item.quantity } },
-            { $inc: { available: -item.quantity, sold: item.quantity } },
-            { new: true, runValidators: true, session }
-          );
-          if (!stockResult) {
-            throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
-          }
-        }
-
-        orderCreated = await Orders.create([{
-          paymentMethod,
-          paymentId,
-          discount,
-          tip: sanitizedTip,
-          tax,
-          crv: crvTotal,
-          total: orderTotal,
-          subTotal: grandTotal,
-          shipping,
-          items: updatedItems.map(({ image, ...others }) => others),
-          user: orderUser,
-          totalItems,
-          orderNo,
-          containsAlcohol,
-          status: 'pending',
-        }], { session });
-        orderCreated = orderCreated[0];
-
-        await User.findByIdAndUpdate(
-          req.user._id,
-          { $push: { orders: orderCreated._id } },
-          { session }
-        );
-
-        if (couponCode) {
-          await Coupons.findOneAndUpdate(
-            { code: couponCode },
-            { $addToSet: { usedBy: req.user.email } },
-            { session }
-          );
-        }
-      });
-    } catch (transactionError) {
-      await session.endSession();
-      return res.status(400).json({
-        success: false,
-        message: transactionError.message || 'Order could not be completed. Please try again.'
-      });
-    }
-    await session.endSession();
-
     const grandTotal = updatedItems.reduce((acc, item) => acc + item.total, 0);
 
     // Calculate tax and CRV based on product categories and size
@@ -361,6 +301,66 @@ const createOrder = async (req, res) => {
     orderUser.zip = shippingDetails.zip || req.user.zip || '';
 
     const orderNo = await generateOrderNumber();
+
+    // Atomic transaction: decrement stock, create order, and record coupon use together.
+    // If any step fails, all changes are rolled back.
+    const session = await mongoose.startSession();
+    let orderCreated;
+    try {
+      await session.withTransaction(async () => {
+        for (const item of updatedItems) {
+          const product = products.find((p) => p._id.toString() === item.pid);
+          const stockResult = await Products.findOneAndUpdate(
+            { _id: item.pid, available: { $gte: item.quantity } },
+            { $inc: { available: -item.quantity, sold: item.quantity } },
+            { new: true, runValidators: true, session }
+          );
+          if (!stockResult) {
+            throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
+          }
+        }
+
+        orderCreated = await Orders.create([{
+          paymentMethod,
+          paymentId,
+          discount,
+          tip: sanitizedTip,
+          tax,
+          crv: crvTotal,
+          total: orderTotal,
+          subTotal: grandTotal,
+          shipping,
+          items: updatedItems.map(({ image, ...others }) => others),
+          user: orderUser,
+          totalItems,
+          orderNo,
+          containsAlcohol,
+          status: 'pending',
+        }], { session });
+        orderCreated = orderCreated[0];
+
+        await User.findByIdAndUpdate(
+          req.user._id,
+          { $push: { orders: orderCreated._id } },
+          { session }
+        );
+
+        if (couponCode) {
+          await Coupons.findOneAndUpdate(
+            { code: couponCode },
+            { $addToSet: { usedBy: req.user.email } },
+            { session }
+          );
+        }
+      });
+    } catch (transactionError) {
+      await session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: transactionError.message || 'Order could not be completed. Please try again.'
+      });
+    }
+    await session.endSession();
 
 
     // --- Staff-Only Delivery ---
