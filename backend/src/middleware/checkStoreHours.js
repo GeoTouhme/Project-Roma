@@ -79,8 +79,11 @@ const checkStoreHours = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('Store hours check failed:', error);
-        // Fail open: allow the order if the check itself fails
-        next();
+        // 🛡️ SECURITY: Fail closed. Do not accept orders if we cannot verify hours.
+        return res.status(503).json({
+            success: false,
+            message: 'Unable to verify store hours. Please try again shortly.'
+        });
     }
 };
 
