@@ -61,6 +61,22 @@ const createReview = async (req, res) => {
 			})
 		}
 
+		// 🛡️ Validate rating is an integer between 1 and 5
+		const safeRating = Number(rating);
+		if (!Number.isInteger(safeRating) || safeRating < 1 || safeRating > 5) {
+			return res.status(400).json({ success: false, message: 'Rating must be an integer between 1 and 5.' });
+		}
+
+		// 🛡️ Validate image URLs are strings and look like HTTP(S) links
+		if (!Array.isArray(images)) {
+			return res.status(400).json({ success: false, message: 'Images must be an array of URLs.' });
+		}
+		for (const image of images) {
+			if (typeof image !== 'string' || (!image.startsWith('http://') && !image.startsWith('https://'))) {
+				return res.status(400).json({ success: false, message: 'Each image must be a valid http(s) URL.' });
+			}
+		}
+
 		const orders = await Orders.find({
 			"user.email": user.email,
 			"items.pid": pid,
@@ -75,7 +91,7 @@ const createReview = async (req, res) => {
 		const review = await Review.create({
 			product: pid,
 			review: reviewText,
-			rating,
+			rating: safeRating,
 			images: updatedImages,
 			user: uid,
 			isPurchased: Boolean(orders.length),
