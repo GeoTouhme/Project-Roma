@@ -9,14 +9,29 @@ const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$u0026');
 
 const createSubCategory = async (req, res) => {
 	try {
-		const { cover, ...others } = req.body;
-		// Validate if the 'blurDataURL' property exists in the logo object
+		const { cover, ...body } = req.body;
+
+		if (!cover || !cover.url) {
+			return res.status(400).json({ success: false, message: 'Cover image data is required.' });
+		}
+
+		// 🛡️ Whitelist allowed fields to prevent mass assignment of internal fields
+		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'parentCategory', 'order'];
+		const safeData = {};
+		for (const field of ALLOWED_FIELDS) {
+			if (body[field] !== undefined) safeData[field] = body[field];
+		}
+
+		// Validate parentCategory is a valid ObjectId
+		if (safeData.parentCategory && !safeObjectId(safeData.parentCategory)) {
+			return res.status(400).json({ success: false, message: 'Invalid parentCategory ID.' });
+		}
 
 		// If blurDataURL is not provided, generate it using the 'getBlurDataURL' function
 		const blurDataURL = await getBlurDataURL(cover.url);
 
 		const category = await SubCategories.create({
-			...others,
+			...safeData,
 			cover: {
 				...cover,
 				blurDataURL,
@@ -91,7 +106,24 @@ const getSubCategoriesBySlug = async (req, res) => {
 const updateSubCategoriesBySlug = async (req, res) => {
 	try {
 		const { slug } = req.params;
-		const { cover, ...others } = req.body;
+		const { cover, ...body } = req.body;
+
+		if (!cover || !cover.url) {
+			return res.status(400).json({ success: false, message: 'Cover image data is required.' });
+		}
+
+		// 🛡️ Whitelist allowed fields to prevent mass assignment of internal fields
+		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'parentCategory', 'order'];
+		const safeData = {};
+		for (const field of ALLOWED_FIELDS) {
+			if (body[field] !== undefined) safeData[field] = body[field];
+		}
+
+		// Validate parentCategory is a valid ObjectId
+		if (safeData.parentCategory && !safeObjectId(safeData.parentCategory)) {
+			return res.status(400).json({ success: false, message: 'Invalid parentCategory ID.' });
+		}
+
 		// Validate if the 'blurDataURL' property exists in the logo object
 		if (!cover.blurDataURL) {
 			// If blurDataURL is not provided, generate it using the 'getBlurDataURL' function
@@ -100,7 +132,7 @@ const updateSubCategoriesBySlug = async (req, res) => {
 		const currentCategory = await SubCategories.findOneAndUpdate(
 			{ slug },
 			{
-				...others,
+				...safeData,
 				cover: {
 					...cover,
 				},

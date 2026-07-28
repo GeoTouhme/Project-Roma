@@ -6,14 +6,23 @@ const getBlurDataURL = require("../config/getBlurDataURL");
 
 const createCategory = async (req, res) => {
 	try {
-		const { cover, ...others } = req.body;
-		// Validate if the 'blurDataURL' property exists in the logo object
+		const { cover, ...body } = req.body;
 
-		// If blurDataURL is not provided, generate it using the 'getBlurDataURL' function
+		if (!cover || !cover.url) {
+			return res.status(400).json({ success: false, message: 'Cover image data is required.' });
+		}
+
+		// 🛡️ Whitelist allowed fields to prevent mass assignment of internal fields
+		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'taxable', 'crvRate', 'order'];
+		const safeData = {};
+		for (const field of ALLOWED_FIELDS) {
+			if (body[field] !== undefined) safeData[field] = body[field];
+		}
+
 		const blurDataURL = await getBlurDataURL(cover.url);
 
 		await Categories.create({
-			...others,
+			...safeData,
 			cover: {
 				...cover,
 				blurDataURL,
@@ -102,7 +111,19 @@ const getCategoryBySlug = async (req, res) => {
 const updateCategoryBySlug = async (req, res) => {
 	try {
 		const { slug } = req.params;
-		const { cover, ...others } = req.body;
+		const { cover, ...body } = req.body;
+
+		if (!cover || !cover.url) {
+			return res.status(400).json({ success: false, message: 'Cover image data is required.' });
+		}
+
+		// 🛡️ Whitelist allowed fields to prevent mass assignment of internal fields
+		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'taxable', 'crvRate', 'order'];
+		const safeData = {};
+		for (const field of ALLOWED_FIELDS) {
+			if (body[field] !== undefined) safeData[field] = body[field];
+		}
+
 		// Validate if the 'blurDataURL' property exists in the logo object
 		if (!cover.blurDataURL) {
 			// If blurDataURL is not provided, generate it using the 'getBlurDataURL' function
@@ -111,7 +132,7 @@ const updateCategoryBySlug = async (req, res) => {
 		await Categories.findOneAndUpdate(
 			{ slug },
 			{
-				...others,
+				...safeData,
 				cover: {
 					...cover,
 				},
