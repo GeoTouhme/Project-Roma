@@ -4,6 +4,8 @@ const SubCategories = require("../models/SubCategory");
 const CloudinaryService = require("../services/cloudinary.service");
 const getBlurDataURL = require("../config/getBlurDataURL");
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$\u0026');
+
 const createCategory = async (req, res) => {
 	try {
 		const { cover, ...body } = req.body;
