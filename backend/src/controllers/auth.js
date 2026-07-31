@@ -194,23 +194,9 @@ const registerUser = async (req, res) => {
       // Read HTML file content
       let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
 
-      // Replace the placeholder with the OTP and user email
-      htmlContent = htmlContent.replace(/<h1>[\s\d]*<\/h1>/g, `<h1 style="color: #B5223B; font-size: 32px; letter-spacing: 5px;">${otp}</h1>`);
-      htmlContent = htmlContent.replace(/usingyourmail@gmail\.com/g, user.email);
-
       // Add signed verification link
       const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-      const manualOtpLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-otp?email=${encodeURIComponent(user.email)}`;
-      htmlContent = htmlContent.replace(/<\/tbody>/, `
-        <tr>
-          <td align="center" style="padding-top: 20px;">
-            <a href="${verificationLink}" style="background-color: #B5223B; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirm My Account</a>
-            <p style="font-size: 11px; color: #999; margin-top: 10px;">Or enter this code manually: <strong style="font-size: 14px; color: #B5223B;">${otp}</strong></p>
-            <p style="font-size: 11px; color: #999; margin-top: 10px;">Manual verification link: <a href="${manualOtpLink}">${manualOtpLink}</a></p>
-          </td>
-        </tr>
-        </tbody>
-      `);
+      htmlContent = htmlContent.replace(/\{\{VERIFICATION_LINK\}\}/g, verificationLink);
 
       // Send email via OAuth2 utility
       const emailResult = await sendEmail({
@@ -657,23 +643,9 @@ const resendOtp = async (req, res) => {
       // Read HTML file content
       let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
 
-      // Replace the placeholder with the OTP and user email
-      htmlContent = htmlContent.replace(/<h1>[\s\d]*<\/h1>/g, `<h1 style="color: #B5223B; font-size: 32px; letter-spacing: 5px;">${otp}</h1>`);
-      htmlContent = htmlContent.replace(/usingyourmail@gmail\.com/g, user.email);
-
       // Add signed verification link
       const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-      const manualOtpLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-otp?email=${encodeURIComponent(user.email)}`;
-      htmlContent = htmlContent.replace(/<\/tbody>/, `
-        <tr>
-          <td align="center" style="padding-top: 20px;">
-            <a href="${verificationLink}" style="background-color: #B5223B; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirm My Account</a>
-            <p style="font-size: 11px; color: #999; margin-top: 10px;">Or enter this code manually: <strong style="font-size: 14px; color: #B5223B;">${otp}</strong></p>
-            <p style="font-size: 11px; color: #999; margin-top: 10px;">Manual verification link: <a href="${manualOtpLink}">${manualOtpLink}</a></p>
-          </td>
-        </tr>
-        </tbody>
-      `);
+      htmlContent = htmlContent.replace(/\{\{VERIFICATION_LINK\}\}/g, verificationLink);
 
       // Send email via OAuth2 utility
       const emailResult = await sendEmail({
