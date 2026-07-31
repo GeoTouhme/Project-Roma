@@ -10,7 +10,17 @@ const getOneUser = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: user,
+      data: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        cover: user.cover,
+        role: user.role,
+        isVerified: user.isVerified,
+        mfaEnabled: user.mfaEnabled,
+      },
     });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
