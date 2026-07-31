@@ -6,7 +6,7 @@ const { calculateOrderTotals } = require("../utils/orderCalculator");
 
 const payment_intents = async (req, res) => {
 	try {
-		const { items, shipping, tip, couponCode } = req.body;
+		const { items, shipping, tip, couponCode, idempotencyKey } = req.body;
 
 		// 🛡️ SECURITY: Do not trust the client-submitted amount. Compute the total
 		// server-side from the cart items, using authoritative product prices.
@@ -28,10 +28,19 @@ const payment_intents = async (req, res) => {
 			return res.status(400).json({ success: false, message: 'Amount out of allowed range.' });
 		}
 
-		const paymentIntent = await stripe.paymentIntents.create({
+		const createOptions = {
 			amount: expectedAmountCents,
 			currency: currency.toLowerCase(),
-		});
+		};
+
+		// 🛡️ PREVENT DOUBLE-CHARGES: Stripe idempotency key ensures accidental
+		// duplicate requests (e.g., double-click on Place Order) reuse the same
+		// PaymentIntent instead of creating multiple charges.
+		if (idempotencyKey && typeof idempotencyKey === 'string' && idempotencyKey.length <= 255) {
+			createOptions.idempotencyKey = idempotencyKey;
+		}
+
+		const paymentIntent = await stripe.paymentIntents.create(createOptions);
 
 		return res.status(200).json({ client_secret: paymentIntent.client_secret });
 	} catch (error) {

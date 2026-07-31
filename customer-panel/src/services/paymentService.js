@@ -1,11 +1,14 @@
 import fetch from "../interceptor/fetchInterceptor"
 const PaymentService = {}
 
-PaymentService.paymentIntentCreate = function (orderPayload) {
+PaymentService.paymentIntentCreate = function (orderPayload, idempotencyKey) {
     return fetch({
         url: "/payment-intents",
         method: "post",
-        data: orderPayload,
+        data: {
+            ...orderPayload,
+            ...(idempotencyKey ? { idempotencyKey } : {}),
+        },
     })
 }
 

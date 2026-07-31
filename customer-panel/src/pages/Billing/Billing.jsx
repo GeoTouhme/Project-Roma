@@ -27,8 +27,6 @@ const Billing = () => {
   const dispatch = useDispatch();
   const cartItems = useSelector((state) => state.cart.cartItems);
   const { isOpen: storeIsOpen } = useSelector((state) => state.storeStatus);
-  const subtotal = cartItems?.reduce((total, item) => total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity, 0);
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [address, setAddress] = useState("");
@@ -46,14 +44,46 @@ const Billing = () => {
   const [checkoutError, setCheckoutError] = useState(null);
   const [tip, setTip] = useState(0);
   const [deliveryFee, setDeliveryFee] = useState(0);
-  const taxRate = 0.0775;
-  const [tax, setTax] = useState(0);
-  const [crv, setCrv] = useState(0);
+  const [taxRate, setTaxRate] = useState(0.0775);
+  const [cartSummary, setCartSummary] = useState({
+    subtotal: 0,
+    tax: 0,
+    crv: 0,
+    total: 0,
+  });
 
   // List of supported Zip Codes
   const supportedZipCodes = ["92663", "92646", "92612", "92647", "92661", "92707", "92648"];
 
   const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
+
+  // Fetch authoritative tax/CRV/subtotal from the server whenever the cart changes.
+  useEffect(() => {
+    const loadCartSummary = async () => {
+      if (cartItems.length === 0) {
+        setCartSummary({ subtotal: 0, tax: 0, crv: 0, total: 0 });
+        setTaxRate(0.0775);
+        return;
+      }
+
+      try {
+        const items = cartItems.map((item) => ({
+          pid: item.id,
+          quantity: item.quantity,
+        }));
+        const response = await OrderService.getCartSummary({ items });
+        if (response?.success && response?.data) {
+          const data = response.data;
+          setCartSummary(data);
+          setTaxRate(typeof data.taxRate === "number" ? data.taxRate : 0.0775);
+        }
+      } catch (error) {
+        console.error("Failed to load cart summary:", error);
+      }
+    };
+
+    loadCartSummary();
+  }, [cartItems]);
 
   // Load Google Maps Places library only when a valid key is configured.
   useEffect(() => {
@@ -176,7 +206,6 @@ const Billing = () => {
         setDeliveryFee(fee);
         setQuoteVerified(true);
         setCheckoutError(null);
-        recalcTaxCrv();
       } else {
         if (!silent) setCheckoutError(response.message || "Delivery not available for this address.");
       }
@@ -184,6 +213,27 @@ const Billing = () => {
       if (!silent) setCheckoutError(err?.response?.data?.message || "Delivery not available for this address.");
     } finally {
       setCheckingQuote(false);
+    }
+  };
+
+  // Generate a deterministic idempotency key for Stripe so accidental double-clicks
+  // reuse the same PaymentIntent instead of creating duplicate charges. The key is
+  // based on the cart contents, user, totals, and a short 30-second time bucket.
+  const generateIdempotencyKey = () => {
+    const cartFingerprint = cartItems
+      .slice()
+      .sort((a, b) => (a.id || "").localeCompare(b.id || ""))
+      .map(
+        (item) =>
+          `${item.id}:${item.quantity}:${item.priceSale || item.salePrice || item.price || 0}`
+      )
+      .join("|");
+    const timeBucket = Math.floor(Date.now() / 30000);
+    const raw = `${email}|${cartFingerprint}|${deliveryFee}|${tip}|${cartSummary.tax}|${cartSummary.crv}|${timeBucket}`;
+    try {
+      return btoa(raw).slice(0, 255);
+    } catch {
+      return raw.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 255);
     }
   };
 
@@ -266,6 +316,10 @@ const Billing = () => {
       tip,
     };
 
+    // 🛡️ PREVENT DOUBLE-CHARGES: Generate a deterministic idempotency key for this
+    // checkout attempt. It is passed to both PaymentIntent creation and confirmation.
+    const idempotencyKey = generateIdempotencyKey();
+
     setProcessing(true);
     setCheckoutError(null);
 
@@ -278,7 +332,7 @@ const Billing = () => {
     }
 
     try {
-      const clientSecret = await PaymentService.paymentIntentCreate(orderPayload).then(res => res.client_secret);
+      const clientSecret = await PaymentService.paymentIntentCreate(orderPayload, idempotencyKey).then(res => res.client_secret);
 
       const billingDetails = {
         name: `${firstName} ${lastName}`,
@@ -306,6 +360,7 @@ const Billing = () => {
 
       const confirmRes = await stripe.confirmCardPayment(clientSecret, {
         payment_method: paymentMethodReq.paymentMethod.id,
+        idempotencyKey,
       });
 
       if (confirmRes.error) {
@@ -334,22 +389,6 @@ const Billing = () => {
       setProcessing(false);
     }
   };
-
-  const recalcTaxCrv = () => {
-    // Frontend estimate only. Server recalculates final tax/CRV from category flags.
-    let taxableSubtotal = 0;
-    for (const item of cartItems) {
-      const price = item.priceSale || item.salePrice || item.price || 0;
-      // Cart item doesn't reliably carry category.taxable; default to taxable for estimate.
-      taxableSubtotal += price * item.quantity;
-    }
-    setTax(round2(taxableSubtotal * taxRate));
-    setCrv(0); // Cannot know CRV without category info
-  };
-
-  function round2(value) {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
-  }
 
   const iframeStyles = {
     base: {
@@ -591,7 +630,7 @@ const Billing = () => {
             <div className="mt-4 space-y-2">
               <div className="flex justify-between">
                 <p>Subtotal:</p>
-                <p className="font-semibold">${subtotal.toFixed(2)}</p>
+                <p className="font-semibold">${cartSummary.subtotal.toFixed(2)}</p>
               </div>
               <div className="flex justify-between">
                 <p>Delivery Fee:</p>
@@ -607,16 +646,16 @@ const Billing = () => {
               <hr />
               <div className="flex justify-between">
                 <p>CRV:</p>
-                <p className="font-semibold">${crv.toFixed(2)}</p>
+                <p className="font-semibold">${cartSummary.crv.toFixed(2)}</p>
               </div>
               <div className="flex justify-between">
-                <p>Tax:</p>
-                <p className="font-semibold">${tax.toFixed(2)}</p>
+                <p>Tax ({(taxRate * 100).toFixed(2)}%):</p>
+                <p className="font-semibold">${cartSummary.tax.toFixed(2)}</p>
               </div>
               <hr />
               <div className="flex justify-between font-semibold text-lg">
                 <p>Total:</p>
-                <p>${(subtotal + tax + crv + deliveryFee + tip).toFixed(2)}</p>
+                <p>${(cartSummary.subtotal + cartSummary.tax + cartSummary.crv + deliveryFee + tip).toFixed(2)}</p>
               </div>
             </div>
 
