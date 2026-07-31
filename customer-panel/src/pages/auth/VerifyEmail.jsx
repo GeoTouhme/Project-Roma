@@ -8,10 +8,31 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState("verifying"); // verifying, success, error, invalid
 
+  const token = searchParams.get("token");
   const email = searchParams.get("email");
   const otp = searchParams.get("otp");
 
   useEffect(() => {
+    // Prefer the signed token from the email link; fall back to manual email + OTP.
+    if (token) {
+      AuthService.verifyEmailToken({ token })
+        .then((response) => {
+          if (response.success) {
+            setStatus("success");
+            if (response.user) {
+              localStorage.setItem("user", JSON.stringify(response.user));
+            }
+            toast.success("Email verified successfully! You can now log in.");
+            setTimeout(() => navigate("/login"), 3000);
+          }
+        })
+        .catch((error) => {
+          setStatus("error");
+          toast.error(error.message || "Verification failed");
+        });
+      return;
+    }
+
     if (!email || !otp) {
       setStatus("invalid");
       return;
@@ -21,6 +42,9 @@ const VerifyEmail = () => {
       .then((response) => {
         if (response.success) {
           setStatus("success");
+          if (response.user) {
+            localStorage.setItem("user", JSON.stringify(response.user));
+          }
           toast.success("Email verified successfully! You can now log in.");
           setTimeout(() => navigate("/login"), 3000);
         }
@@ -29,7 +53,7 @@ const VerifyEmail = () => {
         setStatus("error");
         toast.error(error.message || "Verification failed");
       });
-  }, [email, otp, navigate]);
+  }, [token, email, otp, navigate]);
 
   const renderContent = () => {
     switch (status) {

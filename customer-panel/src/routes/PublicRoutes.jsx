@@ -29,6 +29,7 @@ const PublicRoutes = () => {
         <Route path="/product/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <ProductPage />} />
         <Route path="/cart" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Cart />} />
         <Route path="/verify-otp" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <VerifyEmail />} />
+        <Route path="/verify-email" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <VerifyEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Footer />

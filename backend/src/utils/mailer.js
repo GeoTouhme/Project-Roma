@@ -29,8 +29,8 @@ const sendEmail = async (options) => {
     return result;
   } catch (error) {
     console.error("❌ sendEmail Error:", error.message);
-    // Silent fail to prevent main flow crash, but we should know about it
-    return null;
+    // Rethrow so callers can decide how to surface the failure and alert admins.
+    throw error;
   }
 };
 

@@ -67,6 +67,14 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // 🛡️ OTP security: expiration and failed-attempt lockout.
+    otpExpiresAt: {
+      type: Date,
+    },
+    otpAttempts: {
+      type: Number,
+      default: 0,
+    },
 
     // 🛡️ Multi-factor authentication (TOTP / Authenticator app)
     mfaEnabled: {

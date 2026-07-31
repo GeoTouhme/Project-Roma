@@ -56,6 +56,8 @@ router.post("/auth/reset-password", authLimiter, authController.resetPassword);
 
 router.post("/auth/verify-otp", authLimiter, authController.verifyOtp);
 
+router.post("/auth/verify-email-token", authLimiter, authController.verifyEmailToken);
+
 router.post("/auth/resend-otp", authLimiter, authController.resendOtp);
 
 // router.get("/profile", verifyToken, userController.getProfile);

@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import AuthService from "../../services/authServices";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { login } from "../../redux/authSlice";
 import { toast } from "react-hot-toast";
 
 const Register = () => {
@@ -17,9 +15,11 @@ const Register = () => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [emailSendFailed, setEmailSendFailed] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,13 +66,15 @@ const Register = () => {
       AuthService.register(submitData)
         .then((response) => {
           if (response.success) {
-            toast.success("Account created! Please check your email to verify.", { duration: 5000 });
-            // Don't auto-login if verification is required
-            if (response.user && response.user.isVerified) {
-              localStorage.setItem("user", JSON.stringify(response.user));
-              dispatch(login(response.token));
-              navigate("/");
+            if (response.emailSent === false) {
+              setRegisteredEmail(submitData.email);
+              setEmailSendFailed(true);
+              toast.error(
+                "Account created, but we couldn't send the verification email. Please use Resend below or contact support.",
+                { duration: 6000 }
+              );
             } else {
+              toast.success("Account created! Please check your email to verify.", { duration: 5000 });
               navigate("/login");
             }
           }
@@ -91,6 +93,28 @@ const Register = () => {
     } else {
       setErrors(newErrors);
     }
+  };
+
+  const handleResendVerification = () => {
+    if (!registeredEmail) return;
+    setIsResending(true);
+
+    AuthService.resendOtp({ email: registeredEmail })
+      .then((response) => {
+        if (response.success && response.emailSent !== false) {
+          toast.success("Verification email resent! Please check your inbox.");
+          setEmailSendFailed(false);
+          setTimeout(() => navigate("/login"), 3000);
+        } else {
+          toast.error(response.message || "Could not resend email. Please try again shortly.", { duration: 5000 });
+        }
+      })
+      .catch((error) => {
+        toast.error(error.message || "Could not resend email.");
+      })
+      .finally(() => {
+        setIsResending(false);
+      });
   };
 
   return (
@@ -235,6 +259,24 @@ const Register = () => {
                 </Link>
               </p>
             </div>
+
+            {emailSendFailed && (
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-yellow-800 text-sm mb-3">
+                  Account created, but the verification email could not be sent to{" "}
+                  <strong>{registeredEmail}</strong>.
+                </p>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  className={`w-full ${
+                    isResending ? "bg-gray-400 cursor-not-allowed" : "bg-[#B5223B] hover:bg-[#B5223B]/90"
+                  } text-white font-bold py-2 px-4 rounded-md transition duration-150 ease-in-out`}
+                >
+                  {isResending ? "Resending..." : "Resend Verification Email"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

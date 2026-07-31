@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const sendEmail = require('../utils/mailer');
+const { emitToAdmins } = require('../utils/socketManager');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -112,6 +113,26 @@ function verifyMfaTempToken(token) {
   }
 }
 
+const EMAIL_VERIFY_PURPOSE = 'email-verify';
+
+function signEmailVerificationToken(email) {
+  return jwt.sign(
+    { email, purpose: EMAIL_VERIFY_PURPOSE },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+}
+
+function verifyEmailVerificationToken(token) {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || decoded.purpose !== EMAIL_VERIFY_PURPOSE) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
 const registerUser = async (req, res) => {
   try {
     // Create user in the database
@@ -122,7 +143,6 @@ const registerUser = async (req, res) => {
     }
     const safeEmail = request.email.toLowerCase().trim();
 
-    const UserCount = await User.countDocuments();
     const existingUser = await User.findOne({ email: safeEmail });
 
     if (existingUser) {
@@ -138,8 +158,15 @@ const registerUser = async (req, res) => {
       lowerCaseAlphabets: false,
       digits: true,
     });
+
+    // 🛡️ SECURITY: one-time signed link for email verification.
+    // The raw OTP is still available for manual entry, but it is no longer placed in the URL.
+    const verificationToken = signEmailVerificationToken(safeEmail);
+
     // Create user with the generated OTP
-    // SECURITY: Whitelist only allowed fields — prevents role escalation and field injection
+    // SECURITY: Whitelist only allowed fields — prevents role escalation and field injection.
+    // All public registrations create normal users. The first super admin is bootstrapped
+    // securely via INITIAL_ADMIN_EMAIL after verification.
     const user = await User.create({
       firstName: request.firstName,
       lastName: request.lastName,
@@ -147,24 +174,15 @@ const registerUser = async (req, res) => {
       password: request.password,
       phone: request.phone,
       otp,
-      role: UserCount > 0 ? 'user' : 'super admin',
+      otpExpiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15-minute expiry
+      otpAttempts: 0,
+      lastOtpSentAt: new Date(),
+      role: 'user',
       isVerified: false,
     });
 
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        // email: user.email,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: '47d',
-      }
-    );
-
+    let emailSent = true;
+    let emailErrorMessage = '';
     try {
       // Path to the HTML file
       const htmlFilePath = path.join(
@@ -179,34 +197,49 @@ const registerUser = async (req, res) => {
       // Replace the placeholder with the OTP and user email
       htmlContent = htmlContent.replace(/<h1>[\s\d]*<\/h1>/g, `<h1 style="color: #B5223B; font-size: 32px; letter-spacing: 5px;">${otp}</h1>`);
       htmlContent = htmlContent.replace(/usingyourmail@gmail\.com/g, user.email);
-      
-      // Add verification link
-      const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-otp?email=${encodeURIComponent(user.email)}&otp=${otp}`;
+
+      // Add signed verification link
+      const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      const manualOtpLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-otp?email=${encodeURIComponent(user.email)}`;
       htmlContent = htmlContent.replace(/<\/tbody>/, `
         <tr>
           <td align="center" style="padding-top: 20px;">
             <a href="${verificationLink}" style="background-color: #B5223B; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirm My Account</a>
-            <p style="font-size: 11px; color: #999; margin-top: 10px;">Or click the link: <br> ${verificationLink}</p>
+            <p style="font-size: 11px; color: #999; margin-top: 10px;">Or enter this code manually: <strong style="font-size: 14px; color: #B5223B;">${otp}</strong></p>
+            <p style="font-size: 11px; color: #999; margin-top: 10px;">Manual verification link: <a href="${manualOtpLink}">${manualOtpLink}</a></p>
           </td>
         </tr>
         </tbody>
       `);
 
       // Send email via OAuth2 utility
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: user.email,
         subject: 'Welcome to Balport! Verify your email',
         html: htmlContent
       });
-    } catch (emailError) {
-      console.error("Email sending failed:", emailError.message);
-    }
 
-    setAuthCookie(res, token, 47 * 24 * 60 * 60 * 1000);
+      if (!emailResult) {
+        throw new Error('sendEmail returned null');
+      }
+    } catch (emailError) {
+      emailSent = false;
+      emailErrorMessage = emailError.message || 'Unknown email error';
+      console.error('❌ Verification email sending failed:', emailErrorMessage);
+      emitToAdmins('system:email_failed', {
+        email: user.email,
+        flow: 'register',
+        error: emailErrorMessage,
+        time: new Date().toISOString(),
+      });
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Created User Successfully. Please check your email to verify your account.',
+      emailSent,
+      message: emailSent
+        ? 'Created User Successfully. Please check your email to verify your account.'
+        : 'Account created, but we could not send the verification email. Please try resending or contact support.',
       user: {
         _id: user._id,
         firstName: user.firstName,
@@ -254,6 +287,13 @@ const loginUser = async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: 'Incorrect Password' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in. Check your inbox for the verification code.',
+      });
     }
 
     // 🛡️ MFA: if TOTP is enabled, require a second factor before issuing the auth cookie.
@@ -483,15 +523,66 @@ const verifyOtp = async (req, res) => {
 
     // Verify the OTP using an if-else statement
     let message = '';
+
+    // 🛡️ OTP SECURITY: Check if the verification code has expired.
+    if (user.otpExpiresAt && new Date() > user.otpExpiresAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new one.',
+      });
+    }
+
+    // 🛡️ OTP SECURITY: Lock out after too many failed attempts.
+    const MAX_OTP_ATTEMPTS = 5;
+    if (user.otpAttempts >= MAX_OTP_ATTEMPTS) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many failed verification attempts. Please request a new code.',
+      });
+    }
+
     if (otp === user.otp) {
-      // Update the user's status to verified
+      // Reset attempts on success and mark verified
       user.isVerified = true;
+      user.otpAttempts = 0;
+
+      // 🛡️ ADMIN BOOTSTRAP: If this user matches the configured INITIAL_ADMIN_EMAIL
+      // and no super admin exists yet, promote them to super admin. This prevents
+      // public super-admin squatting while still allowing a controlled first admin setup.
+      const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || '').toLowerCase().trim();
+      if (initialAdminEmail && safeEmail === initialAdminEmail) {
+        const superAdminExists = await User.exists({ role: 'super admin' });
+        if (!superAdminExists) {
+          user.role = 'super admin';
+        }
+      }
+
       await user.save();
+
+      // After verification, issue the auth cookie so the user is immediately authenticated.
+      const token = jwt.sign(
+        { _id: user._id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+
       message = 'OTP Verified Successfully';
-      return res.status(201).json({ success: true, message });
+      return res.status(201).json({ success: true, message, user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+      }});
     } else {
+      // Increment failed attempt counter and save.
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      await user.save();
+
       message = 'Invalid OTP';
-      return res.status(404).json({ success: false, message });
+      return res.status(400).json({ success: false, message });
     }
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
@@ -522,48 +613,177 @@ const resendOtp = async (req, res) => {
         message: 'OTP Has Already Been Verified',
       });
     }
-    // Generate new OTP
+
+    // 🛡️ OTP SECURITY: Throttle resends to avoid exhausting the email quota.
+    const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
+    if (
+      user.lastOtpSentAt &&
+      Date.now() - new Date(user.lastOtpSentAt).getTime() < OTP_RESEND_COOLDOWN_MS
+    ) {
+      return res.status(429).json({
+        success: false,
+        message: 'Please wait before requesting a new verification code.',
+      });
+    }
+
+    // Generate new OTP and a fresh signed verification link
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       specialChars: false,
       lowerCaseAlphabets: false,
       digits: true,
     });
+    const verificationToken = signEmailVerificationToken(safeEmail);
+
     // Update the user's OTP
     await User.findByIdAndUpdate(user._id, {
       otp: otp.toString(),
+      otpExpiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15-minute expiry
+      otpAttempts: 0,
+      lastOtpSentAt: new Date(),
     });
 
-    // Path to the HTML file
-    const htmlFilePath = path.join(
-      process.cwd(),
-      'src/email-templates',
-      'otp.html'
-    );
+    let emailSent = true;
+    let emailErrorMessage = '';
 
-    // Read HTML file content
-    let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
+    try {
+      // Path to the HTML file
+      const htmlFilePath = path.join(
+        process.cwd(),
+        'src/email-templates',
+        'otp.html'
+      );
 
-    // Replace the placeholder with the OTP and user email
-    htmlContent = htmlContent.replace(/<h1>[\s\d]*<\/h1>/g, `<h1>${otp}</h1>`);
-    htmlContent = htmlContent.replace(/usingyourmail@gmail\.com/g, user.email);
+      // Read HTML file content
+      let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
 
-    // Send email via OAuth2 utility
-    await sendEmail({
-      to: user.email,
-      subject: 'Verify your email - New Code',
-      html: htmlContent
-    });
+      // Replace the placeholder with the OTP and user email
+      htmlContent = htmlContent.replace(/<h1>[\s\d]*<\/h1>/g, `<h1 style="color: #B5223B; font-size: 32px; letter-spacing: 5px;">${otp}</h1>`);
+      htmlContent = htmlContent.replace(/usingyourmail@gmail\.com/g, user.email);
+
+      // Add signed verification link
+      const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      const manualOtpLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-otp?email=${encodeURIComponent(user.email)}`;
+      htmlContent = htmlContent.replace(/<\/tbody>/, `
+        <tr>
+          <td align="center" style="padding-top: 20px;">
+            <a href="${verificationLink}" style="background-color: #B5223B; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirm My Account</a>
+            <p style="font-size: 11px; color: #999; margin-top: 10px;">Or enter this code manually: <strong style="font-size: 14px; color: #B5223B;">${otp}</strong></p>
+            <p style="font-size: 11px; color: #999; margin-top: 10px;">Manual verification link: <a href="${manualOtpLink}">${manualOtpLink}</a></p>
+          </td>
+        </tr>
+        </tbody>
+      `);
+
+      // Send email via OAuth2 utility
+      const emailResult = await sendEmail({
+        to: user.email,
+        subject: 'Verify your email - New Code',
+        html: htmlContent
+      });
+
+      if (!emailResult) {
+        throw new Error('sendEmail returned null');
+      }
+    } catch (emailError) {
+      emailSent = false;
+      emailErrorMessage = emailError.message || 'Unknown email error';
+      console.error('❌ Resend verification email failed:', emailErrorMessage);
+      emitToAdmins('system:email_failed', {
+        email: user.email,
+        flow: 'resend',
+        error: emailErrorMessage,
+        time: new Date().toISOString(),
+      });
+    }
 
     // Return the response
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        emailSent: false,
+        message: 'We could not resend the verification email right now. Please try again shortly.',
+      });
+    }
     return res.status(200).json({
       success: true,
+      emailSent: true,
       message: 'OTP Resent Successfully',
     });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// 🛡️ SECURITY: verify email via a short-lived signed token instead of raw OTP in the URL.
+const verifyEmailToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid verification link.' });
+    }
+
+    const decoded = verifyEmailVerificationToken(token);
+    if (!decoded || !decoded.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification link is invalid or has expired. Please request a new one.',
+      });
+    }
+
+    const safeEmail = decoded.email.toLowerCase().trim();
+    const user = await User.findOne({ email: safeEmail }).maxTimeMS(30000).exec();
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User Not Found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email has already been verified. Please log in.',
+      });
+    }
+
+    // Mark verified, reset attempts, and apply secure admin bootstrapping if applicable.
+    user.isVerified = true;
+    user.otpAttempts = 0;
+
+    const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || '').toLowerCase().trim();
+    if (initialAdminEmail && safeEmail === initialAdminEmail) {
+      const superAdminExists = await User.exists({ role: 'super admin' });
+      if (!superAdminExists) {
+        user.role = 'super admin';
+      }
+    }
+
+    await user.save();
+
+    const authToken = jwt.sign(
+      { _id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    setAuthCookie(res, authToken, 7 * 24 * 60 * 60 * 1000);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Email verified successfully',
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 const logoutUser = async (req, res) => {
   try {
     clearAuthCookie(res);
@@ -839,6 +1059,7 @@ module.exports = {
   resetPassword,
   verifyOtp,
   resendOtp,
+  verifyEmailToken,
   setupMfa,
   confirmMfaSetup,
   verifyMfa,
