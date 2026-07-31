@@ -139,4 +139,73 @@ const deleteUserByAdmin = async (req, res) => {
 	}
 };
 
-module.exports = { getUsersByAdmin, getOrdersByUid, UpdateRoleByAdmin, deleteUserByAdmin };
+const updateUserByAdmin = async (req, res) => {
+	try {
+		const id = req.params.id;
+		const userToUpdate = await User.findById(id);
+
+		if (!userToUpdate) {
+			return res.status(404).json({ success: false, message: "User Not Found." });
+		}
+
+		// Prevent editing another super admin unless you are a super admin yourself.
+		// adminCheck already enforces admin/super-admin access, but we double-check escalation here.
+		if (userToUpdate.role === "super admin" && req.user?.role !== "super admin") {
+			return res.status(403).json({ success: false, message: "Only a Super Admin can edit another Super Admin." });
+		}
+
+		// Validate and normalize incoming data
+		const data = req.body || {};
+		const safeEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : undefined;
+
+		// If email is changing, ensure it is not already taken by another user
+		if (safeEmail && safeEmail !== userToUpdate.email.toLowerCase()) {
+			const existingUser = await User.findOne({ email: safeEmail });
+			if (existingUser && existingUser._id.toString() !== id) {
+				return res.status(400).json({ success: false, message: "Email is already in use by another account." });
+			}
+		}
+
+		// Whitelist editable fields to prevent mass-assignment attacks
+		const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'phone', 'role', 'status', 'isVerified'];
+		const safeData = {};
+		for (const field of ALLOWED_FIELDS) {
+			if (data[field] !== undefined) {
+				safeData[field] = data[field];
+			}
+		}
+
+		// Only a super admin can promote/demote admins or super admins
+		if (data.role !== undefined && req.user?.role !== "super admin") {
+			return res.status(403).json({ success: false, message: "Only a Super Admin can change user roles." });
+		}
+
+		// Prevent removing the last super admin
+		if (
+			data.role !== undefined &&
+			userToUpdate.role === "super admin" &&
+			data.role !== "super admin"
+		) {
+			const superAdminCount = await User.countDocuments({ role: "super admin" });
+			if (superAdminCount <= 1) {
+				return res.status(403).json({ success: false, message: "Cannot demote the last Super Admin." });
+			}
+		}
+
+		const updatedUser = await User.findByIdAndUpdate(
+			id,
+			safeData,
+			{ new: true, runValidators: true }
+		).select('-password');
+
+		return res.status(200).json({
+			success: true,
+			message: "User updated successfully.",
+			data: updatedUser,
+		});
+	} catch (error) {
+		return res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+module.exports = { getUsersByAdmin, getOrdersByUid, UpdateRoleByAdmin, deleteUserByAdmin, updateUserByAdmin };

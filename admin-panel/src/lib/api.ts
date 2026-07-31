@@ -133,6 +133,9 @@ export const customersAPI = {
 
     deleteCustomer: (id: string) =>
         api.delete(`/api/admin/users/${id}`),
+
+    updateCustomer: (id: string, data: any) =>
+        api.put(`/api/admin/users/${id}`, data),
 };
 
 export const categoriesAPI = {

@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -10,60 +11,102 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/lib/toast";
-
-// Sample customer data (for editing)
-const sampleCustomer = {
-  id: "CUST-001",
-  name: "John Doe",
-  email: "john.doe@example.com",
-  status: "active",
-  createdAt: "2023-01-10",
-};
+import { customersAPI } from "@/lib/api";
+import { format } from "date-fns";
 
 const CustomerForm = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("active");
+  const [isVerified, setIsVerified] = useState(false);
+  const [role, setRole] = useState("user");
   const [createdAt, setCreatedAt] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      // Load customer details for editing (mock)
-      setTimeout(() => {
-        setName(sampleCustomer.name);
-        setEmail(sampleCustomer.email);
-        setStatus(sampleCustomer.status);
-        setCreatedAt(sampleCustomer.createdAt);
+    const fetchCustomer = async () => {
+      if (!id) {
         setIsLoading(false);
-      }, 1000);
-    } else {
-      setIsLoading(false);
-    }
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await customersAPI.getCustomerById(id);
+        if (response.data.success) {
+          const userData = response.data.user;
+          setFirstName(userData.firstName || "");
+          setLastName(userData.lastName || "");
+          setEmail(userData.email || "");
+          setPhone(userData.phone || "");
+          setStatus(userData.status || "active");
+          setIsVerified(!!userData.isVerified);
+          setRole(userData.role || "user");
+          setCreatedAt(
+            userData.createdAt
+              ? format(new Date(userData.createdAt), "MMM d, yyyy")
+              : "N/A"
+          );
+        } else {
+          toast.error("Failed to load customer details");
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch customer:", error);
+        toast.error(error?.response?.data?.message || "Failed to load customer details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCustomer();
   }, [id]);
 
-  const handleSave = () => {
-    if (!name || !email) {
+  const handleSave = async () => {
+    if (!firstName || !lastName || !email) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
-    // Mock save to API
-    setTimeout(() => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        firstName,
+        lastName,
+        email,
+        phone,
+        status,
+        isVerified,
+        role,
+      };
+
       if (id) {
+        await customersAPI.updateCustomer(id, payload);
         toast.success("Customer updated successfully!");
       } else {
-        toast.success("Customer created successfully!");
+        // Future: add admin customer creation endpoint
+        toast.error("Creating customers from the admin panel is not yet supported.");
+        setIsSaving(false);
+        return;
       }
+
       navigate("/customers");
-    }, 1000);
+    } catch (error: any) {
+      console.error("Failed to save customer:", error);
+      toast.error(error?.response?.data?.message || "Failed to save customer");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -89,9 +132,9 @@ const CustomerForm = () => {
         </Button>
 
         {/* Save Button */}
-        <Button size="sm" onClick={handleSave}>
+        <Button size="sm" onClick={handleSave} disabled={isSaving}>
           <Save className="mr-2 h-4 w-4" />
-          Save Customer
+          {isSaving ? "Saving..." : "Save Customer"}
         </Button>
       </div>
 
@@ -111,34 +154,106 @@ const CustomerForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Name */}
-          <Input
-            placeholder="Enter customer name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* First Name */}
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input
+                id="firstName"
+                placeholder="Enter first name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+
+            {/* Last Name */}
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                placeholder="Enter last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+          </div>
 
           {/* Email */}
-          <Input
-            // label="Email"
-            placeholder="Enter email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-          {/* Status */}
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Phone */}
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              placeholder="Enter phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Status */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Role */}
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Verified */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="verified">Email Verified</Label>
+              <p className="text-sm text-muted-foreground">
+                Mark this customer as having a verified email address.
+              </p>
+            </div>
+            <Switch
+              id="verified"
+              checked={isVerified}
+              onCheckedChange={setIsVerified}
+            />
+          </div>
 
           {/* Created At */}
-          {id && <Input value={createdAt} disabled readOnly />}
+          {id && (
+            <div className="space-y-2">
+              <Label>Created At</Label>
+              <Input value={createdAt} disabled readOnly />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
