@@ -15,18 +15,16 @@ import Icons from "../../components/svg";
 import Slider from "react-slick";
 import HomeService from "../../services/homeService";
 import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
+import { safeJSONParse } from "../../utils/safeStorage";
 
 const Home = () => {
   const [bestSellerProducts, setBestSellerProducts] = useState([]);
   const [bestSellerProductsLoading, setBestSellerProductsLoading] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProductsLoading, setFeaturedProductsLoading] = useState(false);
-  const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
-  let user_id = ""
-  if (isAuthenticated) {
-    const userInfo = JSON.parse(localStorage.getItem("user"));
-    user_id = userInfo?._id
-  }
+  const isAuthenticated = safeJSONParse("isAuthenticated", false);
+  const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
+  const user_id = userInfo?._id || "";
 
   const fetchBestSellerProducts = useCallback(() => {
     setBestSellerProductsLoading(true)

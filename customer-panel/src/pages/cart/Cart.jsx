@@ -8,6 +8,7 @@ import { removeFromCart, updateQuantity } from "../../redux/cartSlice";
 import RecommendationSection from "../../components/recommendation-section";
 import OrderService from "../../services/orderService";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
+import { safeJSONParse } from "../../utils/safeStorage";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ const Cart = () => {
     );
 
   const handleBillingNavigate = () => {
-    const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
+    const isAuthenticated = safeJSONParse("isAuthenticated", false);
 
     if (!isAuthenticated) {
       navigate("/login");

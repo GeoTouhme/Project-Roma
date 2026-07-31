@@ -21,9 +21,10 @@ import RecommendationSection from "../../components/recommendation-section";
 import moment from "moment";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 import { trackPageView } from "../../services/analyticsService";
+import { safeJSONParse } from "../../utils/safeStorage";
 
 const ProductPage = () => {
-  const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
+  const isAuthenticated = safeJSONParse("isAuthenticated", false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);

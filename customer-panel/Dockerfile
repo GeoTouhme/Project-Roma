@@ -31,6 +31,10 @@ ENV REACT_APP_STRIPE_PUBLIC_KEY=$REACT_APP_STRIPE_PUBLIC_KEY
 # Set CI=false to ensure warnings don't break the build
 ENV CI=false
 
+# react-app/jest ESLint config is incompatible with newer ESLint ("jest/globals" env key).
+# Skip the ESLint plugin during the production build.
+ENV DISABLE_ESLINT_PLUGIN=true
+
 RUN npm run build
 
 # Serve Stage

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/AppConfig";
 
 const service = axios.create({
@@ -17,23 +16,36 @@ service.interceptors.request.use(
   },
   (error) => {
     console.log("error = ", error);
-    Promise.reject(error);
+    return Promise.reject(error);
   }
 );
 
-// API respone interceptor
+// Normalize an error so callers always receive an object with { success, message }.
+function normalizeError(error) {
+  if (error.response) {
+    const { data, status } = error.response;
+    // Backend usually returns JSON: { success: false, message: '...' }
+    if (data && typeof data === "object" && "message" in data) {
+      return { success: false, status, ...data };
+    }
+    // If the server returned an HTML error page (e.g. 502/504), wrap it.
+    return { success: false, status, message: `Server error ${status}` };
+  }
+  if (error.request) {
+    return { success: false, message: "Network error. Please check your connection." };
+  }
+  return { success: false, message: error.message || "An unexpected error occurred" };
+}
+
+// API response interceptor
 service.interceptors.response.use(
   (response) => {
     return response.data;
   },
   (error) => {
-    console.log(error);
-
-    if (error.response.status === 403 || error.response.status === 401) {
-      const navigate = useNavigate();
-      navigate("/");
-    }
-    return Promise.reject(error.response.data);
+    const normalized = normalizeError(error);
+    console.log("API error:", normalized);
+    return Promise.reject(normalized);
   }
 );
 

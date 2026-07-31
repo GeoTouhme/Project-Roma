@@ -12,6 +12,7 @@ import "react-loading-skeleton/dist/skeleton.css"
 import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
 import CategoryFilter from "../../components/category-filter";
 import getHierarchyCategories from "../../utils/getHierarchyCategories";
+import { safeJSONParse } from "../../utils/safeStorage";
 
 const Collection = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1023);
@@ -47,7 +48,8 @@ const Collection = () => {
   const pathParts = location.pathname.split("/").filter(Boolean); // removes empty segments
   const category = pathParts[1] || null;
   const subCategory = pathParts[2] || null;
-  const isAuthenticated = JSON.parse(localStorage.getItem("isAuthenticated"));
+  const isAuthenticated = safeJSONParse("isAuthenticated", false);
+  const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
   const [reload, setReload] = useState(false);
 
   // Reset page when filters or search change
@@ -57,11 +59,7 @@ const Collection = () => {
   }, [location.pathname, location.search, selectedBrand, selectedColors, priceRange, selectedSizes, category, subCategory]);
 
   useEffect(() => {
-    let user_id = ""
-    if (isAuthenticated) {
-      const userInfo = JSON.parse(localStorage.getItem("user"));
-      user_id = userInfo?._id
-    }
+    const user_id = userInfo?._id || "";
     const colorsStr = selectedColors.join("_");
     const sizesStr = selectedSizes.join("_");
 
@@ -77,6 +75,7 @@ const Collection = () => {
       page: page, // Pass current page
       limit: 12 // Default limit
     }, page > 1); // Pass flag if appending
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search, selectedBrand, selectedColors, priceRange, selectedSizes, reload, category, subCategory, isAuthenticated, page, searchQuery]);
 
   useEffect(() => {
