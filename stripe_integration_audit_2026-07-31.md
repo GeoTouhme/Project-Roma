@@ -1,0 +1,129 @@
+# Stripe Integration Audit — Project Roma
+
+**Date:** 2026-07-31  
+**Scope:** Backend PaymentIntent + webhook handlers, frontend checkout flow, environment config
+
+---
+
+## ✅ What’s Working Well
+
+| # | Finding | Evidence |
+|---|---|---|
+| 1 | **Server-side amount calculation.** PaymentIntent creation and order creation both call `calculateOrderTotals()` against the authoritative product database. Client-submitted prices are not trusted. | `backend/src/controllers/payment-intents.js`, `backend/src/controllers/order.js` |
+| 2 | **PaymentIntent + Stripe Elements flow.** The billing page creates a PaymentIntent, collects the card via `@stripe/react-stripe-js` `CardElement`, and confirms server-side. | `customer-panel/src/pages/Billing/Billing.jsx` |
+| 3 | **Order idempotency on creation.** `order.js` checks for an existing order with the same `paymentId` and returns it instead of creating a duplicate. | `backend/src/controllers/order.js:139-148` |
+| 4 | **Webhook raw body preserved.** `bodyParser.json({ verify: ... })` saves `req.rawBody` for Stripe signature verification. | `backend/src/index.js:144-151` |
+| 5 | **JWT cookie authentication.** Order endpoints require the HttpOnly `token` cookie; the frontend sends `withCredentials: true`. | `backend/src/config/jwt.js`, `customer-panel/src/interceptor/fetchInterceptor.jsx` |
+
+---
+
+## 🔴 Critical Issues Before Launch
+
+### 1. `STRIPE_WEBHOOK_SECRET` was empty — **FIXED**
+
+The secret was restored and the backend container was recreated so it loads the corrected `/etc/project-roma/.env`. Webhook signature verification is now active.
+
+### 2. Stripe test keys are live in the container
+
+```bash
+STRIPE_SECRET_KEY=sk_test_51RkySZDZuujZd4qgAHezS1A6HnPI0ZXesYfhZ8RjLth3CzGP7ngrbwHhaM2Mbo07sEZOZVdlG7tInvxlIS9BIja5004b9NNFXE
+REACT_APP_STRIPE_PUBLIC_KEY=pk_test_51RkySZDZuujZd4qgLnSagaPmWVM5ljaCz7YhmYcry1ViMZrDabTaNwfjFgtRu62FfeBNKeOA0bmtQAH0ILgMIPTm00FTmCWCuB
+```
+
+**Impact:** Real customer cards will be rejected or show a Stripe test-mode badge.
+
+**Fix:** Replace with live keys before launch:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_...
+REACT_APP_STRIPE_PUBLIC_KEY=pk_live_...
+```
+
+Then rebuild the customer panel:
+
+```bash
+cd /var/www/Project-Roma
+docker compose up --build -d customer-panel
+```
+
+### 3. Webhook endpoint may not be registered in Stripe
+
+Backend route:
+
+```text
+POST /api/webhooks/stripe
+```
+
+**Required Stripe webhook URL:**
+
+```text
+https://balportliquors.com/api/webhooks/stripe
+```
+
+**Required events to subscribe to:**
+
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `charge.refunded`
+- `charge.dispute.created`
+
+---
+
+## 🟡 Improvements / Warnings
+
+| # | Issue | Status | Notes |
+|---|---|---|---|
+| 1 | No idempotency key on PaymentIntent creation. | **FIXED** | A deterministic key is generated from cart + user + totals + a 30-second time bucket. It is passed to both `stripe.paymentIntents.create()` (backend) and `stripe.confirmCardPayment()` (frontend) to prevent duplicate charges on double-clicks. |
+| 2 | Webhook returns 400 on invalid signature. | **FIXED** | The handler now logs the failure and returns HTTP 200 to Stripe, preventing retry storms while still rejecting forged requests silently. |
+| 3 | `CURRENCY=usd` is hardcoded. | OK | Fine for US-only; already sourced from env. |
+| 4 | Stripe iframe shows test-mode assets. | PENDING | Switch to `pk_live_...` before launch. |
+
+---
+
+## Manual Checkout Test Cases
+
+Use Stripe test card numbers through the live checkout flow:
+
+| Card number | Scenario |
+|---|---|
+| `4242 4242 4242 4242` | Success |
+| `4000 0000 0000 0002` | Card declined |
+
+Use any future expiry, any 3-digit CVC, any ZIP.
+
+---
+
+## Recommended Pre-Launch Checklist
+
+- [x] Add `STRIPE_WEBHOOK_SECRET` to `/etc/project-roma/.env`.
+- [x] Implement PaymentIntent idempotency to prevent double-clicks.
+- [x] Harden webhook handler to return 200 on invalid signatures.
+- [ ] Switch to live `STRIPE_SECRET_KEY` and `REACT_APP_STRIPE_PUBLIC_KEY`.
+- [ ] Register `https://balportliquors.com/api/webhooks/stripe` in Stripe Dashboard.
+- [ ] Subscribe to the four required webhook events.
+- [ ] Place a test order with `4242 4242 4242 4242`.
+- [ ] Rapidly double-click **Place Order** and verify only one PaymentIntent/charge exists in Stripe Dashboard.
+- [ ] Confirm the real-time notification appears in the admin panel via the new Socket.IO feed.
+
+---
+
+## Files Audited
+
+- `backend/src/controllers/payment-intents.js`
+- `backend/src/controllers/order.js`
+- `backend/src/controllers/stripeWebhook.js`
+- `backend/src/index.js`
+- `backend/src/config/jwt.js`
+- `backend/src/utils/orderCalculator.js`
+- `backend/src/routes/stripeWebhook.js`
+- `backend/src/routes/order.js`
+- `customer-panel/src/App.js`
+- `customer-panel/src/pages/Billing/Billing.jsx`
+- `customer-panel/src/services/paymentService.js`
+- `customer-panel/src/services/orderService.js`
+- `customer-panel/src/interceptor/fetchInterceptor.jsx`
+- `/etc/project-roma/.env`
+
+---
+
+*Generated by Claude Code — Project Roma Stripe integration audit.*
