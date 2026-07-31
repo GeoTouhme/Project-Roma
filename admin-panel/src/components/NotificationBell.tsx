@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import api, { dashboardAPI } from "@/lib/api";
+import { getSocket, onNotificationNew } from "@/lib/socket";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -79,14 +80,9 @@ export const NotificationBell: React.FC = () => {
     };
   }, []);
 
-  const [isRateLimited, setIsRateLimited] = useState(false);
-
   const fetchNotifications = async () => {
-    if (isRateLimited) return;
-
     try {
       const response = await dashboardAPI.getNotifications();
-      setIsRateLimited(false);
 
       if (response.data.success) {
         const newNotifications = response.data.data || [];
@@ -111,25 +107,45 @@ export const NotificationBell: React.FC = () => {
         setUnreadCount(newUnread);
       }
     } catch (error: any) {
-      // Avoid console spam: only log the first 429, then back off polling.
-      if (error.response?.status === 429) {
-        if (!isRateLimited) {
-          console.warn("Notification polling rate-limited; backing off.");
-          setIsRateLimited(true);
-        }
-      } else {
-        console.error("Failed to fetch notifications:", error);
-      }
+      console.error("Failed to fetch notifications:", error);
     }
   };
 
   useEffect(() => {
+    // Load initial notifications from the server and keep them in sync via WebSocket.
     fetchNotifications();
-    // Poll every 30 seconds. Active admin work can exhaust the shared API rate bucket,
-    // so notifications use their own dedicated polling limit.
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [soundEnabled, audioUnlocked, notifications, isRateLimited]);
+    const socket = getSocket();
+    const handleConnect = () => fetchNotifications();
+    socket.on("connect", handleConnect);
+
+    const unsubscribe = onNotificationNew((notification) => {
+      setNotifications((prev) => {
+        if (prev.find((n) => n._id === notification._id)) {
+          return prev;
+        }
+        return [notification, ...prev];
+      });
+      setUnreadCount((count) => count + 1);
+      if (soundEnabled && audioUnlocked) {
+        playAlarm();
+      }
+    });
+
+    // 🛡️ MONITORING: surface transactional email failures to admins in real time.
+    const handleEmailFailed = (payload: { email: string; flow: string; error: string; time: string }) => {
+      toast.error(`Verification email failed for ${payload.email}: ${payload.error}`, { duration: 10000 });
+      if (soundEnabled && audioUnlocked) {
+        playAlarm();
+      }
+    };
+    socket.on("system:email_failed", handleEmailFailed);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("system:email_failed", handleEmailFailed);
+      unsubscribe();
+    };
+  }, [soundEnabled, audioUnlocked]);
 
   const handleMarkOpened = async (e: React.MouseEvent, notification: Notification) => {
     e.stopPropagation();

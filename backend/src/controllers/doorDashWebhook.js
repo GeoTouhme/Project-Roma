@@ -1,5 +1,6 @@
 const Orders = require('../models/Order');
 const Notifications = require('../models/Notification');
+const { emitToAdmins } = require('../utils/socketManager');
 
 const handleDoorDashWebhook = async (req, res) => {
   try {
@@ -57,7 +58,7 @@ const handleDoorDashWebhook = async (req, res) => {
 
       case 'DELIVERY_CANCELLED':
         updateFields.status = 'delivery_failed';
-        await Notifications.create({
+        const cancelledNotification = await Notifications.create({
           opened: false,
           title: `🚨 DELIVERY CANCELLED by DoorDash for Order ${external_delivery_id}`,
           paymentMethod: order.paymentMethod,
@@ -65,6 +66,7 @@ const handleDoorDashWebhook = async (req, res) => {
           city: order.user?.city || '',
           cover: '',
         });
+        emitToAdmins('notification:new', cancelledNotification);
         break;
 
       case 'DELIVERY_RETURN_INITIALIZED':
@@ -77,7 +79,7 @@ const handleDoorDashWebhook = async (req, res) => {
 
       case 'DELIVERY_RETURNED':
         updateFields.status = 'returned';
-        await Notifications.create({
+        const returnedNotification = await Notifications.create({
           opened: false,
           title: `📦 Order ${external_delivery_id} RETURNED to store (ID verification failed)`,
           paymentMethod: order.paymentMethod,
@@ -85,6 +87,7 @@ const handleDoorDashWebhook = async (req, res) => {
           city: order.user?.city || '',
           cover: '',
         });
+        emitToAdmins('notification:new', returnedNotification);
         break;
 
       default:

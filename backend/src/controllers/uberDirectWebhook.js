@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const Orders = require('../models/Order');
 const Notifications = require('../models/Notification');
+const { emitToAdmins } = require('../utils/socketManager');
 
 function verifyUberSignature(req) {
   const signingKey = process.env.UBER_DIRECT_WEBHOOK_SECRET;
@@ -111,7 +112,7 @@ const handleUberDirectWebhook = async (req, res) => {
       case 'canceled':
         updateFields.status = 'delivery_failed';
         console.error(`🚨 Uber Direct CANCEL: ${cancelation_reason || 'No reason provided'}`);
-        await Notifications.create({
+        const uberCancelledNotification = await Notifications.create({
           opened: false,
           title: `🚨 DELIVERY CANCELLED by Uber Direct for Order ${order.orderNo}${cancelation_reason ? ` (${cancelation_reason})` : ''}`,
           paymentMethod: order.paymentMethod,
@@ -119,12 +120,13 @@ const handleUberDirectWebhook = async (req, res) => {
           city: order.user?.city || '',
           cover: '',
         });
+        emitToAdmins('notification:new', uberCancelledNotification);
         break;
 
       case 'returned':
         updateFields.status = 'returned';
         console.error(`📦 Uber Direct RETURN: ${undeliverable_reason || 'No reason provided'}`);
-        await Notifications.create({
+        const uberReturnedNotification = await Notifications.create({
           opened: false,
           title: `📦 Order ${order.orderNo} RETURNED to store (${undeliverable_reason || 'ID verification failed'})`,
           paymentMethod: order.paymentMethod,
@@ -132,6 +134,7 @@ const handleUberDirectWebhook = async (req, res) => {
           city: order.user?.city || '',
           cover: '',
         });
+        emitToAdmins('notification:new', uberReturnedNotification);
         break;
 
       case 'shopping_completed':

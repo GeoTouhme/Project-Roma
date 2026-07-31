@@ -12,6 +12,7 @@ const Category = require('../models/Category');
 const { safeObjectId, safeNumber } = require('../utils/validators');
 const { getCrvPerItem } = require('../utils/crv');
 const { calculateOrderTotals } = require('../utils/orderCalculator');
+const { emitToAdmins } = require('../utils/socketManager');
 
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -293,7 +294,7 @@ const createOrder = async (req, res) => {
     console.log(`⏸️ Staff-only delivery: order ${orderNo} awaiting staff acceptance.`);
     // --------------------------------------
 
-    await Notifications.create([{
+    const [notificationDoc] = await Notifications.create([{
       opened: false,
       title: `${orderUser.firstName} ${orderUser.lastName} placed an order from ${orderUser.city}.`,
       paymentMethod,
@@ -301,6 +302,7 @@ const createOrder = async (req, res) => {
       city: orderUser.city,
       cover: req.user?.cover?.url || '',
     }]);
+    emitToAdmins('notification:new', notificationDoc);
 
     // Send order confirmation email (non-blocking)
     try {
@@ -944,7 +946,7 @@ const cancelOrderByCustomer = async (req, res) => {
 
     // Notify staff about the customer cancellation
     try {
-      await Notifications.create({
+      const cancellationNotification = await Notifications.create({
         opened: false,
         title: `⚠️ CUSTOMER CANCELLED Order ${order.orderNo} — ${order.user?.firstName} ${order.user?.lastName}`,
         paymentMethod: order.paymentMethod,
@@ -952,6 +954,7 @@ const cancelOrderByCustomer = async (req, res) => {
         city: order.user?.city || '',
         cover: '',
       });
+      emitToAdmins('notification:new', cancellationNotification);
     } catch (notifyErr) {
       console.error('Failed to create customer cancellation notification:', notifyErr.message);
     }

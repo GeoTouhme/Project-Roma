@@ -1,4 +1,5 @@
 const Notifications = require("../models/Notification");
+const { emitToAdmins } = require("../utils/socketManager");
 
 const getNotifications = async (req, res) => {
 	try {
@@ -33,9 +34,10 @@ const createNotification = async (req, res) => {
 	try {
 		const { ...data } = await req.body;
 		// Create a new notification
-		await Notifications.create({
+		const notification = await Notifications.create({
 			...data,
 		});
+		emitToAdmins('notification:new', notification);
 
 		return res.status(201).json({
 			success: true,

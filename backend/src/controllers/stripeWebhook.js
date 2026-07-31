@@ -1,6 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Orders = require('../models/Order');
 const Notifications = require('../models/Notification');
+const { emitToAdmins } = require('../utils/socketManager');
 
 /**
  * Verify Stripe webhook signature and construct the event.
@@ -27,7 +28,12 @@ async function handleStripeWebhook(req, res) {
   try {
     event = constructEvent(req);
   } catch (err) {
-    return res.status(400).json({ success: false, message: err.message });
+    // 🛡️ PRODUCTION: Always return 200 to Stripe to prevent retry storms,
+    // even when the signature is invalid. Stripe retries 400s aggressively,
+    // so an attacker could spam the endpoint and exhaust the rate-limit bucket.
+    // We log the failure locally instead.
+    console.error('Stripe webhook signature verification failed:', err.message);
+    return res.status(200).json({ received: true });
   }
 
   // Always acknowledge receipt quickly to prevent Stripe retries.
@@ -54,13 +60,14 @@ async function handleStripeWebhook(req, res) {
         );
 
         if (order) {
-          await Notifications.create({
+          const paymentFailedNotification = await Notifications.create({
             opened: false,
             title: `Payment failed for order #${order.orderNo}`,
             paymentMethod: order.paymentMethod,
             orderId: order._id,
             city: order.user?.city || '',
           });
+          emitToAdmins('notification:new', paymentFailedNotification);
         }
         break;
       }
@@ -89,13 +96,14 @@ async function handleStripeWebhook(req, res) {
         );
 
         if (order) {
-          await Notifications.create({
+          const disputeNotification = await Notifications.create({
             opened: false,
             title: `Dispute opened for order #${order.orderNo}`,
             paymentMethod: order.paymentMethod,
             orderId: order._id,
             city: order.user?.city || '',
           });
+          emitToAdmins('notification:new', disputeNotification);
         }
         break;
       }

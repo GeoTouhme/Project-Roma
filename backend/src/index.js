@@ -7,12 +7,33 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
+const jwt = require('jsonwebtoken');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+const socketAuth = require('./config/socketAuth');
+const { setIO } = require('./utils/socketManager');
 // Load environment variables from .env file
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
+const io = new Server(server, {
+  cors: {
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['https://balportliquors.com', 'https://admin.balportliquors.com'],
+    credentials: true
+  }
+});
+
+// Apply JWT auth to Socket.IO and join authenticated admin sockets to the admin room
+io.use(socketAuth);
+io.on('connection', (socket) => {
+  if (socket.user) {
+    socket.join('admin');
+  }
+});
+setIO(io);
 
 // 🛡️ SECURITY: Disable the `qs` bracket-object parser.
 // Without this, ?key[$ne]=x becomes { key: { $ne: 'x' } } — a direct NoSQL injection vector.
@@ -158,27 +179,20 @@ function getTokenRole(token) {
   return null;
 }
 
-const createLimiter = (baseMax, windowMinutes, messagePrefix) =>
-  rateLimit({
+// Authenticated admin/super-admin users bypass rate limiting entirely.
+// Nginx -> Docker makes every request appear to come from the same proxy IP,
+// so non-admin authenticated users are bucketed by JWT token and unauthenticated
+// clients by the real client IP from X-Forwarded-For.
+const createLimiter = (baseMax, windowMinutes, messagePrefix) => {
+  const limiter = rateLimit({
     windowMs: windowMinutes * 60 * 1000,
-    // Admins and super admins get a much higher ceiling on the same bucket key
-    // so normal admin panel work never triggers a 429.
-    max: (req) => {
-      const role = getTokenRole(req.cookies?.token);
-      if (role === 'admin' || role === 'super admin') {
-        return 50000;
-      }
-      return baseMax;
-    },
+    max: baseMax,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
       success: false,
       message: `${messagePrefix}. Please try again after ${windowMinutes} minutes.`,
     },
-    // Nginx -> Docker makes every request appear to come from the same proxy IP,
-    // so bucket authenticated users by their JWT token and unauthenticated clients
-    // by the real client IP from X-Forwarded-For.
     keyGenerator: (req) => {
       const token = req.cookies?.token;
       if (token && token.length > 0) {
@@ -194,8 +208,20 @@ const createLimiter = (baseMax, windowMinutes, messagePrefix) =>
     },
   });
 
+  return (req, res, next) => {
+    const token = req.cookies?.token;
+    if (token && token.length > 0) {
+      const role = getTokenRole(token);
+      if (role === 'admin' || role === 'super admin') {
+        return next();
+      }
+    }
+    return limiter(req, res, next);
+  };
+};
+
 // Auth routes: strict to prevent brute-force / OTP abuse.
-const authLimiter = rateLimit({
+const authLimiterInternal = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
@@ -211,6 +237,18 @@ const authLimiter = rateLimit({
     return email ? `auth:${email}:${ip}` : `auth:${ip}`;
   },
 });
+
+const authLimiter = (req, res, next) => {
+  // Authenticated admin/super-admin users bypass auth rate limiting entirely.
+  const token = req.cookies?.token || req.cookies?.tempToken;
+  if (token && token.length > 0) {
+    const role = getTokenRole(token);
+    if (role === 'admin' || role === 'super admin') {
+      return next();
+    }
+  }
+  return authLimiterInternal(req, res, next);
+};
 
 // Public read routes: generous so customers can browse 100+ departments and paginated products.
 const publicReadLimiter = createLimiter(8000, 15, 'Too many requests');
@@ -305,6 +343,6 @@ app.get('/', (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
