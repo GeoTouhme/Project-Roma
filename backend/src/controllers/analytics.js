@@ -1,4 +1,5 @@
 const PageView = require('../models/PageView');
+const { getClientIp } = require('../utils/getClientIp');
 
 const trackView = async (req, res) => {
   try {
@@ -24,7 +25,7 @@ const trackView = async (req, res) => {
     await PageView.create({
       productSlug,
       productName: productName || '',
-      ip: req.ip || req.connection.remoteAddress || '',
+      ip: req.realIp || getClientIp(req),
       userAgent: req.get('User-Agent') || '',
       referrer,
       source,

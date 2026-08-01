@@ -22,6 +22,7 @@ const Cart = () => {
     crv: 0,
     total: 0,
   });
+  const [summaryError, setSummaryError] = useState(false);
 
   // Fetch estimated tax and CRV from the server whenever the cart changes.
   useEffect(() => {
@@ -32,6 +33,7 @@ const Cart = () => {
       }
 
       try {
+        setSummaryError(false);
         const items = cartItems.map((item) => ({
           pid: item.id,
           quantity: item.quantity,
@@ -40,6 +42,7 @@ const Cart = () => {
         if (response?.success && response.data) {
           setSummary(response.data);
         } else {
+          setSummaryError(true);
           // Fallback to local subtotal only if server summary fails.
           const localSubtotal = cartItems.reduce(
             (total, item) =>
@@ -52,6 +55,7 @@ const Cart = () => {
         }
       } catch (error) {
         console.error("Failed to load cart summary:", error);
+        setSummaryError(true);
         const localSubtotal = cartItems.reduce(
           (total, item) =>
             total +
@@ -191,13 +195,18 @@ const Cart = () => {
           {/* Cart Summary */}
           {cartItems.length > 0 && <div className="bg-gray-100 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4">Cart Total</h2>
+            {summaryError && (
+              <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded mb-4">
+                Tax and CRV could not be estimated right now. The total will be recalculated at checkout.
+              </p>
+            )}
             <div className="flex justify-between text-gray-700">
               <p>Subtotal:</p>
               <p>${subtotal?.toFixed(2)}</p>
             </div>
             <div className="flex justify-between text-gray-700 my-2">
               <p>Shipping:</p>
-              <p>Free</p>
+              <p>Calculated at checkout</p>
             </div>
             <div className="flex justify-between text-gray-700 my-2">
               <p>Tax:</p>

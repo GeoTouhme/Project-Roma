@@ -369,6 +369,21 @@ const Account = () => {
             <p className="text-gray-600">Welcome to your Account</p>
           </div>
 
+          {/* 🛡️ Soft reminder for Google sign-up users to add a phone number. */}
+          {!userInfoLoading && !user?.phone && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800 text-sm font-medium">
+                ⚠️ Please add a phone number to your profile. A phone number is required at checkout.
+              </p>
+              <button
+                onClick={() => setActiveTab("myInfo")}
+                className="mt-2 text-sm text-[#B5223B] font-semibold hover:underline"
+              >
+                Go to My Info
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row gap-8">
             {/* Sidebar Navigation */}
             <div className="w-full md:w-1/4">

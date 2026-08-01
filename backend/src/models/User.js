@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       select: false,
       required: [true, 'Please enter a password'],
-      minlength: 8,
+      minlength: [8, 'Password must be at least 8 characters'],
     },
     cover: {
       _id: {
@@ -52,8 +52,20 @@ const UserSchema = new mongoose.Schema(
     ],
     phone: {
       type: String,
-      required: [true, 'Please provide a Phone Number.'],
+      // Google sign-in users may not provide a phone immediately. It is enforced
+      // at checkout and on the account page before an order can be placed.
       maxlength: [20, 'Phone cannot be more than 20 characters.'],
+    },
+
+    provider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+
+    googleId: {
+      type: String,
+      sparse: true,
     },
 
     status: {
@@ -65,7 +77,8 @@ const UserSchema = new mongoose.Schema(
     },
     otp: {
       type: String,
-      required: true,
+      // Google-authenticated users are verified by Google; no local OTP is needed.
+      default: null,
     },
     // 🛡️ OTP security: expiration and failed-attempt lockout.
     otpExpiresAt: {
@@ -105,10 +118,11 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-// Hash the password before saving
+// Hash the password before saving. Google-authenticated users receive a random
+// placeholder password; if for any reason it is absent, skip hashing.
 UserSchema.pre('save', async function (next) {
   try {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
       return next();
     }
 

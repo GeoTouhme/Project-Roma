@@ -49,10 +49,16 @@ services:
       - UBER_DIRECT_CUSTOMER_ID=${UBER_DIRECT_CUSTOMER_ID}
       - UBER_DIRECT_WEBHOOK_SECRET=${UBER_DIRECT_WEBHOOK_SECRET}
       - FRONTEND_URL=${FRONTEND_URL:-https://balportliquors.com}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY:-}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
+      - LOG_REPORT_RECIPIENTS=${LOG_REPORT_RECIPIENTS:-}
+      - TZ=${TZ:-America/Los_Angeles}
     depends_on:
       - mongodb
     volumes:
       - ./uploads:/usr/src/app/uploads
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - balport-network
 
@@ -61,6 +67,7 @@ services:
       context: ./customer-panel
       args:
         - REACT_APP_API_URL=https://balportliquors.com
+        - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
         - REACT_APP_GOOGLE_MAPS_KEY=${REACT_APP_GOOGLE_MAPS_KEY}
         - REACT_APP_MAINTENANCE_MODE=false
         - REACT_APP_ORDERING_DISABLED=false
@@ -78,7 +85,7 @@ services:
         - VITE_API_URL=https://balportliquors.com
     container_name: balport-admin-panel
     ports:
-      - "5173:80"
+      - "127.0.0.1:5173:80"
     volumes:
       - /etc/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
     networks:

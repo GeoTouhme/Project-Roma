@@ -32,7 +32,7 @@ export const NotificationBell: React.FC = () => {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const prevUnreadRef = useRef(0);
 
-  // Play a short alarm beep using the Web Audio API so we don't depend on an MP3 file.
+  // Play a repeating urgent alarm using the Web Audio API so we don't depend on an MP3 file.
   const playAlarm = () => {
     if (!soundEnabled || !audioUnlocked) return;
     try {
@@ -40,17 +40,44 @@ export const NotificationBell: React.FC = () => {
         (window as any).AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return;
       const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
+      const now = ctx.currentTime;
+      const totalDuration = 2.0;
+      const beepDuration = 0.15;
+      const gapDuration = 0.1;
+
+      // Master gain with a gentle fade-out at the end.
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(1, now);
+      masterGain.gain.setValueAtTime(1, now + totalDuration - 0.2);
+      masterGain.gain.linearRampToValueAtTime(0, now + totalDuration);
+      masterGain.connect(ctx.destination);
+
+      for (let t = 0; t + beepDuration <= totalDuration; t += beepDuration + gapDuration) {
+        const start = now + t;
+
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = "square";
+        osc1.frequency.setValueAtTime(1047, start); // C6
+
+        osc2.type = "sawtooth";
+        osc2.frequency.setValueAtTime(1568, start); // G6
+
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.9, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + beepDuration);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(masterGain);
+
+        osc1.start(start);
+        osc2.start(start);
+        osc1.stop(start + beepDuration);
+        osc2.stop(start + beepDuration);
+      }
     } catch (err) {
       console.warn("Notification alarm play failed", err);
     }

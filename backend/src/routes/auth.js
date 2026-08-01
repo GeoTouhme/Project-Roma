@@ -3,7 +3,9 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const authController = require("../controllers/auth");
+const googleAuthController = require("../controllers/googleAuth");
 const verifyToken = require("../config/jwt");
+const { getClientIp } = require("../utils/getClientIp");
 
 // Helpers to decode role for rate-limit bucketing (access control still happens via verifyToken).
 function getTokenRole(token) {
@@ -36,17 +38,16 @@ const authLimiter = rateLimit({
     if (role === 'admin' || role === 'super admin') {
       return `auth-admin:${token}`;
     }
-    // Use the real client IP from X-Forwarded-For instead of the Docker gateway IP.
-    const forwarded = req.headers['x-forwarded-for'];
-    const clientIp = typeof forwarded === 'string'
-      ? forwarded.split(',')[0].trim() || req.ip
-      : req.ip;
+    // Use the real client IP (Cloudflare-aware) instead of the Docker gateway IP.
+    const clientIp = getClientIp(req);
     const ip = ipKeyGenerator(clientIp);
     return email ? `auth:${email}:${ip}` : `auth:${ip}`;
   },
 });
 
 router.post("/auth/register", authLimiter, authController.registerUser);
+
+router.post("/auth/google", authLimiter, googleAuthController.googleAuth);
 
 router.post("/auth/login", authLimiter, authController.loginUser);
 

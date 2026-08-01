@@ -18,6 +18,14 @@ AuthService.register = function (data) {
   });
 };
 
+AuthService.googleAuth = function (data) {
+  return fetch({
+    url: "auth/google",
+    method: "post",
+    data: data,
+  });
+};
+
 AuthService.verifyOtp = function (data) {
   return fetch({
     url: "auth/verify-otp",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Product from "../../assets/images/product.png";
 import { useDispatch, useSelector } from "react-redux";
 import PaymentService from "../../services/paymentService";
@@ -56,6 +56,11 @@ const Billing = () => {
   const supportedZipCodes = ["92663", "92646", "92612", "92647", "92661", "92707", "92648"];
 
   const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
+
+  const displayTotal = useMemo(
+    () => cartSummary.subtotal + cartSummary.tax + cartSummary.crv + deliveryFee + tip,
+    [cartSummary.subtotal, cartSummary.tax, cartSummary.crv, deliveryFee, tip]
+  );
 
   // Fetch authoritative tax/CRV/subtotal from the server whenever the cart changes.
   useEffect(() => {
@@ -272,6 +277,14 @@ const Billing = () => {
       return;
     }
 
+    // 🛡️ Google sign-up users can browse without a phone, but a phone number is
+    // required at checkout for delivery contact and compliance.
+    if (!userInfo?.phone && !phone.trim()) {
+      setCheckoutError("Please add a phone number to your account or enter one below to complete checkout.");
+      setErrors((prev) => ({ ...prev, phone: "Phone number is required at checkout." }));
+      return;
+    }
+
     const user = {
       firstName,
       lastName,
@@ -360,7 +373,6 @@ const Billing = () => {
 
       const confirmRes = await stripe.confirmCardPayment(clientSecret, {
         payment_method: paymentMethodReq.paymentMethod.id,
-        idempotencyKey,
       });
 
       if (confirmRes.error) {
@@ -655,7 +667,7 @@ const Billing = () => {
               <hr />
               <div className="flex justify-between font-semibold text-lg">
                 <p>Total:</p>
-                <p>${(cartSummary.subtotal + cartSummary.tax + cartSummary.crv + deliveryFee + tip).toFixed(2)}</p>
+                <p>${displayTotal.toFixed(2)}</p>
               </div>
             </div>
 

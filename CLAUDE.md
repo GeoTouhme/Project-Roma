@@ -148,10 +148,23 @@ Required:
 - `UBER_DIRECT_CLIENT_ID`, `UBER_DIRECT_CLIENT_SECRET`, `UBER_DIRECT_CUSTOMER_ID`, `UBER_DIRECT_WEBHOOK_SECRET` — Uber Direct API credentials
 - Email config for Nodemailer (SMTP host, user, pass)
 
+Optional (for Google Sign-In on customer panel):
+- `GOOGLE_CLIENT_ID` — server-side OAuth2 client ID used to verify Google ID tokens (`POST /api/auth/google`)
+- `REACT_APP_GOOGLE_CLIENT_ID` — same client ID passed to the customer panel build for the Google Identity Services button
+
+Optional (for daily automated log report):
+- `OLLAMA_BASE_URL` — Ollama-compatible API base URL (default: `http://localhost:11434`)
+- `OLLAMA_API_KEY` — API key for cloud Ollama endpoints (omit for local Ollama)
+- `OLLAMA_MODEL` — model name to use (default: `llama3.1`)
+- `LOG_REPORT_RECIPIENTS` — comma-separated email addresses for the daily report (e.g. `gtouhme@gmail.com,aldakhlalla1996@gmail.com`)
+- `TZ` — report timezone (default: `America/Los_Angeles`)
+
+> **Note:** The backend container mounts `/var/run/docker.sock` read-only so it can read its own logs for the report. This is a convenience trade-off; for stricter isolation, run the report from host cron instead.
+
 ### API Route Prefix
 
 All routes are mounted under `/api/`. Examples:
-- `POST /api/login`, `POST /api/register`
+- `POST /api/login`, `POST /api/register`, `POST /api/auth/google` — Google one-click sign-up/sign-in
 - `GET /api/products`, `GET /api/products/:slug`
 - `POST /api/orders`, `GET /api/orders/:id`
 - `POST /api/webhooks/doordash` — DoorDash delivery status webhook (no JWT)

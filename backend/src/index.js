@@ -13,17 +13,60 @@ const http = require('http');
 const { Server } = require('socket.io');
 const socketAuth = require('./config/socketAuth');
 const { setIO } = require('./utils/socketManager');
+const { getClientIp } = require('./utils/getClientIp');
+const { startDailyLogReportJob } = require('./jobs/dailyLogReport');
 // Load environment variables from .env file
 dotenv.config();
+
+// Start daily automated log analysis report in production.
+startDailyLogReportJob();
+
+// Cloudflare IP ranges — used to set Express trust proxy so req.ip resolves to the
+// real client IP when Cloudflare is in front of nginx. Updated 2026-08-01.
+const CLOUDFLARE_IP_RANGES = [
+  '173.245.48.0/20',
+  '103.21.244.0/22',
+  '103.22.200.0/22',
+  '103.31.4.0/22',
+  '141.101.64.0/18',
+  '108.162.192.0/18',
+  '190.93.240.0/20',
+  '188.114.96.0/20',
+  '197.234.240.0/22',
+  '198.41.128.0/17',
+  '162.158.0.0/15',
+  '104.16.0.0/13',
+  '104.24.0.0/14',
+  '172.64.0.0/13',
+  '131.0.72.0/22',
+  '2400:cb00::/32',
+  '2606:4700::/32',
+  '2803:f800::/32',
+  '2405:b500::/32',
+  '2405:8100::/32',
+  '2a06:98c0::/29',
+  '2c0f:f248::/32',
+];
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Parse allowed origins once, early, so both Socket.IO and Express CORS use the
+// same trimmed list. .env files often contain spaces after commas.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['https://balportliquors.com', 'https://admin.balportliquors.com'],
-    credentials: true
-  }
+    origin: allowedOrigins.length > 0
+      ? allowedOrigins
+      : ['https://balportliquors.com', 'https://admin.balportliquors.com'],
+    credentials: true,
+  },
+  path: '/socket.io/',
 });
 
 // Apply JWT auth to Socket.IO and join authenticated admin sockets to the admin room
@@ -40,14 +83,10 @@ setIO(io);
 // The 'simple' parser (Node's built-in querystring) treats all values as plain strings.
 app.set('query parser', 'simple');
 
-// 🛡️ SECURITY: Enable trust proxy to support rate limiting behind Nginx.
-// Set to 1 = trust exactly one proxy (Nginx). Using `true` is rejected by express-rate-limit v7+.
-app.set('trust proxy', 1);
-
-// Restrict CORS to known trusted origins — prevents cross-origin attacks
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : [];
+// 🛡️ SECURITY: Enable trust proxy to support rate limiting behind Nginx + Cloudflare.
+// Trust Cloudflare's IP ranges plus localhost. Using a specific IP list is more secure
+// than a hop count because Express only trusts X-Forwarded-For from these sources.
+app.set('trust proxy', [...CLOUDFLARE_IP_RANGES, '127.0.0.1']);
 
 // 🛡️ SECURITY: Restrict CORS to known origins — fixes VULN reported in pentest.
 // origin:true accepts ANY domain with credentials, enabling cross-site request forgery.
@@ -77,6 +116,7 @@ const helmetDirectives = {
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
     'https://js.stripe.com',
+    'https://accounts.google.com',
   ],
   styleSrc: [
     "'self'",
@@ -100,19 +140,22 @@ const helmetDirectives = {
   connectSrc: [
     "'self'",
     'https://balportliquors.com',
+    'https://www.balportliquors.com',
     'https://admin.balportliquors.com',
-    'http://localhost:5001',
     'https://api.stripe.com',
     'https://maps.googleapis.com',
     'https://www.google-analytics.com',
     'https://nrsgo.com',
     'https://res.cloudinary.com',
+    'https://accounts.google.com',
+    'https://oauth2.googleapis.com',
   ],
   frameSrc: [
     "'self'",
     'https://js.stripe.com',
     'https://checkout.stripe.com',
     'https://pay.google.com',
+    'https://accounts.google.com',
   ],
   objectSrc: ["'none'"],
   baseUri: ["'self'"],
@@ -126,16 +169,53 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(helmet({
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true,
-  },
+  // HSTS is already set by host nginx (max-age=63072000). Disable here to avoid
+  // duplicate headers with mismatched max-age values.
+  hsts: false,
   contentSecurityPolicy: {
     useDefaults: false,
     directives: helmetDirectives,
   },
 }));
+
+// Defense-in-depth: log Cloudflare request metadata and attach the real client IP.
+// Nginx already restricts origin access to Cloudflare IPs via allow-list, but this
+// middleware ensures every request that reaches Express carries Cloudflare headers.
+// Webhooks are included so we can correlate provider retries with CF-Ray IDs.
+app.use((req, res, next) => {
+  req.realIp = getClientIp(req);
+  req.cfRay = req.headers['cf-ray'] || '';
+
+  if (process.env.NODE_ENV === 'production') {
+    const hasCfRay = Boolean(req.cfRay);
+    const hasCfConnectingIp = Boolean(req.headers['cf-connecting-ip']);
+
+    // Only log anomalies for now. In the future this can be upgraded to a hard
+    // block once we are confident all legitimate traffic (including webhooks)
+    // flows through Cloudflare.
+    if (!hasCfRay && !req.originalUrl.startsWith('/api/webhooks/')) {
+      console.warn('Request without CF-Ray header reached origin:', {
+        method: req.method,
+        url: req.originalUrl,
+        realIp: req.realIp,
+        userAgent: req.get('User-Agent'),
+      });
+    }
+
+    // Webhooks from delivery providers may legitimately lack CF-Ray if they hit
+    // the origin directly during DNS propagation. Log but never block them here
+    // because nginx already enforces the Cloudflare allow-list.
+    if (!hasCfRay && req.originalUrl.startsWith('/api/webhooks/')) {
+      console.warn('Webhook request without CF-Ray header:', {
+        url: req.originalUrl,
+        realIp: req.realIp,
+        userAgent: req.get('User-Agent'),
+      });
+    }
+  }
+
+  next();
+});
 
 // Body parser with explicit size limit to prevent DoS via large payloads
 // Preserve raw body buffer for webhook signature verification
@@ -153,16 +233,9 @@ app.use(bodyParser.json({
 // Tiered rate limiting to balance customer browsing with abuse protection.
 // Limits are per user/IP per window. nginx sits in front as a single trusted proxy.
 
-// Use the leftmost X-Forwarded-For IP when behind Nginx so each visitor gets
-// their own bucket instead of everyone behind the Docker gateway sharing one.
-function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    const first = forwarded.split(',')[0].trim();
-    if (first) return first;
-  }
-  return req.ip;
-}
+// Client IP extraction is centralized in utils/getClientIp.js so rate limiters,
+// analytics, and any future features all agree on the real visitor IP behind
+// Cloudflare + nginx.
 
 // Decode the JWT (without verifying) to extract the user's role. Actual verification
 // is still done by verifyToken middleware on protected routes, so this only affects
@@ -229,10 +302,7 @@ const authLimiterInternal = rateLimit({
   message: { success: false, message: 'Too many auth attempts. Please try again after 15 minutes.' },
   keyGenerator: (req) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
-    const forwarded = req.headers['x-forwarded-for'];
-    const clientIp = typeof forwarded === 'string'
-      ? forwarded.split(',')[0].trim() || req.ip
-      : req.ip;
+    const clientIp = getClientIp(req);
     const ip = ipKeyGenerator(clientIp);
     return email ? `auth:${email}:${ip}` : `auth:${ip}`;
   },

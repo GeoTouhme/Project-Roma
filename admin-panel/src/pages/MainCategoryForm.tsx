@@ -200,6 +200,9 @@ const MainCategoryForm = () => {
               <SelectItem value="0.10">$0.10 (24 oz or larger)</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-sm text-muted-foreground">
+            CRV is calculated per container from each product's size label (e.g., 12 oz = $0.05, 24 oz or larger = $0.10). The selected rate is used only when a product's size cannot be parsed.
+          </p>
         </CardContent>
       </Card>
     </div>

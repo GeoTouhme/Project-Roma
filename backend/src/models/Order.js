@@ -47,7 +47,7 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'payment_failed', 'accepted', 'shipped', 'delivered', 'cancelled', 'disputed', 'refunded'],
+      enum: ['pending', 'processing', 'payment_failed', 'accepted', 'shipped', 'delivered', 'cancelled', 'disputed', 'refunded'],
       default: 'pending',
     },
     paymentStatus: {
@@ -119,6 +119,10 @@ const OrderSchema = new mongoose.Schema(
     },
     customerCancellationReason: {
       type: String,
+    },
+    clientIp: {
+      type: String,
+      default: '',
     },
     items: {
       type: Array,

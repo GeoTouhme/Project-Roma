@@ -205,84 +205,99 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // Use authenticated user from JWT, not client-provided user object
-    const orderUser = {
-      _id: req.user._id,
-      firstName: req.user.firstName,
-      lastName: req.user.lastName,
-      email: req.user.email,
-    };
-
     // Optional shipping details from the client must still come from a trusted source
     const shippingDetails = user || {};
-    orderUser.phone = shippingDetails.phone || req.user.phone || '';
-    orderUser.address = shippingDetails.address || req.user.address || '';
-    orderUser.city = shippingDetails.city || req.user.city || '';
-    orderUser.state = shippingDetails.state || req.user.state || '';
-    orderUser.country = shippingDetails.country || req.user.country || '';
-    orderUser.zip = shippingDetails.zip || req.user.zip || '';
+
+    // Use authenticated user ID/email from JWT, but allow the billing form’s first/last
+    // name to override empty JWT values (common for Google sign-up users whose Google
+    // profile may not expose a name, or for account holders updating their name).
+    const billingFirstName = shippingDetails.firstName?.trim();
+    const billingLastName = shippingDetails.lastName?.trim();
+    const jwtFirstName = req.user.firstName?.trim();
+    const jwtLastName = req.user.lastName?.trim();
+
+    const orderUser = {
+      _id: req.user._id,
+      firstName: billingFirstName || jwtFirstName || 'Customer',
+      lastName: billingLastName || jwtLastName || '',
+      email: req.user.email,
+      phone: shippingDetails.phone || req.user.phone || '',
+      address: shippingDetails.address || req.user.address || '',
+      city: shippingDetails.city || req.user.city || '',
+      state: shippingDetails.state || req.user.state || '',
+      country: shippingDetails.country || req.user.country || '',
+      zip: shippingDetails.zip || req.user.zip || '',
+    };
 
     const orderNo = await generateOrderNumber();
 
-    // Atomic transaction: decrement stock, create order, and record coupon use together.
-    // If any step fails, all changes are rolled back.
-    const session = await mongoose.startSession();
+    // 🛡️ SEQUENTIAL ORDER CREATION: this host runs MongoDB as a standalone node,
+    // so multi-document transactions are not supported ("replica set member or mongos"
+    // error). We perform the steps sequentially and attempt a best-effort rollback
+    // if any step fails, so stock changes are not left dangling.
     let orderCreated;
+    const stockAdjustments = [];
     try {
-      await session.withTransaction(async () => {
-        for (const item of updatedItems) {
-          const product = products.find((p) => p._id.toString() === item.pid);
-          const stockResult = await Products.findOneAndUpdate(
-            { _id: item.pid, available: { $gte: item.quantity } },
-            { $inc: { available: -item.quantity, sold: item.quantity } },
-            { new: true, runValidators: true, session }
-          );
-          if (!stockResult) {
-            throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
-          }
-        }
-
-        orderCreated = await Orders.create([{
-          paymentMethod,
-          paymentId,
-          discount,
-          tip: sanitizedTip,
-          tax,
-          crv: crvTotal,
-          total: orderTotal,
-          subTotal: grandTotal,
-          shipping,
-          items: updatedItems.map(({ image, ...others }) => others),
-          user: orderUser,
-          totalItems,
-          orderNo,
-          containsAlcohol,
-          status: 'pending',
-        }], { session });
-        orderCreated = orderCreated[0];
-
-        await User.findByIdAndUpdate(
-          req.user._id,
-          { $push: { orders: orderCreated._id } },
-          { session }
+      for (const item of updatedItems) {
+        const product = products.find((p) => p._id.toString() === item.pid);
+        const stockResult = await Products.findOneAndUpdate(
+          { _id: item.pid, available: { $gte: item.quantity } },
+          { $inc: { available: -item.quantity, sold: item.quantity } },
+          { new: true, runValidators: true }
         );
-
-        if (couponCode) {
-          await Coupons.findOneAndUpdate(
-            { code: couponCode },
-            { $addToSet: { usedBy: req.user.email } },
-            { session }
-          );
+        if (!stockResult) {
+          throw new Error(`Insufficient stock for product: ${product?.name || item.pid}`);
         }
+        stockAdjustments.push(item);
+      }
+
+      orderCreated = await Orders.create({
+        paymentMethod,
+        paymentId,
+        discount,
+        tip: sanitizedTip,
+        tax,
+        crv: crvTotal,
+        total: orderTotal,
+        subTotal: grandTotal,
+        shipping,
+        items: updatedItems.map(({ image, ...others }) => others),
+        user: orderUser,
+        totalItems,
+        orderNo,
+        containsAlcohol,
+        status: 'pending',
+        clientIp: req.realIp || '',
       });
-    } catch (transactionError) {
-      await session.endSession();
+
+      await User.findByIdAndUpdate(
+        req.user._id,
+        { $push: { orders: orderCreated._id } }
+      );
+
+      if (couponCode) {
+        await Coupons.findOneAndUpdate(
+          { code: couponCode },
+          { $addToSet: { usedBy: req.user.email } }
+        );
+      }
+    } catch (orderError) {
+      // Best-effort rollback: restore stock that was already decremented.
+      for (const item of stockAdjustments) {
+        try {
+          await Products.findByIdAndUpdate(
+            item.pid,
+            { $inc: { available: item.quantity, sold: -item.quantity } }
+          );
+        } catch (rollbackErr) {
+          console.error(`❌ Failed to rollback stock for ${item.pid}:`, rollbackErr.message);
+        }
+      }
       return res.status(400).json({
         success: false,
-        message: transactionError.message || 'Order could not be completed. Please try again.'
+        message: orderError.message || 'Order could not be completed. Please try again.'
       });
     }
-    await session.endSession();
 
 
     // --- Staff-Only Delivery ---

@@ -71,7 +71,7 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
       containsAlcohol = true;
     }
 
-    const price = product.priceSale;
+    const price = product.priceSale || product.price || 0;
     const total = price * item.quantity;
 
     return {
@@ -110,7 +110,11 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
       taxableSubtotal += itemTotal;
     }
     if (category?.crvRate) {
-      crvTotal += qty * getCrvPerItem(productSize, category.crvRate);
+      const crvPerItem = getCrvPerItem(productSize, category.crvRate);
+      const itemCrvTotal = round2(qty * crvPerItem);
+      crvTotal += itemCrvTotal;
+      item.crvPerItem = crvPerItem;
+      item.totalCrv = itemCrvTotal;
     }
   }
   crvTotal = round2(crvTotal);

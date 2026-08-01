@@ -46,11 +46,8 @@ function parseSizeToOz(size) {
  * Falls back to the category's default crvRate if size cannot be parsed.
  *
  * CA CRV per container:
- *   - Standard single-serve / 750 mL bottles      → $0.05
- *   - Large containers (≥ 1 liter / ~34 fl oz)  → $0.10
- *
- * The threshold is intentionally set at 30 fl oz so that 750 mL (~25.4 fl oz)
- * remains in the $0.05 tier while 1L and larger containers move to $0.10.
+ *   - Containers under 24 fl oz  → $0.05
+ *   - Containers 24 fl oz or larger → $0.10
  */
 function getCrvPerItem(size, categoryCrvRate = 0) {
   const oz = parseSizeToOz(size);
@@ -63,7 +60,7 @@ function getCrvPerItem(size, categoryCrvRate = 0) {
   // Category must be CRV-eligible for any deposit to apply.
   if (!categoryCrvRate) return 0;
 
-  return oz >= 30 ? 0.1 : 0.05;
+  return oz >= 24 ? 0.1 : 0.05;
 }
 
 /**

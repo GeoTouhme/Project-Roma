@@ -10,10 +10,17 @@ const path = require('path');
 const crypto = require('crypto');
 const sendEmail = require('../utils/mailer');
 const { emitToAdmins } = require('../utils/socketManager');
+const { getClientIp } = require('../utils/getClientIp');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
 const TOKEN_COOKIE_NAME = 'token';
+
+// 🛡️ SECURITY: Use the Cloudflare-aware client IP attached by defense-in-depth
+// middleware, falling back to the standalone helper if unavailable.
+function clientIp(req) {
+  return req.realIp || getClientIp(req) || '';
+}
 
 /**
  * 🛡️ SECURITY: Issue auth token as an HttpOnly, Secure, SameSite=Strict cookie.
@@ -216,9 +223,12 @@ const registerUser = async (req, res) => {
         email: user.email,
         flow: 'register',
         error: emailErrorMessage,
+        ip: clientIp(req),
         time: new Date().toISOString(),
       });
     }
+
+    console.log('🔐 User registered:', { email: user.email, ip: clientIp(req) });
 
     res.status(201).json({
       success: true,
@@ -270,10 +280,13 @@ const loginUser = async (req, res) => {
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
+      console.warn('🔐 Failed login attempt:', { email: safeEmail, ip: clientIp(req) });
       return res
         .status(400)
         .json({ success: false, message: 'Incorrect Password' });
     }
+
+    console.log('🔐 User logged in:', { email: user.email, ip: clientIp(req) });
 
     if (!user.isVerified) {
       return res.status(403).json({
@@ -378,10 +391,13 @@ const forgetPassword = async (req, res) => {
     const user = await User.findOne({ email: request.email.toLowerCase().trim() });
 
     if (!user) {
+      console.warn('🔐 Password reset requested for unknown email:', { email: request.email.toLowerCase().trim(), ip: clientIp(req) });
       return res
         .status(404)
         .json({ success: false, message: 'User Not Found ' });
     }
+
+    console.log('🔐 Password reset link requested:', { email: user.email, ip: clientIp(req) });
 
     const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
       expiresIn: '1h',
@@ -472,6 +488,8 @@ const resetPassword = async (req, res) => {
       password: hashedPassword,
     });
 
+    console.log('🔐 Password reset completed:', { email: user.email, ip: clientIp(req) });
+
     return res.status(200).json({
       success: true,
       message: 'Password Updated Successfully.',
@@ -554,6 +572,7 @@ const verifyOtp = async (req, res) => {
       setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
 
       message = 'OTP Verified Successfully';
+      console.log('🔐 Email verified via OTP:', { email: user.email, ip: clientIp(req) });
       return res.status(201).json({ success: true, message, user: {
         _id: user._id,
         firstName: user.firstName,
@@ -665,9 +684,12 @@ const resendOtp = async (req, res) => {
         email: user.email,
         flow: 'resend',
         error: emailErrorMessage,
+        ip: clientIp(req),
         time: new Date().toISOString(),
       });
     }
+
+    console.log('🔐 Verification code resent:', { email: user.email, ip: clientIp(req) });
 
     // Return the response
     if (!emailSent) {
@@ -731,6 +753,8 @@ const verifyEmailToken = async (req, res) => {
     }
 
     await user.save();
+
+    console.log('🔐 Email verified via signed link:', { email: user.email, ip: clientIp(req) });
 
     const authToken = jwt.sign(
       { _id: user._id, email: user.email, role: user.role },
@@ -947,6 +971,8 @@ const verifyMfa = async (req, res) => {
     ]);
 
     setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+
+    console.log('🔐 User logged in via MFA:', { email: user.email, ip: clientIp(req) });
 
     return res.status(200).json({
       success: true,

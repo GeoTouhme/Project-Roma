@@ -33,14 +33,15 @@ const payment_intents = async (req, res) => {
 			currency: currency.toLowerCase(),
 		};
 
-		// 🛡️ PREVENT DOUBLE-CHARGES: Stripe idempotency key ensures accidental
-		// duplicate requests (e.g., double-click on Place Order) reuse the same
-		// PaymentIntent instead of creating multiple charges.
+		// 🛡️ PREVENT DOUBLE-CHARGES: Stripe idempotency key must be passed as a
+		// separate request options object, not inside the create params. Otherwise
+		// Stripe ignores amount/currency and throws "missing required param: amount".
+		const requestOptions = {};
 		if (idempotencyKey && typeof idempotencyKey === 'string' && idempotencyKey.length <= 255) {
-			createOptions.idempotencyKey = idempotencyKey;
+			requestOptions.idempotencyKey = idempotencyKey;
 		}
 
-		const paymentIntent = await stripe.paymentIntents.create(createOptions);
+		const paymentIntent = await stripe.paymentIntents.create(createOptions, requestOptions);
 
 		return res.status(200).json({ client_secret: paymentIntent.client_secret });
 	} catch (error) {

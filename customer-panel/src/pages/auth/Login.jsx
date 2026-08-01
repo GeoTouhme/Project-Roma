@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthService from "../../services/authServices";
+import GoogleSignInButton from "../../components/google-signin/GoogleSignInButton";
 import { useDispatch } from "react-redux";
 import { login } from "../../redux/authSlice";
 import { toast } from "react-hot-toast";
@@ -256,8 +257,8 @@ const Login = () => {
               </>
             )}
 
-            {/* Social Login Options */}
-            {/* <div className="mt-8">
+            {/* Google Sign-In */}
+            <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300"></div>
@@ -267,25 +268,10 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  className="py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <div className="flex items-center justify-center">
-                    <span>Google</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <div className="flex items-center justify-center">
-                    <span>Facebook</span>
-                  </div>
-                </button>
+              <div className="mt-6">
+                <GoogleSignInButton text="signin_with" />
               </div>
-            </div> */}
+            </div>
           </div>
         </div>
       </div>
