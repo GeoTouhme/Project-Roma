@@ -7,7 +7,8 @@ COPY package.json ./
 
 # Install dependencies
 
-RUN npm install --force
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --force
 
 COPY . .
 

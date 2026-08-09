@@ -1,7 +1,13 @@
+# Use Docker BuildKit for faster builds with cache mounts:
+#   export DOCKER_BUILDKIT=1
+# Or enable permanently in /etc/docker/daemon.json:
+#   { "features": { "buildkit": true } }
+#
 # Secrets are sourced from /etc/project-roma/.env (chmod 600, owned by root).
 # A symlink at /var/www/Project-Roma/.env points to that file so Docker Compose
 # automatically loads the variables for both substitution and container env.
-# Run with: docker compose up --build
+# For local dev: create .env.local in this directory and run:
+#   docker compose --env-file .env.local up --build
 # The backend/.env.example file lists every variable this compose file expects.
 
 services:
@@ -19,7 +25,7 @@ services:
     build: ./backend
     container_name: balport-backend
     ports:
-      - "127.0.0.1:5001:5001"
+      - "0.0.0.0:5001:5001"
     environment:
       - NODE_ENV=production
       - PORT=5001
@@ -66,7 +72,7 @@ services:
     build:
       context: ./customer-panel
       args:
-        - REACT_APP_API_URL=https://balportliquors.com
+        - REACT_APP_API_URL=http://192.168.88.218:5001
         - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
         - REACT_APP_GOOGLE_MAPS_KEY=${REACT_APP_GOOGLE_MAPS_KEY}
         - REACT_APP_MAINTENANCE_MODE=false
@@ -74,7 +80,7 @@ services:
         - REACT_APP_STRIPE_PUBLIC_KEY=${REACT_APP_STRIPE_PUBLIC_KEY}
     container_name: balport-customer-panel
     ports:
-      - "127.0.0.1:3000:80"
+      - "0.0.0.0:3000:80"
     networks:
       - balport-network
 

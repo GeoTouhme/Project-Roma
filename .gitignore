@@ -32,3 +32,9 @@ yarn-error.log*
 pentest.md
 .aidesigner/*
 !.aidesigner/.gitkeep
+
+# Local development artifacts
+price_book_clean.csv
+backend/node_modules/
+customer-panel/node_modules/
+admin-panel/node_modules/

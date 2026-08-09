@@ -7,17 +7,17 @@ const { safeString, safeObjectId, safeNumber } = require('../utils/validators');
 const Category = require('../models/Category');
 const SubCategory = require('../models/SubCategory');
 
-const ALCOHOLIC_CATEGORIES = [
-  '69bc40b76f0fa539b06ef96a', // TEQUILA
-  '69bc40d16f0fa539b06ef988', // RUM
-  '69bc40df6f0fa539b06ef992', // WINE
-  '69bc40e26f0fa539b06ef997', // GIN
-  '69bc41066f0fa539b06ef9b4', // VODKA
-  '69bc42556f0fa539b06efa4f', // BEER
-  '69bc44f76f0fa539b06efb77', // WHISKEY
-  '69bd4c23013d204dfbd805e3', // COCKTAILS & SELTZERS
-  '69bd4c23013d204dfbd805e5', // LIQUEUR & SPIRITS
-].map(id => new mongoose.Types.ObjectId(id));
+const ALCOHOLIC_CATEGORY_SLUGS = [
+  'wine', 'beer', 'spirits', 'ready-to-drink-seltzers',
+];
+
+const getAlcoholicCategoryIds = async () => {
+  const categories = await Category.find({
+    slug: { $in: ALCOHOLIC_CATEGORY_SLUGS },
+  }).select('_id');
+  return categories.map((cat) => cat._id);
+};
+
 const _ = require('lodash');
 const CloudinaryService = require('../services/cloudinary.service');
 const blurDataUrl = require('../config/getBlurDataURL');
@@ -88,6 +88,8 @@ const getProducts = async (req, res) => {
     console.log('--- EXECUTING GET_PRODUCTS WITH ALCOHOL SORT ---');
     console.log('Clean Mongo Query:', JSON.stringify(productSearchQuery));
 
+    const alcoholicCategoryIds = await getAlcoholicCategoryIds();
+
     const totalProducts = await Product.countDocuments(productSearchQuery);
 
     const products = await Product.aggregate([
@@ -103,7 +105,7 @@ const getProducts = async (req, res) => {
         $addFields: {
           isAlcoholic: {
             $cond: {
-              if: { $in: ['$category', ALCOHOLIC_CATEGORIES] },
+              if: { $in: ['$category', alcoholicCategoryIds] },
               then: 1,
               else: 0
             }
