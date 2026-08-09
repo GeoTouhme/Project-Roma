@@ -18,6 +18,10 @@ jobs:
       packages: write
 
     steps:
+      - name: Set lowercase repository owner
+        id: repo
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -36,7 +40,7 @@ jobs:
         with:
           context: ./backend
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/project-roma-backend:latest
+          tags: ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/project-roma-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -49,7 +53,7 @@ jobs:
             REACT_APP_MAINTENANCE_MODE=false
             REACT_APP_ORDERING_DISABLED=false
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/project-roma-customer-panel:latest
+          tags: ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/project-roma-customer-panel:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -60,6 +64,6 @@ jobs:
           build-args: |
             VITE_API_URL=https://balportliquors.com
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/project-roma-admin-panel:latest
+          tags: ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/project-roma-admin-panel:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
