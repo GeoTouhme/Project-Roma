@@ -9,7 +9,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPO_OWNER: geotoume
 
 jobs:
   build-and-push:
@@ -24,8 +23,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          install: true
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -39,7 +36,7 @@ jobs:
         with:
           context: ./backend
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/project-roma-backend:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/project-roma-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -52,7 +49,7 @@ jobs:
             REACT_APP_MAINTENANCE_MODE=false
             REACT_APP_ORDERING_DISABLED=false
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/project-roma-customer-panel:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/project-roma-customer-panel:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -63,6 +60,6 @@ jobs:
           build-args: |
             VITE_API_URL=https://balportliquors.com
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/project-roma-admin-panel:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/project-roma-admin-panel:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
