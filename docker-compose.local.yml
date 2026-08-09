@@ -1,13 +1,14 @@
-# Production Docker Compose for Project Roma.
-# Images are pulled from GitHub Container Registry (GHCR) built by GitHub Actions.
-# Run: docker compose pull && docker compose up -d
-# For local development/build, use docker-compose.local.yml instead.
+# Use Docker BuildKit for faster builds with cache mounts:
+#   export DOCKER_BUILDKIT=1
+# Or enable permanently in /etc/docker/daemon.json:
+#   { "features": { "buildkit": true } }
 #
 # Secrets are sourced from /etc/project-roma/.env (chmod 600, owned by root).
 # A symlink at /var/www/Project-Roma/.env points to that file so Docker Compose
 # automatically loads the variables for both substitution and container env.
 # For local dev: create .env.local in this directory and run:
-#   docker compose --env-file .env.local up -d
+#   docker compose --env-file .env.local up --build
+# The backend/.env.example file lists every variable this compose file expects.
 
 services:
   mongodb:
@@ -21,7 +22,7 @@ services:
       - balport-network
 
   backend:
-    image: ghcr.io/geotoume/project-roma-backend:latest
+    build: ./backend
     container_name: balport-backend
     ports:
       - "0.0.0.0:5001:5001"
@@ -68,7 +69,15 @@ services:
       - balport-network
 
   customer-panel:
-    image: ghcr.io/geotoume/project-roma-customer-panel:latest
+    build:
+      context: ./customer-panel
+      args:
+        - REACT_APP_API_URL=http://192.168.88.218:5001
+        - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+        - REACT_APP_GOOGLE_MAPS_KEY=${REACT_APP_GOOGLE_MAPS_KEY}
+        - REACT_APP_MAINTENANCE_MODE=false
+        - REACT_APP_ORDERING_DISABLED=false
+        - REACT_APP_STRIPE_PUBLIC_KEY=${REACT_APP_STRIPE_PUBLIC_KEY}
     container_name: balport-customer-panel
     ports:
       - "0.0.0.0:3000:80"
@@ -76,7 +85,10 @@ services:
       - balport-network
 
   admin-panel:
-    image: ghcr.io/geotoume/project-roma-admin-panel:latest
+    build:
+      context: ./admin-panel
+      args:
+        - VITE_API_URL=https://balportliquors.com
     container_name: balport-admin-panel
     ports:
       - "127.0.0.1:5173:80"
