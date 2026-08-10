@@ -4,6 +4,7 @@ uploads/
 product-images/
 image-upload/
 .nextcloud-extracted/
+backups/
 *.log
 node_modules/
 dist/
