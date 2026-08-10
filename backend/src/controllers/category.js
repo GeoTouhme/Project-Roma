@@ -172,9 +172,9 @@ const deleteCategoryBySlug = async (req, res) => {
 };
 const getCategories = async (req, res) => {
 	try {
-		const { limit = 10, page = 1, search = "" } = req.query;
+		const { limit = 20, page = 1, search = "" } = req.query;
 
-		const skip = parseInt(limit) || 10;
+		const skip = parseInt(limit) || 20;
 		const safeSearch = escapeRegex(search);
 		const totalCategories = await Categories.find({
 			name: { $regex: safeSearch, $options: "i" },
