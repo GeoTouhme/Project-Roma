@@ -33,6 +33,14 @@ const Search=async(req,res)=> {
         status: { $nin: ['disabled', 'inactive'] },
         available: { $gt: 0 },
         images: { $exists: true, $ne: [] },
+        $expr: {
+          $not: {
+            $regexMatch: {
+              input: { $arrayElemAt: ['$images.url', 0] },
+              regex: 'placeholder',
+            },
+          },
+        },
       },
       null,
       { limit: 10 }

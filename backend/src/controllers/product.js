@@ -28,12 +28,19 @@ const getProducts = async (req, res) => {
   try {
     const query = req.query;
 
-    // Build a clean match query from scratch
     let productSearchQuery = {
-      // Hide disabled/inactive products and placeholder products without photos.
+      // Hide disabled/inactive products and products without real photos.
       status: { $nin: ['disabled', 'inactive'] },
       available: { $gt: 0 },
       images: { $exists: true, $ne: [] },
+      $expr: {
+        $not: {
+          $regexMatch: {
+            input: { $arrayElemAt: ['$images.url', 0] },
+            regex: 'placeholder',
+          },
+        },
+      },
     };
 
     // 1. Handle Partial Search by Name with Security Sanitization
@@ -546,6 +553,14 @@ const getFiltersByCategory = async (req, res) => {
       available: { $gt: 0 },
       category: categoryData._id,
       images: { $exists: true, $ne: [] },
+      $expr: {
+        $not: {
+          $regexMatch: {
+            input: { $arrayElemAt: ['$images.url', 0] },
+            regex: 'placeholder',
+          },
+        },
+      },
     }).select(['colors', 'sizes', 'gender']);
     const brands = await Brand.find({
       status: { $nin: ['disabled', 'inactive'] },
@@ -603,6 +618,14 @@ const getFiltersBySubCategory = async (req, res) => {
       available: { $gt: 0 },
       subCategory: subCategoryData._id,
       images: { $exists: true, $ne: [] },
+      $expr: {
+        $not: {
+          $regexMatch: {
+            input: { $arrayElemAt: ['$images.url', 0] },
+            regex: 'placeholder',
+          },
+        },
+      },
     }).select(['colors', 'sizes', 'gender']);
     const brands = await Brand.find({
       status: { $nin: ['disabled', 'inactive'] },
@@ -637,7 +660,19 @@ const getFiltersBySubCategory = async (req, res) => {
 
 const getAllProductSlug = async (req, res) => {
   try {
-    const products = await Product.find({ status: { $nin: ['disabled', 'inactive'] }, available: { $gt: 0 }, images: { $exists: true, $ne: [] } }).select('slug');
+    const products = await Product.find({
+      status: { $nin: ['disabled', 'inactive'] },
+      available: { $gt: 0 },
+      images: { $exists: true, $ne: [] },
+      $expr: {
+        $not: {
+          $regexMatch: {
+            input: { $arrayElemAt: ['$images.url', 0] },
+            regex: 'placeholder',
+          },
+        },
+      },
+    }).select('slug');
 
     return res.status(200).json({
       success: true,
@@ -675,6 +710,14 @@ const relatedProducts = async (req, res) => {
           status: { $nin: ['disabled', 'inactive'] },
           available: { $gt: 0 },
           images: { $exists: true, $ne: [] },
+          $expr: {
+            $not: {
+              $regexMatch: {
+                input: '$image.url',
+                regex: 'placeholder',
+              },
+            },
+          },
         },
       },
       {
@@ -711,7 +754,20 @@ const getOneProductBySlug = async (req, res) => {
     if (!slug) {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
-    const product = await Product.findOne({ slug, status: { $nin: ['disabled', 'inactive'] }, available: { $gt: 0 }, images: { $exists: true, $ne: [] } });
+    const product = await Product.findOne({
+      slug,
+      status: { $nin: ['disabled', 'inactive'] },
+      available: { $gt: 0 },
+      images: { $exists: true, $ne: [] },
+      $expr: {
+        $not: {
+          $regexMatch: {
+            input: { $arrayElemAt: ['$images.url', 0] },
+            regex: 'placeholder',
+          },
+        },
+      },
+    });
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product Not Found' });

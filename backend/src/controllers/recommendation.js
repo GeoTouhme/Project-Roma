@@ -9,6 +9,14 @@ const STOREfront_FILTER = {
   status: { $nin: ['disabled', 'inactive'] },
   available: { $gt: 0 },
   images: { $exists: true, $ne: [] },
+  $expr: {
+    $not: {
+      $regexMatch: {
+        input: { $arrayElemAt: ['$images.url', 0] },
+        regex: 'placeholder',
+      },
+    },
+  },
 };
 
 // After a $lookup/$unwind the product lives under the `product` field.
@@ -16,6 +24,14 @@ const AGGREGATE_PRODUCT_FILTER = {
   'product.status': { $nin: ['disabled', 'inactive'] },
   'product.available': { $gt: 0 },
   'product.images': { $exists: true, $ne: [] },
+  $expr: {
+    $not: {
+      $regexMatch: {
+        input: { $arrayElemAt: ['$product.images.url', 0] },
+        regex: 'placeholder',
+      },
+    },
+  },
 };
 
 // Weight online purchase behavior more heavily than physical-store baskets.
