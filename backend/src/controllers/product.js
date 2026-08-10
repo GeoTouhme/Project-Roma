@@ -121,6 +121,8 @@ const getProducts = async (req, res) => {
         $project: {
           _id: 1,
           image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          images: 1,
+          sku: 1,
           name: 1,
           slug: 1,
           colors: 1,
