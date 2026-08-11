@@ -2,8 +2,8 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-const cloudinary = require('./src/config/cloudinary');
-const Product = require('./src/models/Product');
+const cloudinary = require('../config/cloudinary');
+const Product = require('../models/Product');
 
 const LOCAL_IMAGE_DIRS = process.env.LOCAL_IMAGE_DIRS
   ? process.env.LOCAL_IMAGE_DIRS.split(',')
