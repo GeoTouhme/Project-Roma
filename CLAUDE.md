@@ -4,7 +4,42 @@
 
 **Project Roma** is a full-stack e-commerce platform for **Bal-Port Liquors**, a liquor store located at 4521 W Coast Hwy, Newport Beach, CA 92663. The platform consists of three independently deployable services plus a MongoDB database, all orchestrated via Docker Compose.
 
-**Live domain:** `balportliquors.com` (IP: `31.97.132.106`)
+**Live domain:** `balportliquors.com`  
+**Production VPS IP:** `2.24.104.25` (Hostinger)  
+**Local dev server:** `192.168.88.218` (home lab)
+
+**Current state (2026-08-11):**
+- 8,815 products in MongoDB
+- ~1,694 products visible to customers (have real images)
+- ~7,121 products hidden from customers (no real image / placeholder)
+
+---
+
+## Environments
+
+| Environment | Location | Domain | Use |
+|---|---|---|---|
+| Production | Hostinger VPS | `balportliquors.com`, `admin.balportliquors.com`, `api.balportliquors.com` | Live store |
+| Development | Home server 192.168.88.218 | `balport.home`, admin/internal IPs | Development/testing |
+
+---
+
+## Critical Rules for Production
+
+1. **NEVER expose MongoDB port 27017 to the public internet.** It is bound to `127.0.0.1` only.
+2. **NEVER commit `.env.local` or any secrets to Git.** It is in `.gitignore`.
+3. **ALWAYS backup the database before risky operations:**
+   ```bash
+   cd /home/geo/projects/Project-Roma
+   docker compose --env-file .env.local exec mongodb bash -c 'mongodump --db=liquor_shop --archive' > /tmp/balport-$(date +%Y%m%d-%H%M%S).dump
+   ```
+4. **Cloudinary account is at free-tier limit (31.21/25 credits).** Do not apply `e_background_removal,b_white` transformations on new image URLs.
+5. **Customer-facing APIs must only return products with real images.** Products with placeholder URLs are hidden.
+6. **Rebuild panels after changing `REACT_APP_API_URL` or `VITE_API_URL`:**
+   ```bash
+   cd /home/geo/projects/Project-Roma
+   docker compose --env-file .env.local up --build -d
+   ```
 
 ---
 
