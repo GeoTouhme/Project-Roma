@@ -28,14 +28,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: ./backend
-          trivyignores: backend/.trivyignore
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: '1'
+        run: |
+          docker run --rm \
+            -v "$(pwd)/backend:/repo" \
+            aquasec/trivy:0.36.0 fs \
+              --no-progress \
+              --severity CRITICAL,HIGH \
+              --exit-code 1 \
+              /repo
 
   gitleaks:
     name: Gitleaks (Secrets)
