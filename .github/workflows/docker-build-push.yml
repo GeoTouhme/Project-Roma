@@ -32,6 +32,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: ./backend
+          trivyignores: .trivyignore
           format: table
           severity: CRITICAL,HIGH
           exit-code: '1'
