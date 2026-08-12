@@ -45,5 +45,8 @@
     "@babel/core": "^8.0.1",
     "@babel/preset-react": "^8.0.1",
     "nodemon": "^3.0.3"
+  },
+  "allowScripts": {
+    "bcrypt@5.1.1": true
   }
 }
