@@ -1,29 +1,14 @@
-# Trivy IaC / dependency scan exceptions for Project-Roma
-# These affect build-time tooling in the React panels, not the production runtime.
-# Backend runtime issues (axios, bcrypt, nodemailer, tar) are fixed in package.json.
+# Trivy fs-scan exceptions for Project-Roma backend runtime dependencies.
+# The admin/customer panels are scanned separately in their Docker build stages;
+# their build-time devDependency CVEs do not affect the production static build.
 
-# Admin panel build dependencies (dev-time only)
-CVE-2026-44728
-CVE-2026-18446
-CVE-2026-6321
-CVE-2026-33228
-CVE-2025-7783
-CVE-2026-12143
-CVE-2026-9277
-
-# Customer panel build dependencies (dev-time only)
-# Same React/build-time packages as admin panel; suppress if they appear here too.
-CVE-2026-44728
-CVE-2026-18446
-CVE-2026-6321
-CVE-2026-33228
-CVE-2025-7783
-CVE-2026-12143
-CVE-2026-9277
-
-# multer 1.x is EOL and has no non-breaking fix; used only for admin image uploads.
-# Migration to multer 2.x is tracked separately.
-CVE-2025-47935
-
-# uuid moderate issues do not fail severity=HIGH/CRITICAL scan, but keep here as a note.
-# GHSA-w5hq-g745-h8pq
+# multer 1.x is end-of-life. The fixed versions are 2.x+ which is a breaking API
+# change for the admin image upload pipeline. These are accepted until a planned
+# migration to multer 2.x / alternative upload handler.
+CVE-2025-47944
+CVE-2025-48997
+CVE-2025-7338
+CVE-2026-2359
+CVE-2026-3304
+CVE-2026-3520
+CVE-2026-5079
