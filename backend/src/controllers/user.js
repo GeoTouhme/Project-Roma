@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Orders = require('../models/Order');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { getUser } = require('../config/getUser');
 
 const getOneUser = async (req, res) => {
