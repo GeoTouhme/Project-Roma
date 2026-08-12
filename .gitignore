@@ -6,6 +6,9 @@ image-upload/
 .nextcloud-extracted/
 backups/
 *.log
+*.tsv
+*.txt
+data/products-with-real-images.*
 node_modules/
 dist/
 build/
