@@ -1,3 +1,0 @@
-# Trivy fs-scan exceptions for Project-Roma backend runtime dependencies.
-# The admin/customer panels are scanned separately in their Docker build stages;
-# their build-time devDependency CVEs do not affect the production static build.
