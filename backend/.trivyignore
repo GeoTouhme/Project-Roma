@@ -1,14 +1,3 @@
 # Trivy fs-scan exceptions for Project-Roma backend runtime dependencies.
 # The admin/customer panels are scanned separately in their Docker build stages;
 # their build-time devDependency CVEs do not affect the production static build.
-
-# multer 1.x is end-of-life. The fixed versions are 2.x+ which is a breaking API
-# change for the admin image upload pipeline. These are accepted until a planned
-# migration to multer 2.x / alternative upload handler.
-CVE-2025-47944
-CVE-2025-48997
-CVE-2025-7338
-CVE-2026-2359
-CVE-2026-3304
-CVE-2026-3520
-CVE-2026-5079
