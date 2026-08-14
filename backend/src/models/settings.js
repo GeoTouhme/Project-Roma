@@ -8,6 +8,17 @@ const operatingHoursSchema = new mongoose.Schema({
     close: { type: String, default: '00:00' }, // HH:mm format
 }, { _id: false });
 
+const heroSlideSchema = new mongoose.Schema({
+    image: { type: String, required: true }, // Cloudinary / public URL
+    alt: { type: String, default: '' },
+    tagline: { type: String, default: '' },
+    title: { type: String, default: '' },
+    subtitle: { type: String, default: '' },
+    buttonText: { type: String, default: '' },
+    buttonLink: { type: String, default: '' },
+    order: { type: Number, default: 0 },
+}, { _id: false });
+
 const settingsSchema = new mongoose.Schema({
     // Using a fixed key to ensure only one settings document exists
     key: { type: String, default: 'storeConfig', unique: true },
@@ -37,6 +48,10 @@ const settingsSchema = new mongoose.Schema({
         fee: { type: Number, required: true, min: 0 },
         _id: false,
     }],
+    heroSlides: {
+        type: [heroSlideSchema],
+        default: [],
+    },
 });
 
 // Create a default settings document if it doesn't exist

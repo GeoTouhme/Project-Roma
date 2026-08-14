@@ -9,6 +9,10 @@ backups/
 *.tsv
 *.txt
 data/products-with-real-images.*
+data/extracted-images
+data/nextcloud-zips
+data/
+*.csv
 node_modules/
 dist/
 build/
