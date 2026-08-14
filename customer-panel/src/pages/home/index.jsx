@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import Slide1Wine from "../../assets/images/slide-1-wine.jpg";
-import Slide2Cocktail from "../../assets/images/slide-2-cocktail.jpg";
-import Slide3Beer from "../../assets/images/slide-3-beer.jpg";
-import Slide4DeliveryNew from "../../assets/images/slide-4-delivery-new.jpg";
-import Slide5Summer from "../../assets/images/slide-5-summer.jpg";
+import DefaultSlide1Wine from "../../assets/images/slide-1-wine.jpg";
+import DefaultSlide2Cocktail from "../../assets/images/slide-2-cocktail.jpg";
+import DefaultSlide3Beer from "../../assets/images/slide-3-beer.jpg";
+import DefaultSlide4DeliveryNew from "../../assets/images/slide-4-delivery-new.jpg";
+import DefaultSlide5Summer from "../../assets/images/slide-5-summer.jpg";
 
 import FixedBg from "../../assets/images/fixed-bg.png";
 import Shape1 from "../../assets/images/shape-1.png";
@@ -14,17 +14,85 @@ import ProductCard from "../../components/product-card";
 import Icons from "../../components/svg";
 import Slider from "react-slick";
 import HomeService from "../../services/homeService";
+import SettingsService from "../../services/settingsService";
 import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
 import { safeJSONParse } from "../../utils/safeStorage";
+
+const DEFAULT_HERO_SLIDES = [
+  {
+    image: DefaultSlide1Wine,
+    alt: "Premium Wine",
+    tagline: "Premium Collection",
+    title: "Natural & Premium Wines",
+    subtitle: "Curated Selection for Every Occasion",
+    buttonText: "Shop Wine",
+    buttonLink: "/category/wine",
+  },
+  {
+    image: DefaultSlide2Cocktail,
+    alt: "Premium Cocktails",
+    tagline: "Top Shelf Selection",
+    title: "Elevate Your Spirits",
+    subtitle: "Premium Tequila, Vodka & Mixers",
+    buttonText: "Shop Spirits",
+    buttonLink: "/products",
+  },
+  {
+    image: DefaultSlide3Beer,
+    alt: "Cold Beers",
+    tagline: "Ice Cold Selection",
+    title: "Game Night Ready",
+    subtitle: "Cold Beers & Your Favorite Snacks",
+    buttonText: "Shop Beer",
+    buttonLink: "/products",
+  },
+  {
+    image: DefaultSlide4DeliveryNew,
+    alt: "Fast Delivery",
+    tagline: "Fast & Reliable",
+    title: "Premium Drinks, Delivered Fast",
+    subtitle: "Your Favorite Liquor at Your Doorstep",
+    buttonText: "Order Now",
+    buttonLink: "/products",
+  },
+  {
+    image: DefaultSlide5Summer,
+    alt: "Summer Drinks",
+    tagline: "Seasonal Picks",
+    title: "Taste the Summer",
+    subtitle: "Ice-Cold Beers & Hard Seltzers",
+    buttonText: "Refresh Now",
+    buttonLink: "/products",
+  },
+];
 
 const Home = () => {
   const [bestSellerProducts, setBestSellerProducts] = useState([]);
   const [bestSellerProductsLoading, setBestSellerProductsLoading] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProductsLoading, setFeaturedProductsLoading] = useState(false);
+  const [heroSlides, setHeroSlides] = useState(DEFAULT_HERO_SLIDES);
   const isAuthenticated = safeJSONParse("isAuthenticated", false);
   const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
   const user_id = userInfo?._id || "";
+
+  useEffect(() => {
+    let cancelled = false;
+    SettingsService.getSettings()
+      .then((response) => {
+        if (cancelled || !response?.success || !response?.data?.heroSlides) return;
+        const slides = response.data.heroSlides;
+        if (Array.isArray(slides) && slides.length > 0) {
+          setHeroSlides(slides);
+        }
+      })
+      .catch((error) => {
+        console.log("getSettings error = ", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fetchBestSellerProducts = useCallback(() => {
     setBestSellerProductsLoading(true)
@@ -176,115 +244,37 @@ const Home = () => {
     <div className="main">
       <section className="hero">
         <Slider {...heroSliderSettings} className="hero-slider">
-          <div className="hero-inner relative">
-            <img
-              src={Slide1Wine}
-              alt="Premium Wine"
-              className="w-full md:h-[600px] h-[350px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
-              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Premium Collection</p>
-              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
-                Natural & Premium Wines
-              </h1>
-              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Curated Selection for Every Occasion</p>
-              <a
-                href="/category/wine"
-                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-              >
-                Shop Wine
-              </a>
+          {heroSlides.map((slide, index) => (
+            <div key={index} className="hero-inner relative">
+              <img
+                src={slide.image}
+                alt={slide.alt || slide.title || `Slide ${index + 1}`}
+                className="w-full md:h-[600px] h-[350px] object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+              <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+                {slide.tagline && (
+                  <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">{slide.tagline}</p>
+                )}
+                {slide.title && (
+                  <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
+                    {slide.title}
+                  </h1>
+                )}
+                {slide.subtitle && (
+                  <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">{slide.subtitle}</p>
+                )}
+                {slide.buttonText && slide.buttonLink && (
+                  <a
+                    href={slide.buttonLink}
+                    className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
+                  >
+                    {slide.buttonText}
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-
-          <div className="hero-inner relative">
-            <img
-              src={Slide2Cocktail}
-              alt="Premium Cocktails"
-              className="w-full md:h-[600px] h-[350px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
-              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Top Shelf Selection</p>
-              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
-                Elevate Your Spirits
-              </h1>
-              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Premium Tequila, Vodka & Mixers</p>
-              <a
-                href="/products"
-                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-              >
-                Shop Spirits
-              </a>
-            </div>
-          </div>
-
-          <div className="hero-inner relative">
-            <img
-              src={Slide3Beer}
-              alt="Cold Beers"
-              className="w-full md:h-[600px] h-[350px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
-              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Ice Cold Selection</p>
-              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
-                Game Night Ready
-              </h1>
-              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Cold Beers & Your Favorite Snacks</p>
-              <a
-                href="/products"
-                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-              >
-                Shop Beer
-              </a>
-            </div>
-          </div>
-
-          <div className="hero-inner relative">
-            <img
-              src={Slide4DeliveryNew}
-              alt="Fast Delivery"
-              className="w-full md:h-[600px] h-[350px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
-              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Fast & Reliable</p>
-              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
-                Premium Drinks, Delivered Fast
-              </h1>
-              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Your Favorite Liquor at Your Doorstep</p>
-              <a
-                href="/products"
-                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-              >
-                Order Now
-              </a>
-            </div>
-          </div>
-
-          <div className="hero-inner relative">
-            <img
-              src={Slide5Summer}
-              alt="Summer Drinks"
-              className="w-full md:h-[600px] h-[350px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
-            <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
-              <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">Seasonal Picks</p>
-              <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
-                Taste the Summer
-              </h1>
-              <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">Ice-Cold Beers & Hard Seltzers</p>
-              <a
-                href="/products"
-                className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-              >
-                Refresh Now
-              </a>
-            </div>
-          </div>
+          ))}
         </Slider>
       </section>
       <section
@@ -302,14 +292,13 @@ const Home = () => {
               </h6>
             </div>
             <p className="text-[18px]/[28px] text-black tracking-[-0.1px]">
-              Experience the rich flavors and craftsmanship of our newly launched signature wine collection. Sourced
-              from the finest vineyards, each bottle is carefully curated to bring you an unforgettable tasting
-              experience. Whether you're a connoisseur or simply enjoy a great glass of wine, our exclusive range is
-              designed to elevate every occasion. Indulge in bold aromas, smooth textures, and the perfect balance of
-              tradition and innovation. Cheers to something extraordinary!
+              Every bottle in our signature collection begins the same way — with an
+              obsession for detail. From vineyard to label, we've chased the perfect
+              balance of depth, character, and finish. The result? A wine that doesn't
+              just complement your evening — it defines it. This is Balport, bottled.
             </p>
             <Link
-              to="/shop"
+              to="/products"
               className="border-primary border mt-8 md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-primary font-medium text-[18px]"
             >
               Shop Now

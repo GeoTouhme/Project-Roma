@@ -17,7 +17,7 @@ const getSettings = async (req, res) => {
 // @access  Private/Admin
 const updateSettings = async (req, res) => {
     try {
-        const { timezone, operatingHours, deliveryProvider, taxRate, defaultDeliveryFee, deliveryFeesByZip } = req.body;
+        const { timezone, operatingHours, deliveryProvider, taxRate, defaultDeliveryFee, deliveryFeesByZip, heroSlides } = req.body;
 
         // Validate deliveryProvider if provided
         if (deliveryProvider && !['doordash', 'uberdirect', 'store'].includes(deliveryProvider)) {
@@ -27,6 +27,20 @@ const updateSettings = async (req, res) => {
         if (taxRate !== undefined) {
             if (typeof taxRate !== 'number' || taxRate < 0 || taxRate > 1) {
                 return res.status(400).json({ success: false, message: 'Tax rate must be a number between 0 and 1 (e.g. 0.0775 for 7.75%).' });
+            }
+        }
+
+        if (heroSlides !== undefined) {
+            if (!Array.isArray(heroSlides)) {
+                return res.status(400).json({ success: false, message: 'Hero slides must be an array.' });
+            }
+            for (const slide of heroSlides) {
+                if (typeof slide.image !== 'string' || !slide.image.trim()) {
+                    return res.status(400).json({ success: false, message: 'Each hero slide must have a non-empty image URL.' });
+                }
+                if (slide.order !== undefined && (typeof slide.order !== 'number' || isNaN(slide.order))) {
+                    return res.status(400).json({ success: false, message: 'Hero slide order must be a number.' });
+                }
             }
         }
 
@@ -92,6 +106,7 @@ const updateSettings = async (req, res) => {
         if (taxRate !== undefined) updateData.taxRate = taxRate;
         if (defaultDeliveryFee !== undefined) updateData.defaultDeliveryFee = defaultDeliveryFee;
         if (deliveryFeesByZip !== undefined) updateData.deliveryFeesByZip = deliveryFeesByZip;
+        if (heroSlides !== undefined) updateData.heroSlides = heroSlides;
 
         const settings = await Settings.findOneAndUpdate(
             { key: 'storeConfig' },
