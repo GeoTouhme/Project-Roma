@@ -75,6 +75,8 @@ const Home = () => {
   const [featuredProductsLoading, setFeaturedProductsLoading] = useState(false);
   const [heroSlides, setHeroSlides] = useState(DEFAULT_HERO_SLIDES);
   const [categories, setCategories] = useState([]);
+  const [dealProducts, setDealProducts] = useState([]);
+  const [dealProductsLoading, setDealProductsLoading] = useState(false);
   const isAuthenticated = safeJSONParse("isAuthenticated", false);
   const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
   const user_id = userInfo?._id || "";
@@ -140,10 +142,27 @@ const Home = () => {
       })
   }, [user_id])
 
+  const fetchDealProducts = useCallback(() => {
+    setDealProductsLoading(true)
+    HomeService.dealProducts({ user_id })
+      .then((response) => {
+        if (response?.success) {
+          setDealProducts(response?.data)
+        }
+      })
+      .catch((error) => {
+        console.log("dealProducts error = ", error);
+      })
+      .finally(() => {
+        setDealProductsLoading(false)
+      })
+  }, [user_id])
+
   useEffect(() => {
     fetchBestSellerProducts();
     fetchFeaturedProducts();
-  }, [fetchBestSellerProducts, fetchFeaturedProducts])
+    fetchDealProducts();
+  }, [fetchBestSellerProducts, fetchFeaturedProducts, fetchDealProducts])
 
   const NextArrow = ({ onClick }) => {
     return (
@@ -296,6 +315,48 @@ const Home = () => {
       </section>
 
       <CategorySlider categories={categories} />
+
+      {!dealProductsLoading && dealProducts.length === 0 ? null : (
+        <section className="deals md:mb-[100px] mb-[40px]">
+          <div className="container">
+            <div className="section_head mb-8 text-center">
+              <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-red-600 font-semibold md:mb-3 mb-2 uppercase">
+                Limited Time
+              </h6>
+              <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">
+                Deals & Offers
+              </h2>
+            </div>
+            <div className="section_content">
+              <div className="products_list grid grid-cols-2 md:grid-cols-4 md:gap-7 gap-2">
+                {dealProductsLoading ? (
+                  <ProductCardSkeleton count={8} />
+                ) : (
+                  dealProducts.map((product) => (
+                    <ProductCard
+                      key={product._id}
+                      product={{
+                        id: product._id,
+                        slug: product.slug,
+                        title: product.name,
+                        image: product.image?.url,
+                        priceSale: product.priceSale,
+                        price: product.price,
+                        discount: product.discount,
+                        rating: product.averageRating || 0,
+                        isWishlisted: product.isWishlisted,
+                        isBestSeller: product.isBestSeller,
+                        isTopCollection: product.isTopCollection,
+                      }}
+                      wishListDone={() => { fetchDealProducts(); }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section
         className="fixed-bg md:py-[150px] pt-10 md:mb-[100px] mb-[40px]"

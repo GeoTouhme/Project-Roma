@@ -5,6 +5,7 @@ router.get('/home/categories', homeController.getCategories);
 router.get('/home/products/top', homeController.getTopRatedProducts);
 router.get('/home/products/best-selling', homeController.getBestSellerProducts);
 router.get('/home/products/featured', homeController.getFeaturedProducts);
+router.get('/home/products/deals', homeController.getDealProducts);
 router.get('/home/brands', homeController.getBrands);
 
 module.exports = router;

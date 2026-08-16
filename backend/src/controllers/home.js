@@ -89,6 +89,67 @@ const getCategories = async (req, res) => {
   }
 };
 
+const getDealProducts = async (req, res) => {
+  try {
+    const query = req.query;
+    const now = new Date();
+    const dealProducts = await Product.aggregate([
+      {
+        $match: {
+          status: { $nin: ['disabled', 'inactive'] },
+          available: { $gt: 0 },
+          images: {
+            $elemMatch: {
+              url: {
+                $exists: true,
+                $ne: '',
+                $not: /placeholder|via\.placeholder|google\.com\/url/i,
+              },
+            },
+          },
+          $expr: {
+            $or: [
+              { $gt: ['$discount', 0] },
+              { $and: [{ $gt: ['$price', 0] }, { $gt: ['$priceSale', 0] }, { $lt: ['$priceSale', '$price'] }] },
+            ],
+          },
+          $or: [{ saleEndsAt: { $exists: false } }, { saleEndsAt: null }, { saleEndsAt: { $gte: now } }],
+        },
+      },
+      { $sort: { discount: -1, sold: -1 } },
+      { $limit: 12 },
+      {
+        $project: {
+          image: { url: { $arrayElemAt: ['$images.url', 0] }, blurDataURL: { $arrayElemAt: ['$images.blurDataURL', 0] } },
+          name: 1,
+          slug: 1,
+          price: 1,
+          priceSale: 1,
+          discount: 1,
+          saleEndsAt: 1,
+          averageRating: 1,
+          isBestSeller: 1,
+          isTopCollection: 1,
+        },
+      },
+    ]);
+
+    let wishlist = [];
+    const safeUserId = safeObjectId(query.user_id);
+    if (safeUserId) {
+      const user = await User.findById(safeUserId).select('wishlist');
+      if (user?.wishlist?.length) wishlist = user.wishlist.map(id => id.toString());
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: dealProducts.map(p => ({ ...p, isWishlisted: wishlist.includes(p._id.toString()) })),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const getTopRatedProducts = async (req, res) => {
   try {
     const query = req.query;
@@ -337,4 +398,5 @@ module.exports = {
   getBrands,
   getBestSellerProducts,
   getFeaturedProducts,
+  getDealProducts,
 };

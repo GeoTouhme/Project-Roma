@@ -9,6 +9,7 @@ import WishlistService from "../../services/wishlistService";
 import toast from "react-hot-toast";
 import { getProductCardImage } from "../../utils/cloudinary";
 import { ORDERING_DISABLED } from "../../config/orderingConfig";
+import SaleBadge from "../sale-badge";
 
 const ProductCard = ({ product, wishListDone }) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -48,6 +49,8 @@ const ProductCard = ({ product, wishListDone }) => {
       })
   }
 
+  const hasSale = product.priceSale > 0 && product.price > 0 && product.priceSale < product.price;
+
   return (
     <div
       key={product.id}
@@ -63,6 +66,7 @@ const ProductCard = ({ product, wishListDone }) => {
             loading="lazy"
           />
         </Link>
+        <SaleBadge price={product.price} priceSale={product.priceSale} discount={product.discount} />
         {(product.isBestSeller || product.isTopCollection) && (
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-[1]">
             {product.isBestSeller && (
@@ -106,7 +110,16 @@ const ProductCard = ({ product, wishListDone }) => {
         <div className="product_price_cart flex items-end justify-between mt-2">
           <div className="product_grid_price">
             <p className="text-primary font-semibold md:text-[22px]/[22px] text-[18px]/[18px]">
-              {product.price > 0 && <span className="line-through">${product.price?.toFixed(2)}</span>}{" "}${product.priceSale?.toFixed(2)}
+              {hasSale ? (
+                <>
+                  <span className="text-gray-400 font-normal text-sm line-through mr-2">
+                    ${product.price.toFixed(2)}
+                  </span>
+                  <span>${product.priceSale.toFixed(2)}</span>
+                </>
+              ) : (
+                <span>${product.price > 0 ? product.price.toFixed(2) : product.priceSale?.toFixed(2)}</span>
+              )}
             </p>
           </div>
           {!ORDERING_DISABLED && (
