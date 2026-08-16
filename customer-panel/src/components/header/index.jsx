@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 import AnnouncementBar from "./AnnouncementBar";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 import { getThumbnailImage } from "../../utils/cloudinary";
+import PromoBanner from "../promo-banner";
 
 const Header = () => {
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
@@ -136,6 +137,9 @@ const Header = () => {
 
   return (
     <div id="header" className={`header ${isSticky ? "header-sticky" : ""}`}>
+      {/* Tier 0: Promo Banner */}
+      <PromoBanner />
+
       {/* Tier 1: Announcement Bar */}
       <AnnouncementBar />
 

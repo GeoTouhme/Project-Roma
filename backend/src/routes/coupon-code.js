@@ -6,6 +6,7 @@ const verifyToken = require("../config/jwt");
 const adminCheck = require('../middleware/adminCheck');
 //user routes — require auth so coupons cannot be brute-forced anonymously
 router.get("/coupon-codes/:code", verifyToken, couponCodeRoutes.getCouponCodeByCode);
+router.get("/coupons/active", couponCodeRoutes.getActiveCoupons);
 //admin routes
 router.get(
 	"/admin/coupon-codes",

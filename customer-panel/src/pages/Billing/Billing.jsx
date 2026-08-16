@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import PaymentService from "../../services/paymentService";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import OrderService from "../../services/orderService";
+import CouponService from "../../services/couponService";
 import { clearCart } from "../../redux/cartSlice";
 import { getThumbnailImage } from "../../utils/cloudinary";
 import toast from "react-hot-toast";
@@ -45,6 +46,9 @@ const Billing = () => {
   const [tip, setTip] = useState(0);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [taxRate, setTaxRate] = useState(0.0775);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
   const [cartSummary, setCartSummary] = useState({
     subtotal: 0,
     tax: 0,
@@ -58,9 +62,24 @@ const Billing = () => {
   const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
 
   const displayTotal = useMemo(
-    () => cartSummary.subtotal + cartSummary.tax + cartSummary.crv + deliveryFee + tip,
-    [cartSummary.subtotal, cartSummary.tax, cartSummary.crv, deliveryFee, tip]
+    () => cartSummary.subtotal + cartSummary.tax + cartSummary.crv + deliveryFee + tip - couponDiscount,
+    [cartSummary.subtotal, cartSummary.tax, cartSummary.crv, deliveryFee, tip, couponDiscount]
   );
+
+  // Auto-suggest best active coupon when cart subtotal is available.
+  useEffect(() => {
+    if (cartSummary.subtotal <= 0 || couponCode) return;
+    CouponService.getActive()
+      .then((res) => {
+        if (!res?.success || !res.data?.length) return;
+        const saving = (c) => (c.type === 'percent' ? (cartSummary.subtotal * c.discount) / 100 : c.discount);
+        const eligible = res.data
+          .filter((c) => !c.minOrderAmount || cartSummary.subtotal >= c.minOrderAmount)
+          .sort((a, b) => saving(b) - saving(a));
+        if (eligible.length && eligible[0].code) setCouponCode(eligible[0].code);
+      })
+      .catch(() => {});
+  }, [cartSummary.subtotal, couponCode]);
 
   // Fetch authoritative tax/CRV/subtotal from the server whenever the cart changes.
   useEffect(() => {
@@ -324,7 +343,7 @@ const Billing = () => {
       items,
       user,
       totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
-      couponCode: null,
+      couponCode: couponApplied ? couponCode : null,
       shipping: deliveryFee.toString(),
       tip,
     };
@@ -638,7 +657,59 @@ const Billing = () => {
 
             <hr />
 
-            {/* Order Summary Details */}
+            {/* Coupon Code */}
+            <div className="mt-4 mb-4">
+              <label className="block font-semibold mb-1">Coupon Code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponApplied(false);
+                    setCouponDiscount(0);
+                  }}
+                  className="border rounded-lg h-11 p-3 w-full uppercase"
+                  placeholder="Enter coupon code"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!couponCode.trim()) return;
+                    toast.loading('Verifying coupon...');
+                    fetch(`/api/coupon-codes/${couponCode.trim()}`, {
+                      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+                    })
+                      .then((res) => res.json())
+                      .then((res) => {
+                        toast.dismiss();
+                        if (!res?.success || !res.data) {
+                          toast.error('Invalid or expired coupon');
+                          setCouponApplied(false);
+                          setCouponDiscount(0);
+                          return;
+                        }
+                        const coupon = res.data;
+                        const discount = coupon.type === 'percent' ? (cartSummary.subtotal * coupon.discount) / 100 : coupon.discount;
+                        setCouponDiscount(discount);
+                        setCouponApplied(true);
+                        toast.success(`Coupon applied: -$${discount.toFixed(2)}`);
+                      })
+                      .catch(() => {
+                        toast.dismiss();
+                        toast.error('Failed to verify coupon');
+                      });
+                  }}
+                  className="bg-black text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap hover:bg-gray-800 transition"
+                >
+                  Apply
+                </button>
+              </div>
+              {couponApplied && couponDiscount > 0 && (
+                <p className="text-green-600 text-sm mt-1">Discount: -${couponDiscount.toFixed(2)}</p>
+              )}
+            </div>
+
             <div className="mt-4 space-y-2">
               <div className="flex justify-between">
                 <p>Subtotal:</p>

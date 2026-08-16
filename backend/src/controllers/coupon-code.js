@@ -163,6 +163,18 @@ const deleteCouponCodeByAdmin = async (req, res) => {
 		return res.status(400).json({ success: false, message: error.message });
 	}
 };
+const getActiveCoupons = async (req, res) => {
+	try {
+		const now = new Date();
+		const coupons = await CouponCode.find({
+			expire: { $gte: now },
+		}).select('name code discount type expire description').lean();
+		res.status(200).json({ success: true, data: coupons });
+	} catch (error) {
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
 module.exports = {
 	getCouponCodeByCode,
 	getCouponCodesByAdmin,
@@ -171,4 +183,5 @@ module.exports = {
 	updatedCouponCodeByAdmin,
 	deleteCouponCodeByAdmin,
 	getCouponCodeById,
+	getActiveCoupons,
 };
