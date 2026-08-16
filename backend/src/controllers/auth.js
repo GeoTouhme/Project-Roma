@@ -1049,6 +1049,26 @@ const disableMfa = async (req, res) => {
   }
 };
 
+const getMe = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+    const user = await User.findById(userId).select('-password -mfaSecret -mfaTempSecret');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error('Get me error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -1062,4 +1082,5 @@ module.exports = {
   confirmMfaSetup,
   verifyMfa,
   disableMfa,
+  getMe,
 };

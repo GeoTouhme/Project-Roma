@@ -34,4 +34,14 @@ HomeService.featuredProducts = function (params) {
     })
 }
 
+HomeService.categories = function () {
+    return fetch({
+        url: "/home/categories",
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+    })
+}
+
 export default HomeService;

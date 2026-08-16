@@ -2,27 +2,21 @@ import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../../assets/images/Logo.png";
 import Icons from "../svg";
-import Skeleton from "react-loading-skeleton";
 import { useLocation } from "react-router-dom";
-import CategoriesService from "../../services/categoriesService";
 import SearchService from "../../services/searchService";
-import getHierarchyCategories from "../../utils/getHierarchyCategories";
-import { getThumbnailImage } from "../../utils/cloudinary";
 import { useSelector } from "react-redux";
 import AnnouncementBar from "./AnnouncementBar";
-import CategoryBar from "./CategoryBar";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
+import { getThumbnailImage } from "../../utils/cloudinary";
 
 const Header = () => {
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [openMenu, setOpenMenu] = useState(null);
   const menuData = [
     { title: "Home", link: "/" },
     { title: "Products", link: "/products" },
   ];
-  const [categoryData, setCategoryData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState({ products: [], categories: [], brands: [] });
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -139,48 +133,6 @@ const Header = () => {
     }
   };
 
-  const fetchAllCategories = () => {
-    setLoading(true);
-
-    CategoriesService.allCatgeories()
-      .then((response) => {
-        if (response?.success) {
-          // Use only the approved 2-level hierarchy parents (order > 0)
-          const hierarchy = getHierarchyCategories(response.data);
-
-          const formattedData = hierarchy.map((category) => ({
-            title: category.name,
-            link: `/products/${category.slug}`,
-            subMenu: category.subCategories?.length
-              ? [
-                  {
-                    links: category.subCategories
-                      .filter((sub) => Number(sub.order) > 0)
-                      .sort((a, b) => Number(a.order) - Number(b.order))
-                      .map((sub) => ({
-                        name: sub.name,
-                        url: `/products/${category.slug}/${sub.slug}`,
-                      })),
-                  },
-                ]
-              : null,
-          }));
-
-          setCategoryData(formattedData);
-        }
-      })
-      .catch((error) => {
-        console.log("error = ", error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchAllCategories();
-  }, []);
-
   return (
     <div id="header" className={`header ${isSticky ? "header-sticky" : ""}`}>
       {/* Tier 1: Announcement Bar */}
@@ -200,14 +152,7 @@ const Header = () => {
             {/* Center: Nav Links */}
             <div className="order-2 hidden xl:block flex-1">
               <div className="hidden xl:flex gap-8 text-black text-[16px] font-medium justify-center">
-                {loading ? (
-                  [...Array(6)].map((_, index) => (
-                    <div key={index} className="flex flex-col items-start gap-2">
-                      <Skeleton width={80} height={20} />
-                    </div>
-                  ))
-                ) : (
-                  menuData.map((menu, index) => {
+                {menuData.map((menu, index) => {
                     const isActive = location.pathname.startsWith(menu.link);
                     return (
                       <div
@@ -250,8 +195,7 @@ const Header = () => {
                         )}
                       </div>
                     );
-                  })
-                )}
+                  })}
               </div>
             </div>
 
@@ -433,9 +377,6 @@ const Header = () => {
           </div>
         </div>
       </div>
-
-      {/* Tier 3: Category Bar — home page only */}
-      {location.pathname === "/" && <CategoryBar categories={categoryData} />}
 
       {/* Mobile Drawer */}
       <div

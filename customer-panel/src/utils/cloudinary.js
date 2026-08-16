@@ -20,27 +20,38 @@ export function getOptimizedImageUrl(url, opts = {}) {
   return url.replace(/\/image\/upload\//, `/image/upload/${transformStr}/`);
 }
 
-/** Product card thumbnail (~350px container) */
-export function getProductCardImage(url) {
-  return getOptimizedImageUrl(url, { width: 400, crop: 'scale', quality: 'auto' });
+/** Product card thumbnail — responsive width for crisp mobile/desktop */
+export function getProductCardImage(url, isMobile = false) {
+  return getOptimizedImageUrl(url, { width: isMobile ? 400 : 800, height: isMobile ? 400 : 800, crop: 'fill', quality: 'auto' });
 }
 
-/** Product detail main image (~800px container) */
+/** Product detail main image (~1200px container, retina ready) */
 export function getProductDetailImage(url) {
-  return getOptimizedImageUrl(url, { width: 800, crop: 'scale', quality: 'auto' });
+  return getOptimizedImageUrl(url, { width: 1200, crop: 'limit', quality: 'auto' });
 }
 
 /** Product detail thumbnail slider */
 export function getProductThumbImage(url) {
-  return getOptimizedImageUrl(url, { width: 200, height: 200, crop: 'fill', quality: 'auto' });
+  return getOptimizedImageUrl(url, { width: 300, height: 300, crop: 'fill', quality: 'auto' });
 }
 
-/** Small thumbnail for lists (~100px) */
+/** Small thumbnail for lists (~150px) */
 export function getThumbnailImage(url) {
-  return getOptimizedImageUrl(url, { width: 150, height: 150, crop: 'fill', quality: 'auto' });
+  return getOptimizedImageUrl(url, { width: 200, height: 200, crop: 'fill', quality: 'auto' });
 }
 
 /** Admin tiny thumbnail */
 export function getAdminThumbnail(url) {
   return getOptimizedImageUrl(url, { width: 100, height: 100, crop: 'fill', quality: 'auto' });
+}
+
+/** Hero slide background — 16:9 aspect ratio for PC and mobile */
+export function getHeroSlideImage(url, isMobile = false) {
+  return getOptimizedImageUrl(url, {
+    width: isMobile ? 800 : 1920,
+    height: isMobile ? 450 : 1080,
+    crop: 'fill',
+    quality: 'auto',
+    gravity: 'auto',
+  });
 }

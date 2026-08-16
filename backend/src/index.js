@@ -226,7 +226,7 @@ app.use((req, res, next) => {
 app.use(cookieParser());
 
 app.use(bodyParser.json({
-  limit: '1mb',
+  limit: '10mb',
   verify: (req, res, buf) => {
     if (req.originalUrl.startsWith('/api/webhooks/')) {
       req.rawBody = buf;

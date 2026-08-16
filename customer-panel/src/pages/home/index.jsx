@@ -17,6 +17,8 @@ import HomeService from "../../services/homeService";
 import SettingsService from "../../services/settingsService";
 import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
 import { safeJSONParse } from "../../utils/safeStorage";
+import { getHeroSlideImage } from "../../utils/cloudinary";
+import CategorySlider from "../../components/category-slider";
 
 const DEFAULT_HERO_SLIDES = [
   {
@@ -72,12 +74,14 @@ const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredProductsLoading, setFeaturedProductsLoading] = useState(false);
   const [heroSlides, setHeroSlides] = useState(DEFAULT_HERO_SLIDES);
+  const [categories, setCategories] = useState([]);
   const isAuthenticated = safeJSONParse("isAuthenticated", false);
   const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
   const user_id = userInfo?._id || "";
 
   useEffect(() => {
     let cancelled = false;
+
     SettingsService.getSettings()
       .then((response) => {
         if (cancelled || !response?.success || !response?.data?.heroSlides) return;
@@ -89,6 +93,16 @@ const Home = () => {
       .catch((error) => {
         console.log("getSettings error = ", error);
       });
+
+    HomeService.categories()
+      .then((response) => {
+        if (cancelled || !response?.success || !Array.isArray(response?.data)) return;
+        setCategories(response.data);
+      })
+      .catch((error) => {
+        console.log("categories error = ", error);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -247,9 +261,12 @@ const Home = () => {
           {heroSlides.map((slide, index) => (
             <div key={index} className="hero-inner relative">
               <img
-                src={slide.image}
+                src={getHeroSlideImage(slide.image, false)}
+                srcSet={`${getHeroSlideImage(slide.image, true)} 800w, ${getHeroSlideImage(slide.image, false)} 1920w`}
+                sizes="100vw"
                 alt={slide.alt || slide.title || `Slide ${index + 1}`}
-                className="w-full md:h-[600px] h-[350px] object-cover"
+                className="w-full aspect-video object-cover md:max-h-[500px] max-h-[350px]"
+                loading={index === 0 ? 'eager' : 'lazy'}
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
               <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
@@ -277,6 +294,9 @@ const Home = () => {
           ))}
         </Slider>
       </section>
+
+      <CategorySlider categories={categories} />
+
       <section
         className="fixed-bg md:py-[150px] pt-10 md:mb-[100px] mb-[40px]"
         style={{ backgroundImage: `url(${FixedBg})` }}

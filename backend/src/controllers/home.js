@@ -17,6 +17,20 @@ const ALCOHOLIC_CATEGORIES = [
   '69bd4c23013d204dfbd805e5', // LIQUEUR & SPIRITS
 ].map(id => new mongoose.Types.ObjectId(id));
 
+const isValidImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  const lower = url.toLowerCase();
+  const isBlocked = lower.includes('placeholder') || lower.includes('via.placeholder') || lower.includes('google.com/url');
+  if (isBlocked) return false;
+
+  // Accept Cloudinary upload URLs (they don't always end with an extension)
+  const isCloudinary = lower.includes('cloudinary.com') || lower.includes('res.cloudinary');
+  if (isCloudinary) return true;
+
+  // Accept direct image URLs by extension
+  return /\.(jpg|jpeg|png|webp|avif|gif)(\?.*)?$/.test(lower);
+};
+
 const getCategories = async (req, res) => {
   try {
     const categories = await Category.find().select([
@@ -25,7 +39,47 @@ const getCategories = async (req, res) => {
       'slug',
       'status',
     ]);
-    res.status(201).json({ success: true, data: categories });
+
+    // Enrich covers with a real product image when only a placeholder is set
+    const enriched = await Promise.all(
+      categories.map(async (cat) => {
+        const coverUrl = cat.cover?.url || '';
+        if (isValidImageUrl(coverUrl)) return cat;
+
+        const product = await Product.findOne({
+          category: cat._id,
+          status: { $nin: ['disabled', 'inactive'] },
+          images: {
+            $elemMatch: {
+              url: {
+                $exists: true,
+                $ne: '',
+                $not: /placeholder|via\.placeholder|google\.com\/url/i,
+              },
+            },
+          },
+        })
+          .sort({ sold: -1 })
+          .select('images')
+          .lean();
+
+        const firstImage = product?.images?.find((img) => isValidImageUrl(img?.url));
+        if (firstImage?.url) {
+          return {
+            ...cat.toObject(),
+            cover: {
+              _id: firstImage._id || cat.cover?._id || 'product_fallback',
+              url: firstImage.url,
+              blurDataURL: firstImage.blurDataURL || cat.cover?.blurDataURL || '',
+            },
+          };
+        }
+
+        return cat;
+      })
+    );
+
+    res.status(200).json({ success: true, data: enriched });
   } catch (error) {
     res.status(500).json({
       success: false,

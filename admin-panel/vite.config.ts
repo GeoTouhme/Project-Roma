@@ -10,6 +10,17 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
+      proxy: {
+        '/api': {
+          target: env.VITE_PROXY_TARGET || 'http://localhost:5001',
+          changeOrigin: true,
+        },
+        '/socket.io': {
+          target: env.VITE_PROXY_TARGET || 'http://localhost:5001',
+          changeOrigin: true,
+          ws: true,
+        },
+      },
     },
     plugins: [react()].filter(Boolean),
     resolve: {

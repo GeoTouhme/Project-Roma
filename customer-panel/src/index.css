@@ -250,6 +250,46 @@ input[type="radio"] {
   opacity: 1;
 }
 
+/* Category bubble slider */
+.category-slider-section {
+  position: relative;
+}
+
+.category-slider .slick-list {
+  overflow: hidden;
+  padding: 8px 0;
+  margin: 0 -8px;
+}
+
+.category-slider .slick-track {
+  display: flex !important;
+  align-items: stretch;
+}
+
+.category-slider .slick-slide {
+  float: none;
+  height: auto;
+  outline: none;
+}
+
+.category-slider .slick-slide > div {
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .category-slider .slick-list {
+    margin: 0 -6px;
+  }
+}
+
+/* line-clamp utility fallback */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Custom checked state */
 input[type="radio"]:checked::before {
   content: "";

@@ -3,9 +3,9 @@ import axios from 'axios';
 // Get API URL from environment variable or use default
 const envUrl = import.meta.env.VITE_API_URL;
 export const API_URL =
-  typeof envUrl === 'string' && envUrl.trim().length > 0
+  typeof envUrl === 'string' && envUrl.trim().length > 0 && envUrl !== '/'
     ? envUrl
-    : 'https://api.balportliquors.com';
+    : '';
 
 // Create axios instance with default config
 // 🛡️ SECURITY: withCredentials sends the HttpOnly JWT cookie automatically.
@@ -43,6 +43,9 @@ export const authAPI = {
 
     logout: () =>
         api.post('/api/auth/logout'),
+
+    getMe: () =>
+        api.get('/api/auth/me'),
 
     setupMfa: () =>
         api.post('/api/auth/setup-mfa'),

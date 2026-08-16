@@ -33,11 +33,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Check if user is already logged in
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const savedUser = localStorage.getItem("admin_user");
 
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        try {
+          const response = await authAPI.getMe();
+          if (response.data?.success && response.data?.user) {
+            const serverUser = response.data.user;
+            if (serverUser.role === 'admin' || serverUser.role === 'super admin') {
+              setUser(formatUser(serverUser));
+            } else {
+              // Stale/customer session — force logout
+              localStorage.removeItem("admin_user");
+              toast.error("Access denied. Admin privileges required.");
+            }
+          } else {
+            localStorage.removeItem("admin_user");
+          }
+        } catch (error) {
+          console.error("[checkAuth] session verification failed:", error);
+          localStorage.removeItem("admin_user");
+        }
       }
       setIsLoading(false);
     };
