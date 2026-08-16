@@ -16,6 +16,7 @@ const Header = () => {
   const menuData = [
     { title: "Home", link: "/" },
     { title: "Products", link: "/products" },
+    { title: "Deals", link: "/deals" },
   ];
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState({ products: [], categories: [], brands: [] });

@@ -12,6 +12,7 @@ import Login from "../pages/auth/Login";
 import VerifyEmail from "../pages/auth/VerifyEmail";
 import Terms from "../pages/Terms/Terms";
 import Privacy from "../pages/Privacy/Privacy";
+import Deals from "../pages/deals";
 import { ORDERING_DISABLED } from "../config/orderingConfig";
 
 const PublicRoutes = () => {
@@ -26,6 +27,7 @@ const PublicRoutes = () => {
         <Route path="/privacy-policy" element={<Privacy />} />
         <Route path="/category/wine/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Collection />} />
         <Route path="/products/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Collection />} />
+        <Route path="/deals" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Deals />} />
         <Route path="/product/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <ProductPage />} />
         <Route path="/cart" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Cart />} />
         <Route path="/verify-otp" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <VerifyEmail />} />

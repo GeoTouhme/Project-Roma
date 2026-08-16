@@ -89,6 +89,19 @@ const getProducts = async (req, res) => {
       productSearchQuery.isFeatured = true;
     }
 
+    // 8. Handle Deals / Discount filter
+    if (query.hasDiscount === 'true') {
+      const discountExpr = {
+        $or: [
+          { $gt: ['$discount', 0] },
+          { $and: [{ $gt: ['$price', 0] }, { $gt: ['$priceSale', 0] }, { $lt: ['$priceSale', '$price'] }] },
+        ],
+      };
+      productSearchQuery.$expr = productSearchQuery.$expr
+        ? { $and: [productSearchQuery.$expr, discountExpr] }
+        : discountExpr;
+    }
+
     const skip = parseInt(query.limit) || 12;
     const page = parseInt(query.page) || 1;
 
