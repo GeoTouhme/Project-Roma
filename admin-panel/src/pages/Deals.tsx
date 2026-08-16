@@ -150,14 +150,25 @@ const Deals = () => {
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      <PageHeader title="Bundle Deals" subtitle="Create quantity-based deals like Buy 6 for $6">
-        <Button onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-2" /> New Deal
-        </Button>
-      </PageHeader>
+      <PageHeader
+        title="Bundle Deals"
+        description="Create quantity-based deals like Buy 6 for $6"
+        actions={
+          <Button onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> New Deal
+          </Button>
+        }
+      />
 
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
+      ) : deals.length === 0 ? (
+        <div className="border rounded-lg p-8 text-center bg-card">
+          <p className="text-muted-foreground mb-4">No deals created yet.</p>
+          <Button onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Create First Deal
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {deals.map((deal) => (
