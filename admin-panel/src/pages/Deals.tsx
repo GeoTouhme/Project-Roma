@@ -36,6 +36,9 @@ const Deals = () => {
     displayOnHome: true,
   });
 
+  const [productSearch, setProductSearch] = useState("");
+  const [productSearchLoading, setProductSearchLoading] = useState(false);
+
   const fetchDeals = async () => {
     try {
       const res = await dealsAPI.getAll();
@@ -47,12 +50,15 @@ const Deals = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (search = "") => {
     try {
-      const res = await productsAPI.getProducts({ limit: 500 });
+      setProductSearchLoading(true);
+      const res = await productsAPI.getProducts({ limit: 500, search });
       if (res.data.success) setProducts(res.data.data);
     } catch (error) {
       console.error("Failed to load products:", error);
+    } finally {
+      setProductSearchLoading(false);
     }
   };
 
@@ -60,6 +66,13 @@ const Deals = () => {
     fetchDeals();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProducts(productSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [productSearch]);
 
   const resetForm = () => {
     setForm({
@@ -307,6 +320,13 @@ const Deals = () => {
 
             <div className="space-y-2">
               <Label>Select Products</Label>
+              <Input
+                placeholder="Search products by name..."
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                className="mb-2"
+              />
+              {productSearchLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
               <div className="border rounded-md p-2 max-h-[300px] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {products.map((product) => (
                   <label
