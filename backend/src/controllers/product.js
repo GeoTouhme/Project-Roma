@@ -373,7 +373,7 @@ const createProductByAdmin = async (req, res) => {
     const admin = await getAdmin(req, res);
     if (!admin) return;
 
-    const { images, size, isBestSeller, isTopCollection, ...body } = req.body;
+    const { images, size, isBestSeller, isTopCollection, saleEndsAt, ...body } = req.body;
 
     const updatedImages = await Promise.all(
       images.map(async (image) => {
@@ -388,6 +388,7 @@ const createProductByAdmin = async (req, res) => {
       likes: 0,
       isBestSeller: isBestSeller === true,
       isTopCollection: isTopCollection === true,
+      saleEndsAt: saleEndsAt ? new Date(saleEndsAt).toISOString() : null,
     });
 
     res.status(201).json({
@@ -464,12 +465,13 @@ const updateProductByAdmin = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid product slug.' });
     }
 
-    const { images = [], category, subCategory, size, isBestSeller, isTopCollection, ...body } = req.body;
+    const { images = [], category, subCategory, size, isBestSeller, isTopCollection, saleEndsAt, ...body } = req.body;
 
     const updateFields = { ...body };
     if (size !== undefined) updateFields.size = size;
     updateFields.isBestSeller = isBestSeller === true;
     updateFields.isTopCollection = isTopCollection === true;
+    updateFields.saleEndsAt = saleEndsAt ? new Date(saleEndsAt).toISOString() : null;
 
     if (category) {
       const safeCat = safeObjectId(category);

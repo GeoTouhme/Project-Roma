@@ -66,6 +66,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Sale price is required.'],
     },
+    saleEndsAt: {
+      type: Date,
+      default: null,
+    },
     available: {
       type: Number,
       required: [true, 'Available quantity is required.'],

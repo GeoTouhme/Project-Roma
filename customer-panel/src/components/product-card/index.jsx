@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { getProductCardImage } from "../../utils/cloudinary";
 import { ORDERING_DISABLED } from "../../config/orderingConfig";
 import SaleBadge from "../sale-badge";
+import CountdownTimer from "../countdown-timer";
 
 const ProductCard = ({ product, wishListDone }) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -105,6 +106,11 @@ const ProductCard = ({ product, wishListDone }) => {
               {product.title}
             </h6>
           </Link>
+          {product.saleEndsAt && new Date(product.saleEndsAt) > new Date() && (
+            <div className="mt-1">
+              <CountdownTimer targetDate={product.saleEndsAt} />
+            </div>
+          )}
         </div>
 
         <div className="product_price_cart flex items-end justify-between mt-2">

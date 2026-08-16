@@ -19,6 +19,7 @@ import ProductCardSkeleton from "../../components/skeleton/productCardSkeleton";
 import { safeJSONParse } from "../../utils/safeStorage";
 import { getHeroSlideImage } from "../../utils/cloudinary";
 import CategorySlider from "../../components/category-slider";
+import CountdownTimer from "../../components/countdown-timer";
 
 const DEFAULT_HERO_SLIDES = [
   {
@@ -326,6 +327,15 @@ const Home = () => {
               <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">
                 Deals & Offers
               </h2>
+              {(() => {
+                const activeFlash = dealProducts.find((p) => p.saleEndsAt && new Date(p.saleEndsAt) > new Date());
+                return activeFlash ? (
+                  <div className="mt-2 flex items-center justify-center gap-2 text-red-600 font-semibold text-sm md:text-base">
+                    <span>Flash Sale ends in</span>
+                    <CountdownTimer targetDate={activeFlash.saleEndsAt} />
+                  </div>
+                ) : null;
+              })()}
             </div>
             <div className="section_content">
               <div className="products_list grid grid-cols-2 md:grid-cols-4 md:gap-7 gap-2">

@@ -37,6 +37,7 @@ const ProductForm = () => {
     const [isTopCollection, setIsTopCollection] = useState(false);
     const [images, setImages] = useState<string[]>([]);
     const [imageUrlInput, setImageUrlInput] = useState("");
+    const [saleEndsAt, setSaleEndsAt] = useState<string>("");
 
     // Data State
     const [categories, setCategories] = useState<any[]>([]);
@@ -106,6 +107,7 @@ const ProductForm = () => {
                         setIsBestSeller(product.isBestSeller || false);
                         setIsTopCollection(product.isTopCollection || false);
                         setStatus(product.status || "active");
+                        setSaleEndsAt(product.saleEndsAt ? new Date(product.saleEndsAt).toISOString().slice(0, 16) + "Z" : "");
 
                         // Handle images
                         if (product.images && Array.isArray(product.images)) {
@@ -242,7 +244,8 @@ const ProductForm = () => {
                 isFeatured: featured,
                 isBestSeller,
                 isTopCollection,
-                status: status
+                status: status,
+                saleEndsAt: saleEndsAt ? new Date(saleEndsAt).toISOString() : null,
             };
 
             if (id) {
@@ -350,6 +353,19 @@ const ProductForm = () => {
                             value={salePrice}
                             onChange={(e) => setSalePrice(e.target.value)}
                         />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                        <label className="text-sm font-medium text-gray-700">Flash Sale Ends (UTC)</label>
+                        <Input
+                            type="datetime-local"
+                            value={saleEndsAt.replace('Z', '')}
+                            onChange={(e) => {
+                                const localValue = e.target.value;
+                                setSaleEndsAt(localValue ? `${localValue}Z` : '');
+                            }}
+                        />
+                        <p className="text-xs text-gray-500">Time is stored and displayed in UTC.</p>
                     </div>
 
                     <Input
