@@ -91,6 +91,10 @@ const Deals = () => {
 
   const openCreate = () => {
     resetForm();
+    setForm((prev) => ({
+      ...prev,
+      startAt: new Date().toISOString().slice(0, 16),
+    }));
     setDialogOpen(true);
   };
 
@@ -102,7 +106,7 @@ const Deals = () => {
       quantity: deal.quantity || 2,
       bundlePrice: deal.bundlePrice?.toString() || "",
       productIds: (deal.productIds || []).map((p: any) => p._id || p),
-      startAt: deal.startAt ? new Date(deal.startAt).toISOString().slice(0, 16) : "",
+      startAt: deal.startAt ? new Date(deal.startAt).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
       expiresAt: deal.expiresAt ? new Date(deal.expiresAt).toISOString().slice(0, 16) : "",
       status: deal.status || "active",
       displayOnHome: deal.displayOnHome !== false,

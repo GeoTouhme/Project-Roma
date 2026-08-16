@@ -5,6 +5,7 @@ const verifyToken = require('../config/jwt');
 const adminCheck = require('../middleware/adminCheck');
 
 router.get('/deals/active', dealController.getDeals);
+router.get('/deals/:id', dealController.getDealById);
 
 router.get('/admin/deals', verifyToken, adminCheck, dealController.getAllDeals);
 router.get('/admin/deals/:id', verifyToken, adminCheck, dealController.getDealById);
