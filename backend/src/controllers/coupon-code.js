@@ -1,7 +1,11 @@
 const CouponCode = require("../models/CouponCode");
 
+const { nanoid } = require('nanoid');
+
 // 🛡️ Whitelist allowed fields to prevent mass assignment
-const ALLOWED_COUPON_FIELDS = ['name', 'code', 'discount', 'expire', 'description', 'type'];
+const ALLOWED_COUPON_FIELDS = ['name', 'code', 'discount', 'expire', 'description', 'type', 'usedBy'];
+
+const generateCouponCode = (length = 10) => nanoid(length).toUpperCase();
 
 const getCouponCodeByCode = async (req, res) => {
 	try {
@@ -81,6 +85,13 @@ const createCouponCodeByAdmin = async (req, res) => {
 		const safeData = {};
 		for (const field of ALLOWED_COUPON_FIELDS) {
 			if (data[field] !== undefined) safeData[field] = data[field];
+		}
+
+		// Auto-generate a unique coupon code if not provided.
+		if (!safeData.code || safeData.code.trim() === '') {
+			safeData.code = generateCouponCode();
+		} else {
+			safeData.code = safeData.code.trim().toUpperCase();
 		}
 
 		const newCouponCode = await CouponCode.create(safeData);
