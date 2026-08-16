@@ -84,7 +84,18 @@ const getProducts = async (req, res) => {
     const maxPrice = safePrices ? safeNumber(safePrices.split('_')[1], 10000000) : 10000000;
     productSearchQuery.priceSale = { $gte: minPrice, $lte: maxPrice };
 
-    // 7. Handle Featured — only accept literal string 'true'
+// 7. Handle ids filter (comma-separated product IDs)
+    if (query.ids) {
+      const ids = query.ids
+        .split(',')
+        .map((id) => safeObjectId(id))
+        .filter(Boolean);
+      if (ids.length > 0) {
+        productSearchQuery._id = { $in: ids };
+      }
+    }
+
+    // 7.5 Handle Featured — only accept literal string 'true'
     if (query.isFeatured === 'true') {
       productSearchQuery.isFeatured = true;
     }

@@ -552,6 +552,44 @@ const deleteOrderByAdmin = async (req, res) => {
   }
 };
 
+const Deal = require('../models/Deal');
+
+/**
+ * Calculate bundle deal discount for cart items.
+ */
+const applyBundleDeals = async (items) => {
+  const now = new Date();
+  const deals = await Deal.find({
+    status: 'active',
+    startAt: { $lte: now },
+    $or: [{ expiresAt: null }, { expiresAt: { $gte: now } }],
+  }).lean();
+
+  let bundleDiscount = 0;
+
+  for (const deal of deals) {
+    const dealProductIds = deal.productIds.map((id) => id.toString());
+    const matchingItems = items.filter((item) =
+      dealProductIds.includes((item.pid || item._id || item.id).toString())
+    );
+    const totalQty = matchingItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    if (totalQty < deal.quantity) continue;
+
+    const bundleCount = Math.floor(totalQty / deal.quantity);
+    const leftoverQty = totalQty % deal.quantity;
+    const products = await Products.find({
+      _id: { $in: deal.productIds },
+    }).lean();
+    const unitPrice = products[0]?.priceSale || products[0]?.price || 0;
+    const regularTotal = totalQty * unitPrice;
+    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * unitPrice;
+    const discount = regularTotal - discountedTotal;
+    if (discount > 0) bundleDiscount += discount;
+  }
+
+  return bundleDiscount;
+};
+
 /**
  * Calculate tax and CRV for a cart without requiring delivery details.
  * Used by the cart page to preview estimated taxes before checkout.
@@ -622,19 +660,24 @@ const getCartSummary = async (req, res) => {
     subtotal = round2(subtotal);
     taxableSubtotal = round2(taxableSubtotal);
     crvTotal = round2(crvTotal);
-    const tax = round2(taxableSubtotal * taxRate);
-    const total = round2(subtotal + tax + crvTotal);
+
+    const bundleDiscount = round2(await applyBundleDeals(items));
+    const discountedSubtotal = round2(Math.max(0, subtotal - bundleDiscount));
+    const discountedTaxable = round2(Math.max(0, taxableSubtotal - (taxableSubtotal / subtotal) * bundleDiscount));
+    const tax = round2(discountedTaxable * taxRate);
+    const total = round2(discountedSubtotal + tax + crvTotal);
 
     return res.status(200).json({
       success: true,
       data: {
-        subtotal,
-        taxableSubtotal,
+        subtotal: discountedSubtotal,
+        taxableSubtotal: discountedTaxable,
         tax,
         crv: crvTotal,
         total,
         itemCount,
         taxRate,
+        bundleDiscount,
       },
     });
   } catch (error) {

@@ -219,3 +219,16 @@ export const newsletterAPI = {
         api.get('/api/admin/newsletter', { params }),
 };
 
+export const dealsAPI = {
+    getAll: () =>
+        api.get('/api/admin/deals'),
+    getById: (id: string) =>
+        api.get(`/api/admin/deals/${id}`),
+    create: (data: any) =>
+        api.post('/api/admin/deals', data),
+    update: (id: string, data: any) =>
+        api.put(`/api/admin/deals/${id}`, data),
+    delete: (id: string) =>
+        api.delete(`/api/admin/deals/${id}`),
+};
+

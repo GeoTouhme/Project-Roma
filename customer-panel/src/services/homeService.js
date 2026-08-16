@@ -55,4 +55,14 @@ HomeService.dealProducts = function (params) {
     })
 }
 
+HomeService.activeDeals = function () {
+    return fetch({
+        url: "/deals/active",
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+    });
+};
+
 export default HomeService;

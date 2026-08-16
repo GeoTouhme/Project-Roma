@@ -15,6 +15,7 @@ import {
   Mail,
   Clock,
   BarChart3,
+  Tags,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -142,6 +143,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             to="/newsletters"
             icon={<Mail className="w-5 h-5" />}
             label="Newsletters"
+            collapsed={collapsed}
+          />
+          <NavItem
+            to="/deals"
+            icon={<Tags className="w-5 h-5" />}
+            label="Deals"
             collapsed={collapsed}
           />
           <NavItem

@@ -20,6 +20,7 @@ import { safeJSONParse } from "../../utils/safeStorage";
 import { getHeroSlideImage } from "../../utils/cloudinary";
 import CategorySlider from "../../components/category-slider";
 import CountdownTimer from "../../components/countdown-timer";
+import DealCard from "../../components/deal-card";
 
 const DEFAULT_HERO_SLIDES = [
   {
@@ -78,6 +79,8 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [dealProducts, setDealProducts] = useState([]);
   const [dealProductsLoading, setDealProductsLoading] = useState(false);
+  const [activeDeals, setActiveDeals] = useState([]);
+  const [activeDealsLoading, setActiveDealsLoading] = useState(false);
   const isAuthenticated = safeJSONParse("isAuthenticated", false);
   const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
   const user_id = userInfo?._id || "";
@@ -159,11 +162,28 @@ const Home = () => {
       })
   }, [user_id])
 
+  const fetchActiveDeals = useCallback(() => {
+    setActiveDealsLoading(true)
+    HomeService.activeDeals()
+      .then((response) => {
+        if (response?.success) {
+          setActiveDeals(response?.data || []);
+        }
+      })
+      .catch((error) => {
+        console.log("activeDeals error = ", error);
+      })
+      .finally(() => {
+        setActiveDealsLoading(false)
+      })
+  }, [])
+
   useEffect(() => {
     fetchBestSellerProducts();
     fetchFeaturedProducts();
     fetchDealProducts();
-  }, [fetchBestSellerProducts, fetchFeaturedProducts, fetchDealProducts])
+    fetchActiveDeals();
+  }, [fetchBestSellerProducts, fetchFeaturedProducts, fetchDealProducts, fetchActiveDeals])
 
   const NextArrow = ({ onClick }) => {
     return (
@@ -363,6 +383,22 @@ const Home = () => {
                   ))
                 )}
               </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {!activeDealsLoading && activeDeals.length === 0 ? null : (
+        <section className="bundle-deals md:mb-[100px] mb-[40px]">
+          <div className="container">
+            <div className="section_head mb-8 text-center">
+              <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-primary font-semibold md:mb-3 mb-2 uppercase">Bundle Deals</h6>
+              <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">Special Combos</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {activeDeals.map((deal) => (
+                <DealCard key={deal._id} deal={deal} />
+              ))}
             </div>
           </div>
         </section>

@@ -29,6 +29,7 @@ import SubCategoryForm from "./pages/SubCategoryForm";
 import Newsletters from "./pages/Newsletters";
 import StoreSettings from "./pages/StoreSettings";
 import Analytics from "./pages/Analytics";
+import Deals from "./pages/Deals";
 
 const queryClient = new QueryClient();
 
@@ -128,6 +129,10 @@ const App = () => (
               <Route
                 path="/analytics"
                 element={<ProtectedRoute element={<Analytics />} />}
+              />
+              <Route
+                path="/deals"
+                element={<ProtectedRoute element={<Deals />} />}
               />
             </Route>
 

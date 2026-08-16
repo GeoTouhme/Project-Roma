@@ -371,6 +371,7 @@ const delete_fileRoutes = require('./routes/file-delete');
 const storeRoutes = require('./routes/store');
 const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
+const dealRoutes = require('./routes/deal');
 const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
 const stripeWebhookRoutes = require('./routes/stripeWebhook');
@@ -409,6 +410,7 @@ app.use('/api', publicReadLimiter, reviewRoutes);
 app.use('/api', apiLimiter, delete_fileRoutes);
 app.use('/api', adminLimiter, uploadRoutes); // Mostly admin image uploads
 app.use('/api', pollLimiter, notificationRoutes);
+app.use('/api', publicReadLimiter, dealRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API
