@@ -57,7 +57,7 @@ const Deals = () => {
       if (res.data.success) {
         setProducts(
           res.data.data.filter((p: any) =>
-            Boolean(p.images?.[0]?.url && !p.images[0].url.includes('placeholder'))
+            Boolean(p.image?.url && !p.image.url.includes('placeholder'))
           )
         );
       }
@@ -138,7 +138,7 @@ const Deals = () => {
 
     const selectedProducts = products.filter((p) => form.productIds.includes(p._id));
     const missingImage = selectedProducts.some(
-      (p) => !p.images?.[0]?.url || p.images[0].url.includes('placeholder')
+      (p) => !p.image?.url || p.image.url.includes('placeholder')
     );
     if (missingImage) {
       toast.error("All selected products must have a real image");
@@ -358,7 +358,7 @@ const Deals = () => {
                       onChange={() => toggleProduct(product._id)}
                     />
                     <img
-                      src={getAdminThumbnail(product.images?.[0]?.url)}
+                      src={getAdminThumbnail(product.image?.url)}
                       alt={product.name}
                       className="w-8 h-8 object-contain"
                     />
