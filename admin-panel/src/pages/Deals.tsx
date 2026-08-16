@@ -54,7 +54,13 @@ const Deals = () => {
     try {
       setProductSearchLoading(true);
       const res = await productsAPI.getProducts({ limit: 500, search });
-      if (res.data.success) setProducts(res.data.data);
+      if (res.data.success) {
+        setProducts(
+          res.data.data.filter((p: any) =>
+            Boolean(p.images?.[0]?.url && !p.images[0].url.includes('placeholder'))
+          )
+        );
+      }
     } catch (error) {
       console.error("Failed to load products:", error);
     } finally {
@@ -127,6 +133,15 @@ const Deals = () => {
     e.preventDefault();
     if (form.productIds.length === 0) {
       toast.error("Select at least one product");
+      return;
+    }
+
+    const selectedProducts = products.filter((p) => form.productIds.includes(p._id));
+    const missingImage = selectedProducts.some(
+      (p) => !p.images?.[0]?.url || p.images[0].url.includes('placeholder')
+    );
+    if (missingImage) {
+      toast.error("All selected products must have a real image");
       return;
     }
 
