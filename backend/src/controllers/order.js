@@ -661,6 +661,10 @@ const getCartSummary = async (req, res) => {
 
     const productById = new Map(products.map((p) => [p._id.toString(), p]));
 
+    const settings = await Settings.findOneOrCreate();
+    const taxRate =
+      typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
+
     let subtotal = 0;
     let taxableSubtotal = 0;
     let crvTotal = 0;
