@@ -34,10 +34,21 @@ const Cart = () => {
 
       try {
         setSummaryError(false);
-        const items = cartItems.map((item) => ({
-          pid: item.id,
-          quantity: item.quantity,
-        }));
+        const items = cartItems.map((item) => {
+          if (item.type === "bundle") {
+            return {
+              pid: item.id,
+              quantity: item.quantity,
+              type: "bundle",
+              bundlePrice: Number(item.bundlePrice),
+              products: (item.products || []).map((p) => ({
+                pid: p.id || p._id,
+                quantity: p.quantity || 1,
+              })),
+            };
+          }
+          return { pid: item.id, quantity: item.quantity };
+        });
         const response = await OrderService.getCartSummary({ items });
         if (response?.success && response.data) {
           setSummary(response.data);
