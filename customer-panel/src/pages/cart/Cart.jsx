@@ -167,11 +167,15 @@ const Cart = () => {
                       </td>
                     </tr>
                   ) : (
-                    cartItems.map((item) =>
-                      item.type === "bundle" ? (
-                        <React.Fragment key={item.id}>
-                          <tr className="border-t bg-gray-50">
-                                  <td className="p-4 flex items-center space-x-4" colSpan={1}>
+                    cartItems.map((item) => {
+                      if (item.type === "bundle") {
+                        const [expanded, setExpanded] = useState(false);
+                        return (
+                          <React.Fragment key={item.id}>
+                            <tr className="border-t bg-gray-50">
+                              <td className="p-4" colSpan={4}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-4">
                                     <button onClick={() => removeItem(item.id)} className="text-red-500">
                                       <FaTimes size={16} />
                                     </button>
@@ -183,11 +187,20 @@ const Cart = () => {
                                     />
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-gray-900 truncate">{item.name}</p>
-                                      <p className="text-xs text-gray-500">Bundle of {item.dealQuantity || item.products?.length || item.quantity} items</p>
+                                      <p className="text-xs text-gray-500">
+                                        Bundle of {item.dealQuantity || item.products?.length || item.quantity} items
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpanded((prev) => !prev)}
+                                        className="text-xs text-primary underline mt-1"
+                                      >
+                                        {expanded ? "Hide products" : "Show products"}
+                                      </button>
                                     </div>
-                                  </td>
-                                  <td className="p-4">${Number(item.bundlePrice).toFixed(2)}</td>
-                                  <td className="p-4">
+                                  </div>
+                                  <div className="flex items-center gap-8">
+                                    <span>${Number(item.bundlePrice).toFixed(2)}</span>
                                     <select
                                       value={item.quantity}
                                       onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
@@ -199,27 +212,30 @@ const Cart = () => {
                                         </option>
                                       ))}
                                     </select>
-                                  </td>
-                                  <td className="p-4">${(Number(item.bundlePrice) * item.quantity).toFixed(2)}</td>
-                                </tr>
-                          {(item.products || []).map((sub) => (
-                            <tr key={`${item.id}-${sub.id}`} className="border-t">
-                              <td className="p-4 pl-12 flex items-center space-x-4" colSpan={1}>
-                                <img
-                                  src={getThumbnailImage(sub.image)}
-                                  alt={sub.name}
-                                  className="w-10 h-10"
-                                  loading="lazy"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-gray-700 truncate">{sub.name}</p>
+                                    <span className="font-medium">${(Number(item.bundlePrice) * item.quantity).toFixed(2)}</span>
+                                  </div>
                                 </div>
+                                {expanded && (
+                                  <div className="mt-3 ml-8 pl-4 border-l-2 border-gray-200 space-y-2">
+                                    {(item.products || []).map((sub) => (
+                                      <div key={`${item.id}-${sub.id}`} className="flex items-center space-x-3 text-sm text-gray-600">
+                                        <img
+                                          src={getThumbnailImage(sub.image)}
+                                          alt={sub.name}
+                                          className="w-8 h-8"
+                                          loading="lazy"
+                                        />
+                                        <span className="flex-1 truncate">{sub.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </td>
-                              <td className="p-4 text-sm text-gray-500" colSpan={3}>Included in bundle</td>
                             </tr>
-                          ))}
-                        </React.Fragment>
-                      ) : (
+                          </React.Fragment>
+                        );
+                      }
+                      return (
                         <tr key={item.id} className="border-t">
                           <td className="p-4 flex items-center space-x-4">
                             <button onClick={() => removeItem(item.id)} className="text-red-500">
@@ -246,8 +262,8 @@ const Cart = () => {
                           </td>
                           <td className="p-4">${((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}</td>
                         </tr>
-                      )
-                    )
+                      );
+                    })
                   )}
                 </tbody>
               </table>
