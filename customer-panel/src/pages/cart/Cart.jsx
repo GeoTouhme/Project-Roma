@@ -92,11 +92,12 @@ const Cart = () => {
   };
 
   const subtotal = summary.subtotal ??
-    cartItems.reduce(
-      (total, item) =>
-        total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity,
-      0
-    );
+    cartItems.reduce((total, item) => {
+      if (item.type === 'bundle') {
+        return total + Number(item.bundlePrice || 0) * item.quantity;
+      }
+      return total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity;
+    }, 0);
 
   const handleBillingNavigate = () => {
     const isAuthenticated = safeJSONParse("isAuthenticated", false);
@@ -170,37 +171,37 @@ const Cart = () => {
                       item.type === "bundle" ? (
                         <React.Fragment key={item.id}>
                           <tr className="border-t bg-gray-50">
-                            <td className="p-4 flex items-center space-x-4" colSpan={1}>
-                              <button onClick={() => removeItem(item.id)} className="text-red-500">
-                                <FaTimes size={16} />
-                              </button>
-                              <img
-                                src={getThumbnailImage(item.image)}
-                                alt={item.name}
-                                className="w-12 h-12"
-                                loading="lazy"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 truncate">{item.name}</p>
-                                <p className="text-xs text-gray-500">Bundle of {item.quantity} items</p>
-                              </div>
-                            </td>
-                            <td className="p-4">${Number(item.bundlePrice).toFixed(2)}</td>
-                            <td className="p-4">
-                              <select
-                                value={item.quantity}
-                                onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
-                                className="border p-2"
-                              >
-                                {[1, 2, 3, 4, 5].map((q) => (
-                                  <option key={q} value={q}>
-                                    {q}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="p-4">${(Number(item.bundlePrice) * item.quantity).toFixed(2)}</td>
-                          </tr>
+                                  <td className="p-4 flex items-center space-x-4" colSpan={1}>
+                                    <button onClick={() => removeItem(item.id)} className="text-red-500">
+                                      <FaTimes size={16} />
+                                    </button>
+                                    <img
+                                      src={getThumbnailImage(item.image)}
+                                      alt={item.name}
+                                      className="w-12 h-12"
+                                      loading="lazy"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 truncate">{item.name}</p>
+                                      <p className="text-xs text-gray-500">Bundle of {item.dealQuantity || item.products?.length || item.quantity} items</p>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">${Number(item.bundlePrice).toFixed(2)}</td>
+                                  <td className="p-4">
+                                    <select
+                                      value={item.quantity}
+                                      onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
+                                      className="border p-2"
+                                    >
+                                      {[1, 2, 3, 4, 5].map((q) => (
+                                        <option key={q} value={q}>
+                                          {q}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td className="p-4">${(Number(item.bundlePrice) * item.quantity).toFixed(2)}</td>
+                                </tr>
                           {(item.products || []).map((sub) => (
                             <tr key={`${item.id}-${sub.id}`} className="border-t">
                               <td className="p-4 pl-12 flex items-center space-x-4" colSpan={1}>

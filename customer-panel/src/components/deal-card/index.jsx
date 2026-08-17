@@ -18,7 +18,7 @@ const DealCard = ({ deal }) => {
         name: deal.name,
         description: deal.description,
         bundlePrice: Number(deal.bundlePrice),
-        quantity: Number(deal.quantity),
+        quantity: 1,
         price: Number(deal.bundlePrice),
         priceSale: Number(deal.bundlePrice),
         image: products[0]?.images?.[0]?.url || "",
@@ -30,6 +30,7 @@ const DealCard = ({ deal }) => {
           price: p.price || p.priceSale || 0,
           priceSale: p.priceSale || p.price || 0,
         })),
+        dealQuantity: Number(deal.quantity),
       })
     );
     toast.success(`Added ${deal.name} to cart`);
