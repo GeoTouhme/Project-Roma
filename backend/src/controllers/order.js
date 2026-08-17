@@ -598,22 +598,27 @@ const applyBundleDeals = async (items) => {
     $or: [{ expiresAt: null }, { expiresAt: { $gte: now } }],
   }).lean();
 
+  if (!deals.length || !items.length) return 0;
+
   let bundleDiscount = 0;
 
   for (const deal of deals) {
-    const dealProductIds = deal.productIds.map((id) => id.toString());
-    const matchingItems = items.filter((item) =
-      dealProductIds.includes((item.pid || item._id || item.id).toString())
+    const dealProductIds = new Set(deal.productIds.map((id) => id.toString()));
+    const matchingItems = items.filter((cartItem) =
+      dealProductIds.has((cartItem.pid || cartItem._id || cartItem.id)?.toString())
     );
-    const totalQty = matchingItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    const totalQty = matchingItems.reduce(
+      (sum, cartItem) => sum + (cartItem.quantity || 1),
+      0
+    );
     if (totalQty < deal.quantity) continue;
 
     const bundleCount = Math.floor(totalQty / deal.quantity);
     const leftoverQty = totalQty % deal.quantity;
-    const products = await Products.find({
+    const dealProducts = await Products.find({
       _id: { $in: deal.productIds },
     }).lean();
-    const unitPrice = products[0]?.priceSale || products[0]?.price || 0;
+    const unitPrice = dealProducts[0]?.priceSale || dealProducts[0]?.price || 0;
     const regularTotal = totalQty * unitPrice;
     const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * unitPrice;
     const discount = regularTotal - discountedTotal;
