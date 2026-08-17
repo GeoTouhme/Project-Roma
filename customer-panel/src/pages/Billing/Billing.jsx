@@ -91,10 +91,17 @@ const Billing = () => {
       }
 
       try {
-        const items = cartItems.map((item) => ({
-          pid: item.id,
-          quantity: item.quantity,
-        }));
+        const items = cartItems.map((item) => {
+          if (item.type === "bundle") {
+            return {
+              pid: item.id,
+              quantity: item.quantity,
+              type: "bundle",
+              bundlePrice: Number(item.bundlePrice),
+            };
+          }
+          return { pid: item.id, quantity: item.quantity };
+        });
         const response = await OrderService.getCartSummary({ items });
         if (response?.success && response?.data) {
           const data = response.data;
@@ -222,7 +229,18 @@ const Billing = () => {
           zip: zipCode,
           country
         },
-        items: cartItems.map(item => ({ pid: item.id, quantity: item.quantity }))
+        items: cartItems.map(item => {
+          if (item.type === 'bundle') {
+            return {
+              pid: item.id,
+              quantity: item.quantity,
+              type: 'bundle',
+              bundlePrice: Number(item.bundlePrice),
+              products: (item.products || []).map(p => ({ pid: p.id, quantity: 1 })),
+            };
+          }
+          return { pid: item.id, quantity: item.quantity };
+        })
       });
 
       if (response.success) {
@@ -319,6 +337,24 @@ const Billing = () => {
     // Recalculate tax and CRV server-side is source of truth; frontend shows estimate only.
 
     const items = cartItems.map((item) => {
+      if (item.type === "bundle") {
+        return {
+          _id: item.id,
+          name: item.name,
+          type: "bundle",
+          bundlePrice: Number(item.bundlePrice),
+          quantity: item.quantity,
+          subtotal: (Number(item.bundlePrice) * item.quantity).toFixed(2),
+          products: (item.products || []).map((p) => ({
+            _id: p.id,
+            name: p.name,
+            slug: p.slug,
+            image: p.image,
+            price: p.price,
+            priceSale: p.priceSale,
+          })),
+        };
+      }
       const effectivePrice = item.priceSale || item.salePrice || item.price || 0;
       return {
         _id: item.id,
@@ -639,19 +675,28 @@ const Billing = () => {
                   <img src={item.image ? getThumbnailImage(item.image) : Product} alt={item.name} className="w-12 h-12 object-cover rounded" loading="lazy" />
                   <div>
                     <p className="font-semibold">{item.name}</p>
+                    {item.type === 'bundle' && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {(item.products || []).map((p) => <p key={p.id}>{p.name}</p>)}
+                      </div>
+                    )}
                     <div className="text-sm text-gray-500 flex items-center gap-4">
                       <p>
                         <span className="font-medium text-gray-600">Qty:</span> {item.quantity}
                       </p>
                       <p>
-                        <span className="font-medium text-gray-600">Price:</span> ${item.priceSale || item.salePrice || item.price || 0}
+                        <span className="font-medium text-gray-600">Price:</span> ${item.type === 'bundle' ? Number(item.bundlePrice).toFixed(2) : (item.priceSale || item.salePrice || item.price || 0)}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Right: Total */}
-                <p className="font-semibold text-right">${((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}</p>
+                <p className="font-semibold text-right">
+                  ${item.type === 'bundle'
+                    ? (Number(item.bundlePrice) * item.quantity).toFixed(2)
+                    : ((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}
+                </p>
               </div>
             ))}
 

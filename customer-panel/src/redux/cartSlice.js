@@ -46,6 +46,16 @@ const cartSlice = createSlice({
             // Sync to localStorage
             localStorage.setItem("cartItems", JSON.stringify(state.cartItems));
         },
+        addBundleToCart: (state, action) => {
+            const bundle = action.payload;
+            const existing = state.cartItems.find(i => i.id === bundle.id && i.type === 'bundle');
+            if (existing) {
+                existing.quantity += bundle.quantity || 1;
+            } else {
+                state.cartItems.push(bundle);
+            }
+            localStorage.setItem("cartItems", JSON.stringify(state.cartItems));
+        },
         removeFromCart: (state, action) => {
             state.cartItems = state.cartItems.filter(i => i.id !== action.payload);
             localStorage.setItem("cartItems", JSON.stringify(state.cartItems));
@@ -63,5 +73,5 @@ const cartSlice = createSlice({
     },
 });
 
-export const { addToCart, removeFromCart, clearCart, updateQuantity } = cartSlice.actions;
+export const { addToCart, addBundleToCart, removeFromCart, clearCart, updateQuantity } = cartSlice.actions;
 export default cartSlice.reducer;

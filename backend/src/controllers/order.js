@@ -239,6 +239,25 @@ const createOrder = async (req, res) => {
     const stockAdjustments = [];
     try {
       for (const item of updatedItems) {
+        if (item.type === 'bundle') {
+          for (const sub of item.products || []) {
+            const product = products.find(
+              (p) => p._id.toString() === sub.pid.toString()
+            );
+            const subQty = (item.quantity || 1) * (sub.quantity || 1);
+            const stockResult = await Products.findOneAndUpdate(
+              { _id: sub.pid, available: { $gte: subQty } },
+              { $inc: { available: -subQty, sold: subQty } },
+              { new: true, runValidators: true }
+            );
+            if (!stockResult) {
+              throw new Error(`Insufficient stock for bundle product: ${product?.name || sub.pid}`);
+            }
+            stockAdjustments.push({ pid: sub.pid, quantity: subQty });
+          }
+          continue;
+        }
+
         const product = products.find((p) => p._id.toString() === item.pid);
         const stockResult = await Products.findOneAndUpdate(
           { _id: item.pid, available: { $gte: item.quantity } },
@@ -283,16 +302,16 @@ const createOrder = async (req, res) => {
       }
     } catch (orderError) {
       // Best-effort rollback: restore stock that was already decremented.
-      for (const item of stockAdjustments) {
-        try {
-          await Products.findByIdAndUpdate(
-            item.pid,
-            { $inc: { available: item.quantity, sold: -item.quantity } }
-          );
-        } catch (rollbackErr) {
-          console.error(`❌ Failed to rollback stock for ${item.pid}:`, rollbackErr.message);
-        }
+    for (const item of stockAdjustments) {
+      try {
+        await Products.findByIdAndUpdate(
+          item.pid,
+          { $inc: { available: item.quantity, sold: -item.quantity } }
+        );
+      } catch (rollbackErr) {
+        console.error(`❌ Failed to rollback stock for ${item.pid}:`, rollbackErr.message);
       }
+    }
       return res.status(400).json({
         success: false,
         message: orderError.message || 'Order could not be completed. Please try again.'
@@ -330,6 +349,20 @@ const createOrder = async (req, res) => {
 
       let itemsHtml = '';
       updatedItems.forEach((item) => {
+        if (item.type === 'bundle') {
+          const productsList = (item.products || [])
+            .map((p) => `<p>${p.name} (SKU: ${p.sku || 'N/A'}, Qty: ${item.quantity})</p>`)
+            .join('');
+          itemsHtml += `
+            <tr style='border-bottom: 1px solid #e4e4e4;'>
+              <td colspan="5" style="padding: 10px; border-spacing: 0; border: 0">
+                <strong>${item.name}</strong> — Bundle $${item.bundlePrice} x ${item.quantity}
+                <div style="margin-left: 16px; font-size: 13px; color: #666;">${productsList}</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
         itemsHtml += `
           <tr style='border-bottom: 1px solid #e4e4e4;'>
             <td style="border-radius: 8px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); overflow: hidden; border-spacing: 0; border: 0">
@@ -612,33 +645,32 @@ const getCartSummary = async (req, res) => {
       });
     }
 
-    const pids = items
+    const bundleItems = items.filter((item) => item.type === 'bundle');
+    const regularItems = items.filter((item) => item.type !== 'bundle');
+    const bundleProductPids = bundleItems.flatMap((item) =>
+      (item.products || []).map((p) => safeObjectId(p.pid || p._id || p.id))
+    ).filter(Boolean);
+
+    const pids = regularItems
       .map((item) => safeObjectId(item.pid || item._id || item.id))
       .filter(Boolean);
 
-    const products = await Products.find({ _id: { $in: pids } }).populate(
-      'category',
-      'name slug taxable crvRate'
-    );
+    const products = await Products.find({
+      _id: { $in: [...pids, ...bundleProductPids] },
+    }).populate('category', 'name slug taxable crvRate');
 
-    const productById = new Map(
-      products.map((p) => [p._id.toString(), p])
-    );
-
-    const settings = await Settings.findOneOrCreate();
-    const taxRate =
-      typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
+    const productById = new Map(products.map((p) => [p._id.toString(), p]));
 
     let subtotal = 0;
     let taxableSubtotal = 0;
     let crvTotal = 0;
     let itemCount = 0;
 
-    for (const item of items) {
+    for (const item of regularItems) {
       const pid = safeObjectId(item.pid || item._id || item.id);
       if (!pid) continue;
 
-      const product = productById.get(pid);
+      const product = productById.get(pid.toString());
       if (!product) continue;
 
       const qty = Math.max(1, safeNumber(item.quantity, 1));
@@ -657,13 +689,30 @@ const getCartSummary = async (req, res) => {
       }
     }
 
+    for (const item of bundleItems) {
+      const qty = Math.max(1, safeNumber(item.quantity, 1));
+      const bundlePrice = safeNumber(item.bundlePrice, 0);
+      const lineTotal = round2(bundlePrice * qty);
+      subtotal += lineTotal;
+      itemCount += (item.quantityOfProducts || item.products?.length || 1) * qty;
+
+      // Determine taxability from bundle products; if any taxable, treat bundle as taxable.
+      const productTaxables = (item.products || [])
+        .map((p) => productById.get(safeObjectId(p.pid || p._id || p.id)?.toString())?.category?.taxable)
+        .filter((t) => t !== undefined);
+      const taxable = productTaxables.length === 0 || productTaxables.some((t) => t !== false);
+      if (taxable) taxableSubtotal += lineTotal;
+    }
+
     subtotal = round2(subtotal);
     taxableSubtotal = round2(taxableSubtotal);
     crvTotal = round2(crvTotal);
 
-    const bundleDiscount = round2(await applyBundleDeals(items));
-    const discountedSubtotal = round2(Math.max(0, subtotal - bundleDiscount));
-    const discountedTaxable = round2(Math.max(0, taxableSubtotal - (taxableSubtotal / subtotal) * bundleDiscount));
+    const regularDiscount = round2(await applyBundleDeals(regularItems));
+    const discountedSubtotal = round2(Math.max(0, subtotal - regularDiscount));
+    const discountedTaxable = round2(
+      Math.max(0, taxableSubtotal - (taxableSubtotal / subtotal) * regularDiscount)
+    );
     const tax = round2(discountedTaxable * taxRate);
     const total = round2(discountedSubtotal + tax + crvTotal);
 
@@ -677,7 +726,7 @@ const getCartSummary = async (req, res) => {
         total,
         itemCount,
         taxRate,
-        bundleDiscount,
+        bundleDiscount: regularDiscount,
       },
     });
   } catch (error) {

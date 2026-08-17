@@ -35,7 +35,13 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
     throw new Error('Please Provide Item(s)');
   }
 
-  const safeItems = items
+  const bundleItems = items.filter((item) => item.type === 'bundle');
+  const regularItems = items.filter((item) => item.type !== 'bundle');
+  const bundleProductPids = bundleItems.flatMap((item) =>
+    (item.products || []).map((p) => safeObjectId(p.pid || p._id || p.id))
+  ).filter(Boolean);
+
+  const safeItems = regularItems
     .map((item) => {
       const rawPid = item.pid || item._id || item.id;
       const pid = safeObjectId(rawPid);
@@ -44,24 +50,42 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
     })
     .filter((item) => item.pid);
 
-  if (safeItems.length === 0) {
-    throw new Error('Invalid product IDs in cart.');
+  if (safeItems.length === 0 && bundleItems.length === 0) {
+    throw new Error('Please Provide Item(s)');
   }
 
   const productIds = safeItems.map((item) => item.pid);
   const products = await Products.find({
-    _id: { $in: productIds },
+    _id: { $in: [...productIds, ...bundleProductPids] },
   }).populate('category');
 
   const validProducts = products.filter(
     (p) => p.status !== 'disabled' && p.status !== 'inactive' && p.available > 0
   );
-  if (validProducts.length !== products.length) {
+
+  // For bundles, validate that all bundled products are available.
+  const bundleAvailabilityErrors = [];
+  for (const bundle of bundleItems) {
+    const bundleProducts = (bundle.products || [])
+      .map((p) => products.find((prod) => prod._id.toString() === safeObjectId(p.pid || p._id || p.id)?.toString()))
+      .filter(Boolean);
+    if (bundleProducts.length !== (bundle.products || []).length) {
+      bundleAvailabilityErrors.push(`Bundle ${bundle.name || bundle.pid} contains unavailable products.`);
+    }
+  }
+
+  if (bundleAvailabilityErrors.length > 0) {
+    throw new Error(bundleAvailabilityErrors.join(' '));
+  }
+
+  if (safeItems.length > 0 && validProducts.length !== products.length) {
     throw new Error('One or more products are unavailable or out of stock.');
   }
 
   let containsAlcohol = false;
-  const updatedItems = safeItems.map((item) => {
+  const updatedItems = [];
+
+  for (const item of safeItems) {
     const product = products.find((p) => p._id.toString() === item.pid);
     if (!product) {
       throw new Error(`Product not found: ${item.pid}`);
@@ -74,7 +98,7 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
     const price = product.priceSale || product.price || 0;
     const total = price * item.quantity;
 
-    return {
+    updatedItems.push({
       pid: product._id,
       name: item.name || product.name,
       brand: item.brand || product.brand,
@@ -89,10 +113,45 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
       subtotal: total.toFixed(2),
       total,
       imageUrl: product.images.length > 0 ? product.images[0].url : '',
-    };
-  });
+    });
+  }
 
-  const grandTotal = updatedItems.reduce((acc, item) => acc + item.total, 0);
+  for (const bundle of bundleItems) {
+    const bundleProducts = (bundle.products || [])
+      .map((p) => {
+        const product = products.find(
+          (prod) => prod._id.toString() === safeObjectId(p.pid || p._id || p.id)?.toString()
+        );
+        if (!product) return null;
+        if (product.category && alcoholCategorySlugs.includes(product.category.slug)) {
+          containsAlcohol = true;
+        }
+        return {
+          pid: product._id,
+          name: product.name,
+          slug: product.slug,
+          sku: product.sku,
+          price: product.price,
+          priceSale: product.priceSale,
+          imageUrl: product.images?.[0]?.url || '',
+          size: product.size || null,
+        };
+      })
+      .filter(Boolean);
+
+    updatedItems.push({
+      pid: bundle.pid || bundle._id || bundle.id,
+      name: bundle.name || 'Bundle',
+      type: 'bundle',
+      bundlePrice: safeNumber(bundle.bundlePrice, 0),
+      quantity: safeNumber(bundle.quantity, 1),
+      subtotal: (safeNumber(bundle.bundlePrice, 0) * safeNumber(bundle.quantity, 1)).toFixed(2),
+      total: safeNumber(bundle.bundlePrice, 0) * safeNumber(bundle.quantity, 1),
+      products: bundleProducts,
+    });
+  }
+
+  const grandTotal = updatedItems.reduce((acc, item) => acc + (item.total || 0), 0);
 
   const settings = await Settings.findOneOrCreate();
   const taxRate = typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
@@ -100,6 +159,31 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
   let crvTotal = 0;
   let taxableSubtotal = 0;
   for (const item of updatedItems) {
+    if (item.type === 'bundle') {
+      // CRV/tax for bundle: use bundled products if category info is available.
+      let bundleCrv = 0;
+      for (const sub of item.products || []) {
+        const subProduct = products.find(
+          (p) => p._id.toString() === sub.pid.toString()
+        );
+        if (subProduct?.category?.crvRate) {
+          bundleCrv += getCrvPerItem(subProduct.size, subProduct.category.crvRate);
+        }
+      }
+      // Apply bundle CRV once per bundle quantity (per line).
+      const itemCrvTotal = round2((item.quantity || 1) * bundleCrv);
+      crvTotal += itemCrvTotal;
+      item.crvPerItem = bundleCrv;
+      item.totalCrv = itemCrvTotal;
+
+      const anyTaxable = (item.products || []).some((sub) => {
+        const subProduct = products.find((p) => p._id.toString() === sub.pid.toString());
+        return subProduct?.category?.taxable !== false;
+      });
+      if (anyTaxable) taxableSubtotal += item.total;
+      continue;
+    }
+
     const product = products.find((p) => p._id.toString() === item.pid.toString());
     const category = product?.category;
     const productSize = product?.size;

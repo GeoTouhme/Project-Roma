@@ -377,14 +377,24 @@ const OrderDetail = () => {
                     header: "Image",
                     accessorKey: (item: any) => (
                       <div className="w-12 h-12 rounded overflow-hidden bg-muted">
-                        <img src={getAdminThumbnail(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={getAdminThumbnail(item.type === 'bundle' ? item.products?.[0]?.imageUrl : item.imageUrl)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                       </div>
                     )
                   },
                   {
                     header: "Product",
-                    accessorKey: "name",
-                    className: "font-medium",
+                    accessorKey: (item: any) => (
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        {item.type === 'bundle' && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {(item.products || []).map((p: any) => (
+                              <p key={p.pid}>{p.name} (Qty: {item.quantity})</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ),
                   },
                   {
                     header: "Quantity",
