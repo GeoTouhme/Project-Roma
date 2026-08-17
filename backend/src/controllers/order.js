@@ -703,7 +703,25 @@ const getCartSummary = async (req, res) => {
       const bundlePrice = safeNumber(item.bundlePrice, 0);
       const lineTotal = round2(bundlePrice * qty);
       subtotal += lineTotal;
-      itemCount += (item.quantityOfProducts || item.products?.length || 1) * qty;
+
+      // CRV per physical container inside the bundle.
+      let bundleCrvPerUnit = 0;
+      for (const sub of item.products || []) {
+        const subProduct = productById.get(
+          safeObjectId(sub.pid || sub._id || sub.id)?.toString()
+        );
+        if (!subProduct?.category?.crvRate) continue;
+        const subQty = Math.max(1, safeNumber(sub.quantity, 1));
+        bundleCrvPerUnit += subQty * getCrvPerItem(subProduct.size, subProduct.category.crvRate);
+      }
+      crvTotal += round2(bundleCrvPerUnit * qty);
+
+      // Total physical item count for display.
+      const physicalCount = (item.products || []).reduce(
+        (sum, sub) => sum + Math.max(1, safeNumber(sub.quantity, 1)),
+        0
+      );
+      itemCount += physicalCount * qty;
 
       // Determine taxability from bundle products; if any taxable, treat bundle as taxable.
       const productTaxables = (item.products || [])

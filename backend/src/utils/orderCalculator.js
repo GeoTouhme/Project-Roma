@@ -161,19 +161,19 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
   for (const item of updatedItems) {
     if (item.type === 'bundle') {
       // CRV/tax for bundle: use bundled products if category info is available.
-      let bundleCrv = 0;
+      let bundleCrvPerUnit = 0;
       for (const sub of item.products || []) {
         const subProduct = products.find(
           (p) => p._id.toString() === sub.pid.toString()
         );
         if (subProduct?.category?.crvRate) {
-          bundleCrv += getCrvPerItem(subProduct.size, subProduct.category.crvRate);
+          const subQty = Math.max(1, safeNumber(sub.quantity, 1));
+          bundleCrvPerUnit += subQty * getCrvPerItem(subProduct.size, subProduct.category.crvRate);
         }
       }
-      // Apply bundle CRV once per bundle quantity (per line).
-      const itemCrvTotal = round2((item.quantity || 1) * bundleCrv);
+      const itemCrvTotal = round2((item.quantity || 1) * bundleCrvPerUnit);
       crvTotal += itemCrvTotal;
-      item.crvPerItem = bundleCrv;
+      item.crvPerItem = bundleCrvPerUnit;
       item.totalCrv = itemCrvTotal;
 
       const anyTaxable = (item.products || []).some((sub) => {
