@@ -55,6 +55,7 @@ services:
       - UBER_DIRECT_CUSTOMER_ID=${UBER_DIRECT_CUSTOMER_ID}
       - UBER_DIRECT_WEBHOOK_SECRET=${UBER_DIRECT_WEBHOOK_SECRET}
       - FRONTEND_URL=${FRONTEND_URL:-https://balportliquors.com}
+      - IMAGE_FALLBACK_DIR=/usr/src/app/image-fallback/storage/images
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY:-}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
@@ -64,6 +65,7 @@ services:
       - mongodb
     volumes:
       - ./uploads:/usr/src/app/uploads
+      - ./image-fallback/storage/images:/usr/src/app/image-fallback/storage/images
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - balport-network
@@ -81,6 +83,8 @@ services:
     container_name: balport-customer-panel
     ports:
       - "0.0.0.0:3000:80"
+    volumes:
+      - ./image-fallback/storage/images:/usr/share/nginx/html/images:ro
     networks:
       - balport-network
 
