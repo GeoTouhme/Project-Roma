@@ -62,26 +62,28 @@ function CategoryFilter({
     onChange(selectedCategory, slug);
   };
 
-  const handleMouseDown = (e, rowRef) => {
+  const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
+
+  const handlePointerDown = (e, rowRef) => {
     if (!rowRef.current) return;
     setIsDragging(true);
     dragState.current = {
-      startX: e.pageX - rowRef.current.offsetLeft,
+      startX: getClientX(e) - rowRef.current.offsetLeft,
       scrollLeft: rowRef.current.scrollLeft,
       row: rowRef.current,
     };
   };
 
-  const handleMouseMove = (e) => {
+  const handlePointerMove = (e) => {
     const row = dragState.current.row;
     if (!isDragging || !row) return;
-    e.preventDefault();
-    const x = e.pageX - row.offsetLeft;
+    if (e.cancelable) e.preventDefault();
+    const x = getClientX(e) - row.offsetLeft;
     const walk = (x - dragState.current.startX) * 1.5;
     row.scrollLeft = dragState.current.scrollLeft - walk;
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     dragState.current.row = null;
     setIsDragging(false);
   };
@@ -96,12 +98,20 @@ function CategoryFilter({
     "flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar cursor-grab active:cursor-grabbing";
 
   return (
-    <div className="w-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+    <div
+      className="w-full"
+      onMouseMove={handlePointerMove}
+      onMouseUp={handlePointerUp}
+      onMouseLeave={handlePointerUp}
+      onTouchMove={handlePointerMove}
+      onTouchEnd={handlePointerUp}
+    >
       {/* Row 1: Parent categories */}
       <div
         ref={parentRowRef}
-        className={`${scrollRowClasses} ${isDragging ? "select-none" : ""}`}
-        onMouseDown={(e) => handleMouseDown(e, parentRowRef)}
+        className={`${scrollRowClasses} ${isDragging ? "select-none touch-pan-y" : ""}`}
+        onMouseDown={(e) => handlePointerDown(e, parentRowRef)}
+        onTouchStart={(e) => handlePointerDown(e, parentRowRef)}
       >
         <button
           type="button"
@@ -150,7 +160,7 @@ function CategoryFilter({
       <div
         className="overflow-hidden transition-all duration-200 ease-in-out"
         style={{
-          maxHeight: selectedParent ? "80px" : "0px",
+          maxHeight: selectedParent ? "160px" : "0px",
           opacity: selectedParent ? 1 : 0,
           marginTop: selectedParent ? "12px" : "0px",
         }}
@@ -159,8 +169,9 @@ function CategoryFilter({
         {selectedParent && (
           <div
             ref={subRowRef}
-            className={`${scrollRowClasses} ${isDragging ? "select-none" : ""}`}
-            onMouseDown={(e) => handleMouseDown(e, subRowRef)}
+            className={`${scrollRowClasses} ${isDragging ? "select-none touch-pan-y" : ""}`}
+            onMouseDown={(e) => handlePointerDown(e, subRowRef)}
+            onTouchStart={(e) => handlePointerDown(e, subRowRef)}
           >
             <span className="flex-shrink-0 text-[13px] font-semibold text-grey_text mr-1">
               {selectedParent.name} ›

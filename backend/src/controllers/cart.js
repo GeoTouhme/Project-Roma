@@ -17,11 +17,16 @@ const applyBundleDeals = async (items) => {
     const totalQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
     if (totalQty < deal.quantity) continue;
 
+    // Use each item's own price (priceSale preferred) instead of one price for all.
+    const regularTotal = matchingItems.reduce((sum, item) => {
+      const unitPrice = item.priceSale || item.price || 0;
+      return sum + item.quantity * unitPrice;
+    }, 0);
+
     const bundleCount = Math.floor(totalQty / deal.quantity);
     const leftoverQty = totalQty % deal.quantity;
-    const unitPrice = matchingItems[0]?.price || 0;
-    const regularTotal = totalQty * unitPrice;
-    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * unitPrice;
+    const avgUnitPrice = regularTotal / totalQty;
+    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * avgUnitPrice;
     const discount = regularTotal - discountedTotal;
     if (discount > 0) bundleDiscount += discount;
   }

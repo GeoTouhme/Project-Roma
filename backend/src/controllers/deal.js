@@ -86,6 +86,21 @@ const createDeal = async (req, res) => {
       });
     }
 
+    // Warn (but don't block) if some products are disabled or out of stock.
+    const unavailable = await Product.countDocuments({
+      _id: { $in: safeIds },
+      $or: [
+        { status: { $in: ['disabled', 'inactive'] } },
+        { available: { $lte: 0 } },
+      ],
+    });
+    if (unavailable > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `${unavailable} product(s) in this deal are disabled or out of stock. Please remove them or restock before creating the deal.`,
+      });
+    }
+
     const deal = await Deal.create({
       name,
       description,
@@ -119,6 +134,22 @@ const updateDeal = async (req, res) => {
           message: 'Invalid product IDs',
         });
       }
+
+      // Check for unavailable products when updating productIds.
+      const unavailable = await Product.countDocuments({
+        _id: { $in: safeIds },
+        $or: [
+          { status: { $in: ['disabled', 'inactive'] } },
+          { available: { $lte: 0 } },
+        ],
+      });
+      if (unavailable > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `${unavailable} product(s) in this deal are disabled or out of stock. Please remove them or restock before updating the deal.`,
+        });
+      }
+
       updates.productIds = safeIds;
     }
 

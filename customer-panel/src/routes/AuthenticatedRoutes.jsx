@@ -15,17 +15,19 @@ import OrdersPage from "../pages/orders";
 import WishlistPage from "../pages/wishlist";
 import Terms from "../pages/Terms/Terms";
 import Privacy from "../pages/Privacy/Privacy";
+import Deals from "../pages/deals";
 import { ORDERING_DISABLED } from "../config/orderingConfig";
 
 const AuthenticatedRoutes = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   return (
-    <div id="home" className="home">
+    <div id="home" className="home pb-safe-mobile">
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/category/wine/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Collection />} />
         <Route path="/products/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Collection />} />
+        <Route path="/deals" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Deals />} />
         <Route path="/product/*" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <ProductPage />} />
         <Route path="/cart" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Cart />} />
         <Route path="/billing" element={ORDERING_DISABLED ? <Navigate to="/" replace /> : <Billing />} />

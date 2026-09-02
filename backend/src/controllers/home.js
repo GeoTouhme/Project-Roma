@@ -20,14 +20,16 @@ const ALCOHOLIC_CATEGORIES = [
 const isValidImageUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   const lower = url.toLowerCase();
-  const isBlocked = lower.includes('placeholder') || lower.includes('via.placeholder') || lower.includes('google.com/url');
+  // Block broken/legacy sources now that images are served locally
+  const isBlocked =
+    lower.includes('placeholder') ||
+    lower.includes('via.placeholder') ||
+    lower.includes('google.com/url') ||
+    lower.includes('cloudinary.com') ||
+    lower.includes('res.cloudinary');
   if (isBlocked) return false;
 
-  // Accept Cloudinary upload URLs (they don't always end with an extension)
-  const isCloudinary = lower.includes('cloudinary.com') || lower.includes('res.cloudinary');
-  if (isCloudinary) return true;
-
-  // Accept direct image URLs by extension
+  // Accept local fallback images and direct image URLs by extension
   return /\.(jpg|jpeg|png|webp|avif|gif)(\?.*)?$/.test(lower);
 };
 
@@ -186,7 +188,7 @@ const getTopRatedProducts = async (req, res) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           colors: 1,
@@ -287,7 +289,7 @@ const getBestSellerProducts = async (req, res) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           colors: 1,
@@ -355,7 +357,7 @@ const getFeaturedProducts = async (req, res) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           colors: 1,

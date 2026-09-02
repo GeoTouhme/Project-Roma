@@ -10,8 +10,8 @@ const Settings = require('../models/settings');
 const sendEmail = require('../utils/mailer');
 const Category = require('../models/Category');
 const { safeObjectId, safeNumber } = require('../utils/validators');
-const { getCrvPerItem } = require('../utils/crv');
 const { calculateOrderTotals } = require('../utils/orderCalculator');
+const { applyMixBundleDeals } = require('../utils/mixBundle');
 const { emitToAdmins } = require('../utils/socketManager');
 
 const nodemailer = require('nodemailer');
@@ -152,7 +152,7 @@ const createOrder = async (req, res) => {
     // not from client-submitted prices. This prevents price/tax tampering.
     let totals;
     try {
-      totals = await calculateOrderTotals({ items, shipping, tip, couponCode });
+      totals = await calculateOrderTotals({ items, shipping, tip, couponCode, userEmail: req.user?.email });
     } catch (calcError) {
       return res.status(400).json({ success: false, message: calcError.message });
     }
@@ -164,7 +164,7 @@ const createOrder = async (req, res) => {
       grandTotal,
       discount,
       tax,
-      crvTotal,
+      markupTotal,
       sanitizedTip,
       deliveryFee,
       orderTotal,
@@ -276,7 +276,8 @@ const createOrder = async (req, res) => {
         discount,
         tip: sanitizedTip,
         tax,
-        crv: crvTotal,
+        crv: 0,
+        markup: markupTotal,
         total: orderTotal,
         subTotal: grandTotal,
         shipping,
@@ -297,7 +298,21 @@ const createOrder = async (req, res) => {
       if (couponCode) {
         await Coupons.findOneAndUpdate(
           { code: couponCode },
-          { $addToSet: { usedBy: req.user.email } }
+          {
+            $addToSet: { usedBy: req.user.email },
+            $push: {
+              usageHistory: {
+                user: orderUser._id,
+                email: req.user.email,
+                name: `${orderUser.firstName} ${orderUser.lastName}`.trim(),
+                orderId: orderCreated._id,
+                orderNo,
+                total: orderCreated.total,
+                discount: totals.discount,
+                date: new Date(),
+              },
+            },
+          }
         );
       }
     } catch (orderError) {
@@ -587,10 +602,15 @@ const deleteOrderByAdmin = async (req, res) => {
 
 const Deal = require('../models/Deal');
 
+const MARKUP_RATE = 0.02;
+
 /**
- * Calculate bundle deal discount for cart items.
+ * Calculate Deal (fixed-product bundle) discount for cart items.
+ * Uses each item's own price instead of a single product's price for all.
+ * @param {Array} items - Cart items
+ * @param {Map} productById - Map of product ID -> product document (with price/priceSale)
  */
-const applyBundleDeals = async (items) => {
+const applyBundleDeals = async (items, productById = new Map()) => {
   const now = new Date();
   const deals = await Deal.find({
     status: 'active',
@@ -604,32 +624,41 @@ const applyBundleDeals = async (items) => {
 
   for (const deal of deals) {
     const dealProductIds = new Set(deal.productIds.map((id) => id.toString()));
-    const matchingItems = items.filter((cartItem) =
-      dealProductIds.has((cartItem.pid || cartItem._id || cartItem.id)?.toString())
-    );
+    const matchingItems = items.filter((cartItem) => {
+      if (cartItem.type === 'bundle' || cartItem.bundleApplied) return false;
+      const itemId = (cartItem.pid || cartItem._id || cartItem.id)?.toString();
+      return dealProductIds.has(itemId);
+    });
     const totalQty = matchingItems.reduce(
-      (sum, cartItem) => sum + (cartItem.quantity || 1),
+      (sum, cartItem) => sum + Math.max(1, safeNumber(cartItem.quantity, 1)),
       0
     );
     if (totalQty < deal.quantity) continue;
 
+    // Use each item's own price from the authoritative product DB lookup.
+    const regularTotal = matchingItems.reduce((sum, cartItem) => {
+      const pid = safeObjectId(cartItem.pid || cartItem._id || cartItem.id);
+      const product = pid ? productById.get(pid.toString()) : null;
+      const unitPrice = product?.priceSale || product?.price || 0;
+      return sum + Math.max(1, safeNumber(cartItem.quantity, 1)) * unitPrice;
+    }, 0);
+
     const bundleCount = Math.floor(totalQty / deal.quantity);
     const leftoverQty = totalQty % deal.quantity;
-    const dealProducts = await Products.find({
-      _id: { $in: deal.productIds },
-    }).lean();
-    const unitPrice = dealProducts[0]?.priceSale || dealProducts[0]?.price || 0;
-    const regularTotal = totalQty * unitPrice;
-    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * unitPrice;
-    const discount = regularTotal - discountedTotal;
-    if (discount > 0) bundleDiscount += discount;
+    const avgUnitPrice = regularTotal / totalQty;
+    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * avgUnitPrice;
+    const discount = round2(regularTotal - discountedTotal);
+    if (discount > 0) {
+      bundleDiscount += discount;
+      matchingItems.forEach((item) => { item.bundleApplied = true; });
+    }
   }
 
-  return bundleDiscount;
+  return round2(bundleDiscount);
 };
 
 /**
- * Calculate tax and CRV for a cart without requiring delivery details.
+ * Calculate tax and markup for a cart without requiring delivery details.
  * Used by the cart page to preview estimated taxes before checkout.
  */
 const getCartSummary = async (req, res) => {
@@ -643,7 +672,7 @@ const getCartSummary = async (req, res) => {
           subtotal: 0,
           taxableSubtotal: 0,
           tax: 0,
-          crv: 0,
+          markup: 0,
           total: 0,
           itemCount: 0,
         },
@@ -662,7 +691,7 @@ const getCartSummary = async (req, res) => {
 
     const products = await Products.find({
       _id: { $in: [...pids, ...bundleProductPids] },
-    }).populate('category', 'name slug taxable crvRate');
+    }).populate('category', 'name slug taxable');
 
     const productById = new Map(products.map((p) => [p._id.toString(), p]));
 
@@ -672,7 +701,6 @@ const getCartSummary = async (req, res) => {
 
     let subtotal = 0;
     let taxableSubtotal = 0;
-    let crvTotal = 0;
     let itemCount = 0;
 
     for (const item of regularItems) {
@@ -681,6 +709,9 @@ const getCartSummary = async (req, res) => {
 
       const product = productById.get(pid.toString());
       if (!product) continue;
+      // Skip unavailable products in cart preview (matches checkout validation).
+      if (product.status === 'disabled' || product.status === 'inactive') continue;
+      if (product.available <= 0) continue;
 
       const qty = Math.max(1, safeNumber(item.quantity, 1));
       const unitPrice = product.priceSale || product.price || 0;
@@ -692,10 +723,6 @@ const getCartSummary = async (req, res) => {
       if (product.category?.taxable !== false) {
         taxableSubtotal += lineTotal;
       }
-
-      if (product.category?.crvRate) {
-        crvTotal += qty * getCrvPerItem(product.size, product.category.crvRate);
-      }
     }
 
     for (const item of bundleItems) {
@@ -703,18 +730,6 @@ const getCartSummary = async (req, res) => {
       const bundlePrice = safeNumber(item.bundlePrice, 0);
       const lineTotal = round2(bundlePrice * qty);
       subtotal += lineTotal;
-
-      // CRV per physical container inside the bundle.
-      let bundleCrvPerUnit = 0;
-      for (const sub of item.products || []) {
-        const subProduct = productById.get(
-          safeObjectId(sub.pid || sub._id || sub.id)?.toString()
-        );
-        if (!subProduct?.category?.crvRate) continue;
-        const subQty = Math.max(1, safeNumber(sub.quantity, 1));
-        bundleCrvPerUnit += subQty * getCrvPerItem(subProduct.size, subProduct.category.crvRate);
-      }
-      crvTotal += round2(bundleCrvPerUnit * qty);
 
       // Total physical item count for display.
       const physicalCount = (item.products || []).reduce(
@@ -733,15 +748,19 @@ const getCartSummary = async (req, res) => {
 
     subtotal = round2(subtotal);
     taxableSubtotal = round2(taxableSubtotal);
-    crvTotal = round2(crvTotal);
 
-    const regularDiscount = round2(await applyBundleDeals(regularItems));
-    const discountedSubtotal = round2(Math.max(0, subtotal - regularDiscount));
+    // 2% markup on every product's base price. Not taxable, not reduced by discounts.
+    const markupTotal = round2(subtotal * MARKUP_RATE);
+
+    const regularDiscount = round2(await applyBundleDeals(regularItems, productById));
+    const mixDiscount = round2(await applyMixBundleDeals(regularItems));
+    const totalDiscount = regularDiscount + mixDiscount;
+    const discountedSubtotal = round2(Math.max(0, subtotal - totalDiscount));
     const discountedTaxable = round2(
-      Math.max(0, taxableSubtotal - (taxableSubtotal / subtotal) * regularDiscount)
+      Math.max(0, taxableSubtotal - (taxableSubtotal / subtotal) * totalDiscount)
     );
     const tax = round2(discountedTaxable * taxRate);
-    const total = round2(discountedSubtotal + tax + crvTotal);
+    const total = round2(discountedSubtotal + tax + markupTotal);
 
     return res.status(200).json({
       success: true,
@@ -749,11 +768,12 @@ const getCartSummary = async (req, res) => {
         subtotal: discountedSubtotal,
         taxableSubtotal: discountedTaxable,
         tax,
-        crv: crvTotal,
+        markup: markupTotal,
         total,
         itemCount,
         taxRate,
         bundleDiscount: regularDiscount,
+        mixBundleDiscount: mixDiscount,
       },
     });
   } catch (error) {

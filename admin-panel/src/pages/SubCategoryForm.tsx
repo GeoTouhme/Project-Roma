@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/select";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Upload, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { categoriesAPI, subCategoriesAPI } from "@/lib/api";
+import { categoriesAPI, subCategoriesAPI, uploadAPI } from "@/lib/api";
 import { getAdminThumbnail } from "@/lib/utils";
 
 interface Category {
@@ -30,6 +30,7 @@ const SubCategoryForm = () => {
   const [parentId, setParentId] = useState("");
   const [status, setStatus] = useState("Active");
   const [imageUrl, setImageUrl] = useState("");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
@@ -43,7 +44,7 @@ const SubCategoryForm = () => {
 
   const fetchMainCategories = async () => {
     try {
-      const response = await categoriesAPI.getCategories({ limit: 500 }); // Fetch all for dropdown
+      const response = await categoriesAPI.getCategories({ limit: 500 });
       if (response.data.success) {
         setMainCategories(response.data.data);
       }
@@ -62,7 +63,6 @@ const SubCategoryForm = () => {
         setName(data.name);
         setStatus(data.status);
         if (data.parentCategory) {
-          // It might be an object or ID depending on populate
           setParentId(typeof data.parentCategory === 'object' ? data.parentCategory._id : data.parentCategory);
         }
         if (data.cover && data.cover.url) {
@@ -77,13 +77,36 @@ const SubCategoryForm = () => {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const response = await uploadAPI.uploadImage(formData);
+      if (response.data?.success && response.data.data?.url) {
+        setImageUrl(response.data.data.url);
+        toast.success("Cover image uploaded");
+      } else {
+        throw new Error("Upload response did not contain a URL");
+      }
+    } catch (error: any) {
+      console.error("Cover upload failed", error);
+      toast.error(error.message || "Failed to upload cover image");
+    } finally {
+      setCoverUploading(false);
+      e.target.value = "";
+    }
+  };
+
   const handleSave = async () => {
     if (!name || !parentId) {
       toast.error("Please fill all required fields.");
       return;
     }
     if (!imageUrl) {
-      toast.error("Please enter a cover image URL.");
+      toast.error("Please upload a cover image.");
       return;
     }
 
@@ -172,12 +195,38 @@ const SubCategoryForm = () => {
           </Select>
 
           <div className="space-y-2">
-            <span className="text-sm font-medium">Cover Image URL</span>
-            <Input
-              placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
+            <span className="text-sm font-medium">Cover Image</span>
+            <div className="flex items-center gap-3">
+              <label className="relative cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverUpload}
+                  disabled={coverUploading}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <Button type="button" variant="outline" size="sm" disabled={coverUploading}>
+                  {coverUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {coverUploading ? "Uploading..." : "Upload Cover"}
+                </Button>
+              </label>
+              {imageUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImageUrl("")}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remove
+                </Button>
+              )}
+            </div>
             {imageUrl && (
               <div className="mt-2 relative w-full h-40 bg-gray-100 rounded-md overflow-hidden">
                 <img src={getAdminThumbnail(imageUrl)} alt="Preview" className="w-full h-full object-cover" loading="lazy" />

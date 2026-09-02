@@ -99,6 +99,17 @@ export const ordersAPI = {
         api.delete(`/api/admin/orders/${id}`),
 };
 
+export const mixBundlesAPI = {
+    getAll: () => api.get('/api/admin/mix-bundles'),
+    getById: (id: string) => api.get(`/api/admin/mix-bundles/${id}`),
+    create: (data: any) => api.post('/api/admin/mix-bundles', data),
+    update: (id: string, data: any) => api.put(`/api/admin/mix-bundles/${id}`, data),
+    delete: (id: string) => api.delete(`/api/admin/mix-bundles/${id}`),
+    getCategories: () => api.get('/api/categories'),
+    getBrands: () => api.get('/api/brands'),
+    getFieldValues: (field: string) => api.get('/api/admin/products/field-values', { params: { field } }),
+};
+
 export const productsAPI = {
     getProducts: (params?: any) =>
         api.get('/api/admin/products', { params }),
@@ -230,5 +241,18 @@ export const dealsAPI = {
         api.put(`/api/admin/deals/${id}`, data),
     delete: (id: string) =>
         api.delete(`/api/admin/deals/${id}`),
+};
+
+export const couponsAPI = {
+    getAll: (params?: any) =>
+        api.get('/api/admin/coupon-codes', { params }),
+    getById: (id: string) =>
+        api.get(`/api/admin/coupon-codes/${id}`),
+    create: (data: any) =>
+        api.post('/api/admin/coupon-codes', data),
+    update: (id: string, data: any) =>
+        api.put(`/api/admin/coupon-codes/${id}`, data),
+    delete: (id: string) =>
+        api.delete(`/api/admin/coupon-codes/${id}`),
 };
 

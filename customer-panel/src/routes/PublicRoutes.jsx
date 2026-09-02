@@ -17,7 +17,7 @@ import { ORDERING_DISABLED } from "../config/orderingConfig";
 
 const PublicRoutes = () => {
   return (
-    <div id="home" className="home">
+    <div id="home" className="home pb-safe-mobile">
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />

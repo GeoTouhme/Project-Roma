@@ -12,8 +12,6 @@ import PromoBanner from "../promo-banner";
 
 const Header = () => {
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState(null);
   const menuData = [
     { title: "Home", link: "/" },
     { title: "Products", link: "/products" },
@@ -209,34 +207,134 @@ const Header = () => {
               {/* Search */}
               <div className="relative" ref={searchRef}>
                 {isSearchExpanded ? (
-                  <div className="flex items-center gap-2 search-overlay">
-                    <form onSubmit={handleSearch} className="relative flex items-center">
-                      <input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
-                        className="w-64 lg:w-80 bg-gray-100 border-2 border-primary/10 rounded-full py-2.5 px-4 pl-10 pr-20 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-black"
-                        autoFocus
-                      />
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                        <Icons name="search" height={18} width={18} color="currentColor" />
+                  <>
+                    {/* Mobile full-width search overlay */}
+                    <div className="fixed inset-x-0 top-0 z-[100] bg-white shadow-lg px-4 py-3 md:hidden">
+                      <div className="flex items-center gap-2">
+                        <form onSubmit={handleSearch} className="relative flex items-center flex-1">
+                          <input
+                            type="text"
+                            placeholder="Search products..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
+                            className="w-full bg-gray-100 border-2 border-primary/10 rounded-full py-2.5 px-4 pl-10 pr-20 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-black"
+                            autoFocus
+                          />
+                          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Icons name="search" height={18} width={18} color="currentColor" />
+                          </div>
+                          <button
+                            type="submit"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-opacity-90 transition-all"
+                          >
+                            Search
+                          </button>
+                        </form>
+                        <button
+                          onClick={toggleSearch}
+                          className="text-gray-500 hover:text-black transition-colors p-2"
+                        >
+                          <Icons name="close" width={20} height={20} color="currentColor" />
+                        </button>
                       </div>
+
+                      {/* Mobile suggestions dropdown */}
+                      {showSuggestions && (
+                        <div className="mt-2 bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden max-h-[70vh] overflow-y-auto w-full">
+                          {suggestions.products.length === 0 && suggestions.categories.length === 0 && !isSearching ? (
+                            <div className="p-8 text-center">
+                              <p className="text-gray-400 text-sm font-medium">
+                                No results found for "{searchTerm}"
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              {suggestions.categories.length > 0 && (
+                                <div className="p-3 border-b border-gray-50">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">Categories</p>
+                                  <div className="flex flex-wrap gap-2 px-2">
+                                    {suggestions.categories.map((cat) => (
+                                      <div
+                                        key={cat._id}
+                                        onClick={() => handleSuggestionClick("category", cat)}
+                                        className="bg-gray-50 hover:bg-primary/10 hover:text-primary transition-colors px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer"
+                                      >
+                                        {cat.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {suggestions.products.length > 0 && (
+                                <div className="p-2">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-2">Products</p>
+                                  {suggestions.products.map((prod) => (
+                                    <div
+                                      key={prod._id}
+                                      onClick={() => handleSuggestionClick("product", prod)}
+                                      className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors cursor-pointer rounded-xl"
+                                    >
+                                      <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                                        <img
+                                          src={getThumbnailImage(prod.images?.[0])}
+                                          alt=""
+                                          className="w-full h-full object-cover"
+                                          loading="lazy"
+                                        />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{prod.name}</p>
+                                        <p className="text-xs text-primary font-bold">${prod.priceSale || prod.price}</p>
+                                      </div>
+                                      <div className="text-gray-300">
+                                        <Icons name="right_arrow" width={10} height={10} color="currentColor" />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {isSearching && (
+                            <div className="p-6 flex items-center justify-center">
+                              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Desktop expanded search */}
+                    <div className="hidden md:flex items-center gap-2">
+                      <form onSubmit={handleSearch} className="relative flex items-center">
+                        <input
+                          type="text"
+                          placeholder="Search products..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
+                          className="w-64 lg:w-80 bg-gray-100 border-2 border-primary/10 rounded-full py-2.5 px-4 pl-10 pr-20 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-black"
+                          autoFocus
+                        />
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Icons name="search" height={18} width={18} color="currentColor" />
+                        </div>
+                        <button
+                          type="submit"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-opacity-90 transition-all"
+                        >
+                          Search
+                        </button>
+                      </form>
                       <button
-                        type="submit"
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-opacity-90 transition-all"
+                        onClick={toggleSearch}
+                        className="text-gray-500 hover:text-black transition-colors"
                       >
-                        Search
+                        <Icons name="close" width={18} height={18} color="currentColor" />
                       </button>
-                    </form>
-                    <button
-                      onClick={toggleSearch}
-                      className="text-gray-500 hover:text-black transition-colors"
-                    >
-                      <Icons name="close" width={18} height={18} color="currentColor" />
-                    </button>
-                  </div>
+                    </div>
+                  </>
                 ) : (
                   <button
                     onClick={toggleSearch}
@@ -247,22 +345,18 @@ const Header = () => {
                   </button>
                 )}
 
-                {/* Suggestions Dropdown */}
+                {/* Desktop suggestions dropdown */}
                 {showSuggestions && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white shadow-2xl rounded-2xl border border-gray-100 z-[200] overflow-hidden max-h-[400px] overflow-y-auto w-[350px] lg:w-[450px]">
+                  <div className="hidden md:block absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white shadow-2xl rounded-2xl border border-gray-100 z-[100] overflow-hidden max-h-[400px] overflow-y-auto w-[92vw] max-w-[450px] min-w-[300px]">
                     {suggestions.products.length === 0 && suggestions.categories.length === 0 && !isSearching ? (
                       <div className="p-8 text-center">
-                        <p className="text-gray-400 text-sm font-medium">
-                          No results found for "{searchTerm}"
-                        </p>
+                        <p className="text-gray-400 text-sm font-medium">No results found for "{searchTerm}"</p>
                       </div>
                     ) : (
                       <>
                         {suggestions.categories.length > 0 && (
                           <div className="p-3 border-b border-gray-50">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">
-                              Categories
-                            </p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">Categories</p>
                             <div className="flex flex-wrap gap-2 px-2">
                               {suggestions.categories.map((cat) => (
                                 <div
@@ -276,12 +370,9 @@ const Header = () => {
                             </div>
                           </div>
                         )}
-
                         {suggestions.products.length > 0 && (
                           <div className="p-2">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-2">
-                              Products
-                            </p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-2">Products</p>
                             {suggestions.products.map((prod) => (
                               <div
                                 key={prod._id}
@@ -290,19 +381,15 @@ const Header = () => {
                               >
                                 <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                                   <img
-                                    src={getThumbnailImage(prod.images?.[0]?.url)}
+                                    src={getThumbnailImage(prod.images?.[0])}
                                     alt=""
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-gray-900 truncate">
-                                    {prod.name}
-                                  </p>
-                                  <p className="text-xs text-primary font-bold">
-                                    ${prod.priceSale || prod.price}
-                                  </p>
+                                  <p className="text-sm font-semibold text-gray-900 truncate">{prod.name}</p>
+                                  <p className="text-xs text-primary font-bold">${prod.priceSale || prod.price}</p>
                                 </div>
                                 <div className="text-gray-300">
                                   <Icons name="right_arrow" width={10} height={10} color="currentColor" />
@@ -313,7 +400,6 @@ const Header = () => {
                         )}
                       </>
                     )}
-
                     {isSearching && (
                       <div className="p-6 flex items-center justify-center">
                         <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -370,123 +456,12 @@ const Header = () => {
                 </a>
               )}
 
-              {/* Mobile Menu Toggle */}
-              <button
-                className="xl:hidden text-black"
-                aria-label="Toggle navigation"
-                onClick={() => setDrawerOpen(true)}
-              >
-                <Icons name="menu_bar" width={24} height={24} color="#000000" />
-              </button>
+
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      <div
-        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-lg transform ${
-          isDrawerOpen ? "translate-x-0" : "-translate-x-full"
-        } transition-transform duration-300 z-50`}
-      >
-        <div className="flex justify-between items-center p-4 border-b">
-          <Link to="/" onClick={() => setDrawerOpen(false)}>
-            <img src={Logo} alt="logo" className="w-16" />
-          </Link>
-          <button onClick={() => setDrawerOpen(false)} aria-label="Close menu">
-            <Icons name="close" width={18} height={18} color="#000000" />
-          </button>
-        </div>
-
-        {/* Mobile Search */}
-        <div className="p-4 border-b">
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-100 rounded-full py-2.5 px-4 pl-10 text-sm outline-none text-black"
-            />
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-              <Icons name="search" height={16} width={16} color="currentColor" />
-            </div>
-          </form>
-        </div>
-
-        <nav className="flex flex-col gap-1 p-4 text-black text-[15px] font-medium">
-          {menuData.map((menu, index) => (
-            <div key={index}>
-              {menu.subMenu ? (
-                <button
-                  className="flex justify-between items-center w-full py-3 px-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={() => setOpenMenu(openMenu === menu.title ? null : menu.title)}
-                >
-                  <span>{menu.title}</span>
-                  <Icons
-                    name="menu_down_arrow"
-                    width={12}
-                    height={12}
-                    color="#000000"
-                    className={`transform transition-transform ${openMenu === menu.title ? "rotate-180" : ""}`}
-                  />
-                </button>
-              ) : (
-                <Link
-                  to={menu.link}
-                  className="block py-3 px-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  {menu.title}
-                </Link>
-              )}
-            </div>
-          ))}
-
-          {/* Submenu for mobile */}
-          {openMenu &&
-            menuData
-              .filter((menu) => menu.title === openMenu)
-              .map((menu) =>
-                menu.subMenu?.map((category, catIndex) => (
-                  <div key={catIndex} className="pl-4 border-l-2 border-gray-200 ml-2 space-y-1">
-                    {category.links.map((item, itemIndex) => (
-                      <Link
-                        key={itemIndex}
-                        to={item.url}
-                        className="block py-2 px-3 text-sm text-gray-600 hover:text-primary transition-colors"
-                        onClick={() => {
-                          setDrawerOpen(false);
-                          setOpenMenu(null);
-                        }}
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                ))
-              )}
-        </nav>
-
-        {/* Mobile drawer footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-gray-50">
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>📍 4521 W Coast Hwy, Newport Beach</p>
-            <p>📞 (949) 200-9377</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile overlay */}
-      {isDrawerOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => {
-            setDrawerOpen(false);
-            setOpenMenu(null);
-          }}
-        ></div>
-      )}
     </div>
   );
 };

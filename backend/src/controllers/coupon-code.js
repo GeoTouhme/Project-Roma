@@ -3,14 +3,14 @@ const CouponCode = require("../models/CouponCode");
 const { nanoid } = require('nanoid');
 
 // 🛡️ Whitelist allowed fields to prevent mass assignment
-const ALLOWED_COUPON_FIELDS = ['name', 'code', 'discount', 'expire', 'description', 'type', 'usedBy'];
+const ALLOWED_COUPON_FIELDS = ['name', 'code', 'discount', 'expire', 'description', 'type', 'usedBy', 'maxUses', 'minOrderAmount'];
 
 const generateCouponCode = (length = 10) => nanoid(length).toUpperCase();
 
 const getCouponCodeByCode = async (req, res) => {
 	try {
-		const code = req.params.code;
-		const getCouponCode = await CouponCode.findOne({ code: code });
+		const code = req.params.code?.trim().toUpperCase();
+		const getCouponCode = await CouponCode.findOne({ code });
 
 		if (!getCouponCode) {
 			return res.status(404).json({
@@ -179,7 +179,7 @@ const getActiveCoupons = async (req, res) => {
 		const now = new Date();
 		const coupons = await CouponCode.find({
 			expire: { $gte: now },
-		}).select('name code discount type expire description').lean();
+		}).select('name code discount type expire description maxUses minOrderAmount usedBy').lean();
 		res.status(200).json({ success: true, data: coupons });
 	} catch (error) {
 		res.status(500).json({ success: false, message: error.message });

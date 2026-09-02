@@ -21,6 +21,7 @@ import { getHeroSlideImage } from "../../utils/cloudinary";
 import CategorySlider from "../../components/category-slider";
 import CountdownTimer from "../../components/countdown-timer";
 import DealCard from "../../components/deal-card";
+import MixBundleCard from "../../components/mix-bundle-card";
 
 const DEFAULT_HERO_SLIDES = [
   {
@@ -81,6 +82,8 @@ const Home = () => {
   const [dealProductsLoading, setDealProductsLoading] = useState(false);
   const [activeDeals, setActiveDeals] = useState([]);
   const [activeDealsLoading, setActiveDealsLoading] = useState(false);
+  const [activeMixBundles, setActiveMixBundles] = useState([]);
+  const [activeMixBundlesLoading, setActiveMixBundlesLoading] = useState(false);
   const isAuthenticated = safeJSONParse("isAuthenticated", false);
   const userInfo = isAuthenticated ? safeJSONParse("user", null) : null;
   const user_id = userInfo?._id || "";
@@ -178,12 +181,29 @@ const Home = () => {
       })
   }, [])
 
+  const fetchActiveMixBundles = useCallback(() => {
+    setActiveMixBundlesLoading(true)
+    HomeService.activeMixBundles()
+      .then((response) => {
+        if (response?.success) {
+          setActiveMixBundles(response?.data || []);
+        }
+      })
+      .catch((error) => {
+        console.log("activeMixBundles error = ", error);
+      })
+      .finally(() => {
+        setActiveMixBundlesLoading(false)
+      })
+  }, [])
+
   useEffect(() => {
     fetchBestSellerProducts();
     fetchFeaturedProducts();
     fetchDealProducts();
     fetchActiveDeals();
-  }, [fetchBestSellerProducts, fetchFeaturedProducts, fetchDealProducts, fetchActiveDeals])
+    fetchActiveMixBundles();
+  }, [fetchBestSellerProducts, fetchFeaturedProducts, fetchDealProducts, fetchActiveDeals, fetchActiveMixBundles])
 
   const NextArrow = ({ onClick }) => {
     return (
@@ -369,7 +389,7 @@ const Home = () => {
                         id: product._id,
                         slug: product.slug,
                         title: product.name,
-                        image: product.image?.url,
+                        image: product.image,
                         priceSale: product.priceSale,
                         price: product.price,
                         discount: product.discount,
@@ -398,6 +418,22 @@ const Home = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {activeDeals.map((deal) => (
                 <DealCard key={deal._id} deal={deal} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {!activeMixBundlesLoading && activeMixBundles.length === 0 ? null : (
+        <section className="mix-bundles md:mb-[100px] mb-[40px]">
+          <div className="container">
+            <div className="section_head mb-8 text-center">
+              <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-primary font-semibold md:mb-3 mb-2 uppercase">Mix & Match</h6>
+              <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">Build Your Own Bundle</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {activeMixBundles.map((bundle) => (
+                <MixBundleCard key={bundle._id} bundle={bundle} categories={categories} />
               ))}
             </div>
           </div>
@@ -452,7 +488,7 @@ const Home = () => {
                     id: product._id,
                     slug: product.slug,
                     title: product.name,
-                    image: product.image?.url,
+                    image: product.image,
                     priceSale: product.priceSale,
                     price: product.price,
                     rating: product.averageRating || 0,
@@ -532,7 +568,7 @@ const Home = () => {
                     id: product._id,
                     slug: product.slug,
                     title: product.name,
-                    image: product.image?.url,
+                    image: product.image,
                     priceSale: product.priceSale,
                     price: product.price,
                     rating: product.averageRating || 0,

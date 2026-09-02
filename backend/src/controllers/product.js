@@ -84,7 +84,7 @@ const getProducts = async (req, res) => {
     const maxPrice = safePrices ? safeNumber(safePrices.split('_')[1], 10000000) : 10000000;
     productSearchQuery.priceSale = { $gte: minPrice, $lte: maxPrice };
 
-// 7. Handle ids filter (comma-separated product IDs)
+    // 7. Handle ids filter (comma-separated product IDs)
     if (query.ids) {
       const ids = query.ids
         .split(',')
@@ -93,6 +93,24 @@ const getProducts = async (req, res) => {
       if (ids.length > 0) {
         productSearchQuery._id = { $in: ids };
       }
+    }
+
+    // 7.6 Handle category/brands/sizes/tags comma filters from mix bundles
+    if (query.categories) {
+      const cats = query.categories.split(',').map((id) => safeObjectId(id)).filter(Boolean);
+      if (cats.length) productSearchQuery.category = { $in: cats };
+    }
+    if (query.brands) {
+      const brands = query.brands.split(',').map((id) => safeObjectId(id)).filter(Boolean);
+      if (brands.length) productSearchQuery.brand = { $in: brands };
+    }
+    if (query.sizes) {
+      const sizes = query.sizes.split(',').filter(Boolean);
+      if (sizes.length) productSearchQuery.size = { $in: sizes };
+    }
+    if (query.tags) {
+      const tags = query.tags.split(',').filter(Boolean);
+      if (tags.length) productSearchQuery.tags = { $in: tags };
     }
 
     // 7.5 Handle Featured — only accept literal string 'true'
@@ -151,7 +169,7 @@ const getProducts = async (req, res) => {
       {
         $project: {
           _id: 1,
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           images: 1,
           sku: 1,
           name: 1,
@@ -347,7 +365,7 @@ const getProductsByAdmin = async (request, response) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           sku: 1,
@@ -751,7 +769,7 @@ const relatedProducts = async (req, res) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           colors: 1,
@@ -1150,6 +1168,23 @@ const importInventoryCSV = async (req, res) => {
   }
 };
 
+const getFieldValues = async (req, res) => {
+  const { field } = req.query;
+  if (!field || typeof field !== 'string') {
+    return res.status(400).json({ success: false, message: 'field query param is required' });
+  }
+  try {
+    if (field === 'tags') {
+      const values = await Product.distinct('tags');
+      return res.status(200).json({ success: true, data: values.filter(Boolean) });
+    }
+    const values = await Product.distinct(field);
+    return res.status(200).json({ success: true, data: values.filter((v) => v != null) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getProducts,
   getFilters,
@@ -1165,4 +1200,5 @@ module.exports = {
   getOneProductBySlug,
   exportInventoryCSV,
   importInventoryCSV,
+  getFieldValues,
 };

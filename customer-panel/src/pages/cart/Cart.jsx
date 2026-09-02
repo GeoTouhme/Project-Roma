@@ -19,16 +19,16 @@ const Cart = () => {
   const [summary, setSummary] = useState({
     subtotal: 0,
     tax: 0,
-    crv: 0,
+    markup: 0,
     total: 0,
   });
   const [summaryError, setSummaryError] = useState(false);
 
-  // Fetch estimated tax and CRV from the server whenever the cart changes.
+  // Fetch estimated tax and markup from the server whenever the cart changes.
   useEffect(() => {
     const loadSummary = async () => {
       if (cartItems.length === 0) {
-        setSummary({ subtotal: 0, tax: 0, crv: 0, total: 0 });
+        setSummary({ subtotal: 0, tax: 0, markup: 0, total: 0 });
         return;
       }
 
@@ -62,7 +62,7 @@ const Cart = () => {
                 item.quantity,
             0
           );
-          setSummary({ subtotal: localSubtotal, tax: 0, crv: 0, total: localSubtotal });
+          setSummary({ subtotal: localSubtotal, tax: 0, markup: 0, total: localSubtotal });
         }
       } catch (error) {
         console.error("Failed to load cart summary:", error);
@@ -74,7 +74,7 @@ const Cart = () => {
               item.quantity,
           0
         );
-        setSummary({ subtotal: localSubtotal, tax: 0, crv: 0, total: localSubtotal });
+        setSummary({ subtotal: localSubtotal, tax: 0, markup: 0, total: localSubtotal });
       }
     };
 
@@ -145,174 +145,149 @@ const Cart = () => {
         </div>
       </div>
 
-      <div className="container md:pb-[100px] pb-[40px]">
-        {/* Cart Table */}
-        <div className={`grid ${cartItems.length > 0 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 "}  gap-8`}>
-          <div className="md:col-span-2">
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-100 text-gray-700">
-                    <th className="p-4">Product</th>
-                    <th className="p-4">Price</th>
-                    <th className="p-4">Quantity</th>
-                    <th className="p-4">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cartItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-6 text-gray-500">
-                        No items found.
-                      </td>
-                    </tr>
-                  ) : (
-                    cartItems.map((item) => {
-                      if (item.type === "bundle") {
-                        const [expanded, setExpanded] = useState(false);
-                        return (
-                          <React.Fragment key={item.id}>
-                            <tr className="border-t bg-gray-50">
-                              <td className="p-4" colSpan={4}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-4">
-                                    <button onClick={() => removeItem(item.id)} className="text-red-500">
-                                      <FaTimes size={16} />
-                                    </button>
-                                    <img
-                                      src={getThumbnailImage(item.image)}
-                                      alt={item.name}
-                                      className="w-12 h-12"
-                                      loading="lazy"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-gray-900 truncate">{item.name}</p>
-                                      <p className="text-xs text-gray-500">
-                                        Bundle of {item.dealQuantity || item.products?.length || item.quantity} items
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={() => setExpanded((prev) => !prev)}
-                                        className="text-xs text-primary underline mt-1"
-                                      >
-                                        {expanded ? "Hide products" : "Show products"}
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-8">
-                                    <span>${Number(item.bundlePrice).toFixed(2)}</span>
-                                    <select
-                                      value={item.quantity}
-                                      onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
-                                      className="border p-2"
-                                    >
-                                      {[1, 2, 3, 4, 5].map((q) => (
-                                        <option key={q} value={q}>
-                                          {q}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <span className="font-medium">${(Number(item.bundlePrice) * item.quantity).toFixed(2)}</span>
-                                  </div>
-                                </div>
-                                {expanded && (
-                                  <div className="mt-3 ml-8 pl-4 border-l-2 border-gray-200 space-y-2">
-                                    {(item.products || []).map((sub) => (
-                                      <div key={`${item.id}-${sub.id}`} className="flex items-center space-x-3 text-sm text-gray-600">
-                                        <img
-                                          src={getThumbnailImage(sub.image)}
-                                          alt={sub.name}
-                                          className="w-8 h-8"
-                                          loading="lazy"
-                                        />
-                                        <span className="flex-1 truncate">{sub.name}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          </React.Fragment>
-                        );
-                      }
-                      return (
-                        <tr key={item.id} className="border-t">
-                          <td className="p-4 flex items-center space-x-4">
-                            <button onClick={() => removeItem(item.id)} className="text-red-500">
-                              <FaTimes size={16} />
-                            </button>
-                            <img src={getThumbnailImage(item.image)} alt={item.name} className="w-12 h-12" loading="lazy" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">{item.name}</p>
-                            </div>
-                          </td>
-                          <td className="p-4">${item.priceSale || item.salePrice || item.price || 0}</td>
-                          <td className="p-4">
-                            <select
-                              value={item.quantity}
-                              onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
-                              className="border p-2"
+      <div className="container pb-[120px] md:pb-[100px]">
+        {cartItems.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+            <p className="text-gray-500 text-lg mb-6">Your cart is empty.</p>
+            <button
+              className="bg-[#B5223B] text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition"
+              onClick={() => navigate("/products")}
+            >
+              Continue Shopping
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              {cartItems.map((item) => {
+                const isBundle = item.type === "bundle";
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+                  >
+                    <div className="flex gap-4">
+                      <img
+                        src={getThumbnailImage(item.image)}
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                        loading="lazy"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900 leading-tight">{item.name}</p>
+                            {isBundle && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Bundle of{" "}
+                                {item.dealQuantity || item.products?.length || item.quantity} items
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-500 p-2 -mr-2 -mt-2 flex-shrink-0"
+                            aria-label="Remove item"
+                          >
+                            <FaTimes size={18} />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="flex items-center border border-gray-200 rounded-lg">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, Math.max(1, item.quantity - 1))}
+                              className="px-3 py-2 text-[#B5223B] font-bold min-w-[44px] min-h-[44px]"
+                              aria-label="Decrease quantity"
                             >
-                              {[1, 2, 3, 4, 5].map((q) => (
-                                <option key={q} value={q}>
-                                  {q}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="p-4">${((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                              -
+                            </button>
+                            <span className="px-3 font-semibold min-w-[32px] text-center">{item.quantity}</span>
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              className="px-3 py-2 text-[#B5223B] font-bold min-w-[44px] min-h-[44px]"
+                              aria-label="Increase quantity"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <p className="font-bold text-primary text-lg">
+                            ${
+                              isBundle
+                                ? (Number(item.bundlePrice) * item.quantity).toFixed(2)
+                                : ((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)
+                            }
+                          </p>
+                        </div>
+
+                        {isBundle && item.products?.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                            {item.products.map((sub) => (
+                              <div
+                                key={`${item.id}-${sub.id}`}
+                                className="flex items-center gap-3 text-sm text-gray-600"
+                              >
+                                <img
+                                  src={getThumbnailImage(sub.image)}
+                                  alt={sub.name}
+                                  className="w-8 h-8 rounded object-cover"
+                                  loading="lazy"
+                                />
+                                <span className="flex-1 truncate">{sub.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="hidden md:block">
+                <button
+                  className="border px-5 py-3 rounded-md bg-gray-800 text-white font-medium"
+                  onClick={() => navigate("/products")}
+                >
+                  Return To Shop
+                </button>
+              </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex justify-end mt-4">
-              <button className="border px-4 py-2 rounded-md  bg-gray-800 text-white" onClick={() => navigate("/products")}> Return To Shop</button>
-              {/* <button className="border px-4 py-2 rounded-md bg-gray-800 text-white">Update Cart</button> */}
+            {/* Order Summary - desktop sidebar */}
+            <div className="hidden lg:block">
+              <div className="bg-gray-100 p-6 rounded-xl shadow-md sticky top-24">
+                <h2 className="text-xl font-semibold mb-4">Cart Total</h2>
+                {summaryError && (
+                  <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded mb-4">
+                    Tax and markup could not be estimated right now. The total will be recalculated at checkout.
+                  </p>
+                )}
+                <div className="flex justify-between text-gray-700">
+                  <p>Subtotal:</p>
+                  <p>${subtotal?.toFixed(2)}</p>
+                </div>
+                <div className="flex justify-between text-gray-700 my-2">
+                  <p>Shipping:</p>
+                  <p>Calculated at checkout</p>
+                </div>
+                <div className="flex justify-between text-gray-700 my-2">
+                  <p>Tax:</p>
+                  <p>${(summary.tax || 0).toFixed(2)}</p>
+                </div>
+                <div className="flex justify-between text-gray-700 my-2">
+                  <p>Markup (2%):</p>
+                  <p>${(summary.markup || 0).toFixed(2)}</p>
+                </div>
+                <div className="flex justify-between text-lg font-semibold mt-2 pt-2 border-t border-gray-300">
+                  <p>Total:</p>
+                  <p>${(summary.total || subtotal)?.toFixed(2)}</p>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Cart Summary */}
-          {cartItems.length > 0 && <div className="bg-gray-100 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Cart Total</h2>
-            {summaryError && (
-              <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded mb-4">
-                Tax and CRV could not be estimated right now. The total will be recalculated at checkout.
-              </p>
-            )}
-            <div className="flex justify-between text-gray-700">
-              <p>Subtotal:</p>
-              <p>${subtotal?.toFixed(2)}</p>
-            </div>
-            <div className="flex justify-between text-gray-700 my-2">
-              <p>Shipping:</p>
-              <p>Calculated at checkout</p>
-            </div>
-            <div className="flex justify-between text-gray-700 my-2">
-              <p>Tax:</p>
-              <p>${(summary.tax || 0).toFixed(2)}</p>
-            </div>
-            <div className="flex justify-between text-gray-700 my-2">
-              <p>CRV:</p>
-              <p>${(summary.crv || 0).toFixed(2)}</p>
-            </div>
-            <div className="flex justify-between text-lg font-semibold mt-2">
-              <p>Total:</p>
-              <p>${(summary.total || subtotal)?.toFixed(2)}</p>
-            </div>
-            <button
-              className="w-full mt-6 bg-[#B5223B] text-white py-3 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              onClick={() => handleBillingNavigate()}
-              disabled={!storeIsOpen}
-            >
-              {!storeIsOpen ? "Store is Closed" : "Proceed to checkout"}
-            </button>
-          </div>}
-        </div>
+        )}
 
         {cartItems.length > 0 && (
           <RecommendationSection
@@ -322,7 +297,26 @@ const Cart = () => {
             limit={4}
           />
         )}
-      </div >
+
+        {/* Fixed mobile checkout bar */}
+        {cartItems.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] lg:hidden z-[70]">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs text-gray-500">Total</p>
+                <p className="text-xl font-bold text-[#B5223B]">${(summary.total || subtotal)?.toFixed(2)}</p>
+              </div>
+              <button
+                className="flex-1 bg-[#B5223B] text-white py-3.5 rounded-lg font-bold uppercase tracking-wide hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                onClick={() => handleBillingNavigate()}
+                disabled={!storeIsOpen}
+              >
+                {!storeIsOpen ? "Store is Closed" : "Proceed to checkout"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 };

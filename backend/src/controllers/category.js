@@ -15,7 +15,7 @@ const createCategory = async (req, res) => {
 		}
 
 		// 🛡️ Whitelist allowed fields to prevent mass assignment of internal fields
-		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'taxable', 'crvRate', 'order'];
+		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'taxable', 'order'];
 		const safeData = {};
 		for (const field of ALLOWED_FIELDS) {
 			if (body[field] !== undefined) safeData[field] = body[field];
@@ -46,7 +46,7 @@ const getAllCategories = async (req, res) => {
 				order: 1,
 				createdAt: -1,
 			})
-			.select(["name", "slug", "subCategories", "status", "taxable", "crvRate", "order", "productCount", "createdAt"])
+			.select(["name", "slug", "subCategories", "status", "taxable", "order", "productCount", "createdAt"])
 			.populate({ path: "subCategories", select: ["name", "slug", "order", "productCount"], options: { sort: { order: 1 } } });
 
 		res.status(201).json({
@@ -92,7 +92,6 @@ const getCategoryBySlug = async (req, res) => {
 			"cover",
 			"slug",
 			"taxable",
-			"crvRate",
 		]);
 
 		if (!category) {
@@ -120,7 +119,7 @@ const updateCategoryBySlug = async (req, res) => {
 		}
 
 		// 🛡️ Whitelist allowed fields to prevent mass assignment of internal fields
-		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'taxable', 'crvRate', 'order'];
+		const ALLOWED_FIELDS = ['name', 'metaTitle', 'description', 'metaDescription', 'slug', 'status', 'taxable', 'order'];
 		const safeData = {};
 		for (const field of ALLOWED_FIELDS) {
 			if (body[field] !== undefined) safeData[field] = body[field];
@@ -192,7 +191,7 @@ const getCategories = async (req, res) => {
 			order: 1,
 			createdAt: -1,
 		})
-		.select("name slug status taxable crvRate order productCount cover createdAt");
+		.select("name slug status taxable order productCount cover createdAt");
 
 		res.status(201).json({
 			success: true,

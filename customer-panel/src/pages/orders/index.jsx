@@ -88,8 +88,52 @@ const OrdersPage = () => {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto shadow rounded bg-white">
+            {/* Mobile Cards */}
+            <div className="space-y-4 md:hidden">
+                {loading ? (
+                    <div className="text-center py-10">
+                        <span className="text-gray-500">Loading orders...</span>
+                    </div>
+                ) : orders.length > 0 ? (
+                    orders.map((order) => (
+                        <div key={order._id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                            <div className="flex items-start gap-3">
+                                <img
+                                    src={getThumbnailImage(order.items[0]?.imageUrl)}
+                                    alt={order.items[0]?.name || "Product"}
+                                    className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                                    loading="lazy"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 truncate">{order.items[0]?.name}</p>
+                                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                        <span>{order.totalItems} items</span>
+                                        <span>•</span>
+                                        <span>{moment(order.createdAt).format("MMM DD, YYYY")}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-3">
+                                        <span className="font-bold text-gray-900">${order.total.toFixed(2)}</span>
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${statusStyles[order.status] || statusStyles.pending}`}>
+                                            {formatStatus(order.status)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => navigate(`/order/${order._id}`)}
+                                className="w-full mt-4 bg-[#B5223B] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#9f1d32] transition"
+                            >
+                                View Details
+                            </button>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-10 text-gray-500">No orders found.</div>
+                )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto shadow rounded bg-white">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-primary text-white">
                         <tr className="text-left text-sm font-medium">

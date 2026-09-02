@@ -65,4 +65,14 @@ HomeService.activeDeals = function () {
     });
 };
 
+HomeService.activeMixBundles = function () {
+    return fetch({
+        url: "/mix-bundles/active",
+        method: "get",
+        headers: {
+            "public-request": "true",
+        },
+    });
+};
+
 export default HomeService;

@@ -33,6 +33,9 @@ function safeObjectId(value) {
   if (typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
     return value;
   }
+  if (value && typeof value === 'object' && value.toString && /^[0-9a-fA-F]{24}$/.test(value.toString())) {
+    return value.toString();
+  }
   return null;
 }
 

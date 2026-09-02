@@ -14,7 +14,7 @@ const CouponCodeSchema = new mongoose.Schema(
 		},
 		discount: {
 			type: Number,
-			minlength: 4,
+			min: 0,
 			required: [true, "Discount is required."],
 		},
 		expire: {
@@ -29,7 +29,29 @@ const CouponCodeSchema = new mongoose.Schema(
 			enum: ["percent", "fixed"], // This ensures that 'type' can only be 'percent' or 'fixed'
 			required: [true, "Type is required."],
 		},
-		usedBy: [{ type: String }], // Array of strings
+		usedBy: [{ type: String }], // Array of user emails
+		usageHistory: [
+			{
+				user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+				email: { type: String },
+				name: { type: String },
+				orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+				orderNo: { type: String },
+				total: { type: Number },
+				discount: { type: Number },
+				date: { type: Date, default: Date.now },
+			},
+		],
+		maxUses: {
+			type: Number,
+			min: 0,
+			default: 0, // 0 = unlimited
+		},
+		minOrderAmount: {
+			type: Number,
+			min: 0,
+			default: 0, // 0 = no minimum
+		},
 	},
 	{
 		timestamps: true,

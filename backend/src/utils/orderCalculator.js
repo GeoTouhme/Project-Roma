@@ -8,9 +8,12 @@
 
 const Products = require('../models/Product');
 const Coupons = require('../models/CouponCode');
+const Deal = require('../models/Deal');
 const Settings = require('../models/settings');
 const { safeObjectId, safeNumber } = require('./validators');
-const { getCrvPerItem } = require('./crv');
+const { applyMixBundleDeals } = require('./mixBundle');
+
+const MARKUP_RATE = 0.02;
 
 const alcoholCategorySlugs = [
   'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more',
@@ -23,14 +26,66 @@ function round2(value) {
 }
 
 /**
+ * Calculate Deal (fixed-product bundle) discount for regular cart items.
+ * "Buy N for $X" deals on specific products.
+ */
+async function applyBundleDealDiscounts(items) {
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  const now = new Date();
+  const deals = await Deal.find({
+    status: 'active',
+    startAt: { $lte: now },
+    $or: [{ expiresAt: null }, { expiresAt: { $gte: now } }],
+  }).lean();
+
+  if (!deals.length) return 0;
+
+  let totalDiscount = 0;
+
+  for (const deal of deals) {
+    const dealProductIds = new Set(deal.productIds.map((id) => id.toString()));
+    const matchingItems = items.filter((item) => {
+      if (item.type === 'bundle' || item.bundleApplied) return false;
+      const itemId = (item.pid || item._id || item.id)?.toString();
+      return dealProductIds.has(itemId);
+    });
+    const totalQty = matchingItems.reduce(
+      (sum, item) => sum + Math.max(1, safeNumber(item.quantity, 1)),
+      0
+    );
+    if (totalQty < deal.quantity) continue;
+
+    // Use each item's own price (already set from authoritative DB in updatedItems)
+    const regularTotal = matchingItems.reduce((sum, item) => {
+      const unitPrice = safeNumber(item.priceSale, 0) || safeNumber(item.price, 0) || 0;
+      return sum + Math.max(1, safeNumber(item.quantity, 1)) * unitPrice;
+    }, 0);
+
+    const bundleCount = Math.floor(totalQty / deal.quantity);
+    const leftoverQty = totalQty % deal.quantity;
+    const avgUnitPrice = regularTotal / totalQty;
+    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * avgUnitPrice;
+    const discount = round2(regularTotal - discountedTotal);
+    if (discount > 0) {
+      totalDiscount += discount;
+      matchingItems.forEach((item) => { item.bundleApplied = true; });
+    }
+  }
+
+  return round2(totalDiscount);
+}
+
+/**
  * Calculate authoritative order totals from cart items.
  * @param {Array} items - Cart items with at least { pid/_id/id, quantity, ... }
  * @param {number|string} shipping - Delivery fee
  * @param {number|string} tip - Tip amount
  * @param {string} [couponCode] - Optional coupon code
+ * @param {string} [userEmail] - Optional user email for per-user coupon validation
  * @returns {Promise<Object>} Totals plus updatedItems and products for downstream use.
  */
-async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
+async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmail }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Please Provide Item(s)');
   }
@@ -152,30 +207,17 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
   }
 
   const grandTotal = updatedItems.reduce((acc, item) => acc + (item.total || 0), 0);
+  const dealDiscount = round2(await applyBundleDealDiscounts(updatedItems));
+  const mixDiscount = round2(await applyMixBundleDeals(updatedItems));
+  const bundleDiscount = dealDiscount + mixDiscount;
+  const discountedGrandTotal = round2(Math.max(0, grandTotal - bundleDiscount));
 
   const settings = await Settings.findOneOrCreate();
   const taxRate = typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
 
-  let crvTotal = 0;
   let taxableSubtotal = 0;
   for (const item of updatedItems) {
     if (item.type === 'bundle') {
-      // CRV/tax for bundle: use bundled products if category info is available.
-      let bundleCrvPerUnit = 0;
-      for (const sub of item.products || []) {
-        const subProduct = products.find(
-          (p) => p._id.toString() === sub.pid.toString()
-        );
-        if (subProduct?.category?.crvRate) {
-          const subQty = Math.max(1, safeNumber(sub.quantity, 1));
-          bundleCrvPerUnit += subQty * getCrvPerItem(subProduct.size, subProduct.category.crvRate);
-        }
-      }
-      const itemCrvTotal = round2((item.quantity || 1) * bundleCrvPerUnit);
-      crvTotal += itemCrvTotal;
-      item.crvPerItem = bundleCrvPerUnit;
-      item.totalCrv = itemCrvTotal;
-
       const anyTaxable = (item.products || []).some((sub) => {
         const subProduct = products.find((p) => p._id.toString() === sub.pid.toString());
         return subProduct?.category?.taxable !== false;
@@ -186,26 +228,19 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
 
     const product = products.find((p) => p._id.toString() === item.pid.toString());
     const category = product?.category;
-    const productSize = product?.size;
     const itemTotal = item.total;
-    const qty = item.quantity || 1;
 
     if (category?.taxable !== false) {
       taxableSubtotal += itemTotal;
     }
-    if (category?.crvRate) {
-      const crvPerItem = getCrvPerItem(productSize, category.crvRate);
-      const itemCrvTotal = round2(qty * crvPerItem);
-      crvTotal += itemCrvTotal;
-      item.crvPerItem = crvPerItem;
-      item.totalCrv = itemCrvTotal;
-    }
   }
-  crvTotal = round2(crvTotal);
 
-  let discount = 0;
+  // 2% markup on every product's base price. Not taxable, not reduced by discounts.
+  const markupTotal = round2(grandTotal * MARKUP_RATE);
+
+  let couponDiscount = 0;
   if (couponCode) {
-    const safeCode = typeof couponCode === 'string' ? couponCode.trim() : null;
+    const safeCode = typeof couponCode === 'string' ? couponCode.trim().toUpperCase() : null;
     if (!safeCode) {
       throw new Error('Invalid Coupon Code');
     }
@@ -220,29 +255,57 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode }) {
       throw new Error('CouponCode Is Expired');
     }
 
-    if (couponData.type === 'percent') {
-      discount = (couponData.discount / 100) * grandTotal;
-    } else {
-      discount = couponData.discount;
+    // Per-user reuse check: if the user's email is already in usedBy, reject.
+    if (userEmail && Array.isArray(couponData.usedBy) && couponData.usedBy.includes(userEmail)) {
+      throw new Error('You have already used this coupon.');
     }
+
+    // Max total uses check (0 = unlimited).
+    if (couponData.maxUses && couponData.maxUses > 0) {
+      const usedCount = (couponData.usedBy || []).length;
+      if (usedCount >= couponData.maxUses) {
+        throw new Error('This coupon has reached its maximum usage limit.');
+      }
+    }
+
+    // Minimum order amount check (0 = no minimum).
+    if (couponData.minOrderAmount && couponData.minOrderAmount > 0) {
+      if (discountedGrandTotal < couponData.minOrderAmount) {
+        throw new Error(
+          `This coupon requires a minimum order of $${couponData.minOrderAmount.toFixed(2)}.`
+        );
+      }
+    }
+
+    if (couponData.type === 'percent') {
+      couponDiscount = (couponData.discount / 100) * discountedGrandTotal;
+    } else {
+      couponDiscount = couponData.discount;
+    }
+    // Cap coupon at the remaining subtotal to avoid over-discounting.
+    couponDiscount = Math.min(couponDiscount, discountedGrandTotal);
   }
 
-  const discountedTotal = Math.max(0, grandTotal - discount);
-  const taxBase = Math.max(0, taxableSubtotal - discount);
+  const discount = round2(bundleDiscount + couponDiscount);
+  const discountedTotal = round2(Math.max(0, discountedGrandTotal - couponDiscount));
+  const taxBase = Math.max(0, taxableSubtotal - (taxableSubtotal / grandTotal) * discount);
   const tax = round2(taxBase * taxRate);
   const sanitizedTip = Math.max(0, Math.min(safeNumber(tip, 0), 100));
   const deliveryFee = Math.max(0, safeNumber(shipping, 0));
-  const orderTotal = round2(discountedTotal + tax + crvTotal + deliveryFee + sanitizedTip);
+  const orderTotal = round2(discountedTotal + tax + markupTotal + deliveryFee + sanitizedTip);
 
   return {
     products,
     updatedItems,
     containsAlcohol,
     grandTotal,
+    dealDiscount,
+    mixDiscount,
+    bundleDiscount,
     taxableSubtotal,
     discount,
     tax,
-    crvTotal,
+    markupTotal,
     sanitizedTip,
     deliveryFee,
     orderTotal,

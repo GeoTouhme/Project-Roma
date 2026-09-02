@@ -28,6 +28,7 @@ router.post('/admin/products/import-csv', verifyToken, adminCheck, upload.single
 
 router.post('/admin/products', verifyToken, adminCheck, product.createProductByAdmin);
 router.get('/admin/products', verifyToken, adminCheck, product.getProductsByAdmin);
+router.get('/admin/products/field-values', verifyToken, adminCheck, product.getFieldValues);
 router.get('/admin/products/:slug', verifyToken, adminCheck, product.getOneProductByAdmin);
 router.put('/admin/products/:slug', verifyToken, adminCheck, product.updateProductByAdmin);
 

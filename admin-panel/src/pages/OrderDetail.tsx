@@ -423,6 +423,12 @@ const OrderDetail = () => {
                   <span className="text-muted-foreground">Shipping</span>
                   <span>${Number(order.shipping)?.toFixed(2)}</span>
                 </div>
+                {order.markup > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Markup (2%)</span>
+                    <span>${order.markup?.toFixed(2)}</span>
+                  </div>
+                )}
                 {order.discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span className="text-muted-foreground">Discount</span>

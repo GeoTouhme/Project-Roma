@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Slider from "react-slick";
-import { getOptimizedImageUrl } from "../../utils/cloudinary";
+import { resolveImageUrl } from "../../utils/cloudinary";
 
 const NextArrow = ({ onClick }) => (
   <button
@@ -62,9 +62,9 @@ const CategorySlider = ({ categories = [] }) => {
     ],
   };
 
-  const getCategoryImage = (url) => {
-    if (!url) return null;
-    return getOptimizedImageUrl(url, {
+  const getCategoryImage = (cover) => {
+    if (!cover) return null;
+    return resolveImageUrl(cover, {
       width: 300,
       height: 300,
       crop: "fill",
@@ -78,7 +78,7 @@ const CategorySlider = ({ categories = [] }) => {
         <div className="relative px-1 md:px-4">
           <Slider {...settings} className="category-slider">
             {categories.map((category) => {
-              const imageUrl = getCategoryImage(category.cover?.url);
+              const imageUrl = getCategoryImage(category.cover);
               const label = category.name;
               const link = `/products/${category.slug}`;
 

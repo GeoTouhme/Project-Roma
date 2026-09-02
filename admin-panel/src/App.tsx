@@ -30,6 +30,8 @@ import Newsletters from "./pages/Newsletters";
 import StoreSettings from "./pages/StoreSettings";
 import Analytics from "./pages/Analytics";
 import Deals from "./pages/Deals";
+import MixBundles from "./pages/MixBundles";
+import Coupons from "./pages/Coupons";
 
 const queryClient = new QueryClient();
 
@@ -133,6 +135,14 @@ const App = () => (
               <Route
                 path="/deals"
                 element={<ProtectedRoute element={<Deals />} />}
+              />
+              <Route
+                path="/mix-bundles"
+                element={<ProtectedRoute element={<MixBundles />} />}
+              />
+              <Route
+                path="/coupons"
+                element={<ProtectedRoute element={<Coupons />} />}
               />
             </Route>
 

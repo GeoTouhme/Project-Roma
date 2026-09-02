@@ -7,11 +7,15 @@ const AgeGate = () => {
   useEffect(() => {
     // Check if user has already verified their age
     const ageVerified = localStorage.getItem('ageVerified');
+    const wasHidden = document.body.style.overflow;
     if (!ageVerified) {
       setIsVisible(true);
       // Prevent scrolling when age gate is visible
       document.body.style.overflow = 'hidden';
     }
+    return () => {
+      document.body.style.overflow = wasHidden;
+    };
   }, []);
 
   const handleConfirm = () => {

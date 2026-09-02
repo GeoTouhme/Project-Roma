@@ -342,7 +342,7 @@ const loginUser = async (req, res) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           colors: 1,
@@ -955,7 +955,7 @@ const verifyMfa = async (req, res) => {
       },
       {
         $project: {
-          image: { url: '$image.url', blurDataURL: '$image.blurDataURL' },
+          image: { url: '$image.url', blurDataURL: '$image.blurDataURL', fallbackUrl: '$image.fallbackUrl' },
           name: 1,
           slug: 1,
           colors: 1,

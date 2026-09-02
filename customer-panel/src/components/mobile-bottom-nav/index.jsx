@@ -16,13 +16,13 @@ const MobileBottomNav = () => {
     { name: "Home", icon: "home", link: "/" },
     { name: "Shop", icon: "products", link: "/products" },
     ...(!ORDERING_DISABLED ? [
-      { name: "Wishlist", icon: "wishlist", link: isAuthenticated ? "/wishlist" : "/login" },
+      { name: "Deals", icon: "deals", link: "/deals" },
       { name: "Account", icon: "user", link: isAuthenticated ? "/account" : "/login" },
     ] : []),
   ];
 
   return (
-    <div className="fixed bottom-6 left-0 right-0 z-[100] px-4 md:hidden">
+    <div className="fixed bottom-6 left-0 right-0 z-[60] px-4 md:hidden">
       <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
         {/* Main Pill Bar */}
         <div className="flex-1 bg-white/90 backdrop-blur-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/20 rounded-full h-16 flex items-center justify-around px-2">
@@ -32,12 +32,12 @@ const MobileBottomNav = () => {
               <Link
                 key={item.name}
                 to={item.link}
-                className={`flex items-center gap-2 transition-all duration-300 ${
+                className={`flex items-center justify-center gap-2 transition-all duration-300 min-h-[44px] min-w-[44px] ${
                   isActive ? "bg-[#F3F4F6] px-4 py-2.5 rounded-full" : "px-3 py-2"
                 }`}
               >
                 <Icons
-                  name={isActive && item.icon === 'wishlist' ? 'fill_wishlist' : item.icon}
+                  name={item.icon}
                   width={22}
                   height={22}
                   color={isActive ? "#000000" : "#9CA3AF"}

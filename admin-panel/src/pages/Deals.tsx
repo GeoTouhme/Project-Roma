@@ -14,7 +14,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { dealsAPI, productsAPI } from "@/lib/api";
-import { getAdminThumbnail } from "@/lib/utils";
+import { getAdminThumbnail, resolveImageUrl } from "@/lib/utils";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 
 const Deals = () => {
@@ -57,7 +57,7 @@ const Deals = () => {
       if (res.data.success) {
         setProducts(
           res.data.data.filter((p: any) =>
-            Boolean(p.image?.url && !p.image.url.includes('placeholder'))
+            Boolean(p.images?.[0]?.url && !p.images[0].url.includes('placeholder'))
           )
         );
       }
@@ -99,7 +99,7 @@ const Deals = () => {
     resetForm();
     setForm((prev) => ({
       ...prev,
-      startAt: new Date().toISOString().slice(0, 16),
+      startAt: new Date().toLocaleString("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).slice(0, 16),
     }));
     setDialogOpen(true);
   };
@@ -112,8 +112,8 @@ const Deals = () => {
       quantity: deal.quantity || 2,
       bundlePrice: deal.bundlePrice?.toString() || "",
       productIds: (deal.productIds || []).map((p: any) => p._id || p),
-      startAt: deal.startAt ? new Date(deal.startAt).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-      expiresAt: deal.expiresAt ? new Date(deal.expiresAt).toISOString().slice(0, 16) : "",
+      startAt: deal.startAt ? new Date(deal.startAt).toLocaleString("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).slice(0, 16) : new Date().toLocaleString("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).slice(0, 16),
+      expiresAt: deal.expiresAt ? new Date(deal.expiresAt).toLocaleString("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).slice(0, 16) : "",
       status: deal.status || "active",
       displayOnHome: deal.displayOnHome !== false,
     });
@@ -138,7 +138,7 @@ const Deals = () => {
 
     const selectedProducts = products.filter((p) => form.productIds.includes(p._id));
     const missingImage = selectedProducts.some(
-      (p) => !p.image?.url || p.image.url.includes('placeholder')
+      (p) => !p.images?.[0]?.url || p.images[0].url.includes('placeholder')
     );
     if (missingImage) {
       toast.error("All selected products must have a real image");
@@ -149,8 +149,8 @@ const Deals = () => {
       ...form,
       quantity: Number(form.quantity),
       bundlePrice: Number(form.bundlePrice),
-      startAt: form.startAt ? `${form.startAt}:00Z` : new Date().toISOString(),
-      expiresAt: form.expiresAt ? `${form.expiresAt}:00Z` : null,
+      startAt: form.startAt ? new Date(form.startAt).toISOString() : new Date().toISOString(),
+      expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
     };
 
     try {
@@ -224,7 +224,7 @@ const Deals = () => {
                 {(deal.productIds || []).slice(0, 5).map((p: any) => (
                   <img
                     key={p._id || p}
-                    src={getAdminThumbnail(p.images?.[0]?.url)}
+                    src={getAdminThumbnail(p.images?.[0])}
                     alt={p.name || ""}
                     className="w-10 h-10 object-contain border rounded"
                   />
@@ -309,7 +309,7 @@ const Deals = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startAt">Start (UTC)</Label>
+                <Label htmlFor="startAt">Start (Local Time)</Label>
                 <Input
                   id="startAt"
                   type="datetime-local"
@@ -318,7 +318,7 @@ const Deals = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="expiresAt">Expires (UTC)</Label>
+                <Label htmlFor="expiresAt">Expires (Local Time)</Label>
                 <Input
                   id="expiresAt"
                   type="datetime-local"
@@ -358,7 +358,7 @@ const Deals = () => {
                       onChange={() => toggleProduct(product._id)}
                     />
                     <img
-                      src={getAdminThumbnail(product.image?.url)}
+                      src={getAdminThumbnail(product.images?.[0])}
                       alt={product.name}
                       className="w-8 h-8 object-contain"
                     />

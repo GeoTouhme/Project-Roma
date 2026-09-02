@@ -38,6 +38,10 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    markup: {
+      type: Number,
+      default: 0,
+    },
     discount: {
       type: Number,
     },

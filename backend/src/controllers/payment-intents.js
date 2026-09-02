@@ -12,7 +12,7 @@ const payment_intents = async (req, res) => {
 		// server-side from the cart items, using authoritative product prices.
 		let totals;
 		try {
-			totals = await calculateOrderTotals({ items, shipping, tip, couponCode });
+			totals = await calculateOrderTotals({ items, shipping, tip, couponCode, userEmail: req.user?.email });
 		} catch (calcError) {
 			return res.status(400).json({ success: false, message: calcError.message });
 		}

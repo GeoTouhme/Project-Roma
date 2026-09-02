@@ -7,7 +7,7 @@ import { ArrowLeft, Edit, Trash, Loader2 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { productsAPI } from "@/lib/api";
-import { getAdminThumbnail } from "@/lib/utils";
+import { getAdminThumbnail, resolveImageUrl } from "@/lib/utils";
 import { format } from "date-fns";
 
 const ProductDetail = () => {
@@ -181,7 +181,7 @@ const ProductDetail = () => {
                     product.images.map((img: any, index: number) => (
                       <div key={index} className="relative flex-shrink-0">
                         <img
-                          src={getAdminThumbnail(img.url)}
+                          src={resolveImageUrl(img, { width: 100, height: 100, crop: 'fill', quality: 'auto' })}
                           alt={`Product ${index + 1}`}
                           className="h-24 w-24 object-cover rounded-md border border-gray-200"
                           loading="lazy"

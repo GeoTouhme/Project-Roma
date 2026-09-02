@@ -12,4 +12,11 @@ CouponService.getActive = function () {
     });
 };
 
+CouponService.verifyByCode = function (code) {
+    return fetch({
+        url: `/coupon-codes/${code.trim().toUpperCase()}`,
+        method: "get",
+    });
+};
+
 export default CouponService;

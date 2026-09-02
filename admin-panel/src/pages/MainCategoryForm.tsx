@@ -10,11 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate, useParams } from "react-router-dom";
-// import { toast } from "@/lib/toast"; // Use sonner instead
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Upload, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { categoriesAPI } from "@/lib/api";
+import { categoriesAPI, uploadAPI } from "@/lib/api";
 import { getAdminThumbnail } from "@/lib/utils";
 
 const MainCategoryForm = () => {
@@ -24,8 +23,8 @@ const MainCategoryForm = () => {
   const [name, setName] = useState("");
   const [status, setStatus] = useState("Active");
   const [imageUrl, setImageUrl] = useState("");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [taxable, setTaxable] = useState(true);
-  const [crvRate, setCrvRate] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,7 +43,6 @@ const MainCategoryForm = () => {
         setName(data.name);
         setStatus(data.status);
         setTaxable(data.taxable !== false);
-        setCrvRate(data.crvRate || 0);
         if (data.cover && data.cover.url) {
           setImageUrl(data.cover.url);
         }
@@ -57,13 +55,37 @@ const MainCategoryForm = () => {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const response = await uploadAPI.uploadImage(formData);
+      if (response.data?.success && response.data.data?.url) {
+        setImageUrl(response.data.data.url);
+        toast.success("Cover image uploaded");
+      } else {
+        throw new Error("Upload response did not contain a URL");
+      }
+    } catch (error: any) {
+      console.error("Cover upload failed", error);
+      toast.error(error.message || "Failed to upload cover image");
+    } finally {
+      setCoverUploading(false);
+      // Reset input so the same file can be selected again if needed
+      e.target.value = "";
+    }
+  };
+
   const handleSave = async () => {
     if (!name) {
       toast.error("Please enter a category name.");
       return;
     }
     if (!imageUrl) {
-      toast.error("Please enter a cover image URL.");
+      toast.error("Please upload a cover image.");
       return;
     }
 
@@ -73,28 +95,14 @@ const MainCategoryForm = () => {
         name,
         status,
         taxable,
-        crvRate,
         cover: {
           url: imageUrl,
-          _id: `img-${Date.now()}`, // Temporary ID
-          blurDataURL: "", // Backend handles this or allows empty? Model says required.
-          // Backend controller: if (!cover.blurDataURL) cover.blurDataURL = await getBlurDataURL(cover.url);
-          // So we can send it empty or let backend handle it?
-          // Model says required. Let's send a placeholder or let backend generate.
-          // Controller line 104: if (!cover.blurDataURL) ...
-          // So we don't strictly need to send it if backend generates it.
-          // But wait, if model requires it, mongoose validation runs BEFORE controller logic?
-          // No, controller constructs the object then calls create.
-          // Actually controller calls Categories.create({...}).
-          // If I send it as empty string? createCategory controller:
-          // const { cover, ...others } = req.body;
-          // const blurDataURL = await getBlurDataURL(cover.url);
-          // ... cover: { ...cover, blurDataURL }
-          // So backend OVERWRITES/SETS it.
+          _id: `img-${Date.now()}`,
+          blurDataURL: "",
         },
-        metaTitle: name, // Required by model
-        description: name, // Required by model
-        metaDescription: name, // Required by model
+        metaTitle: name,
+        description: name,
+        metaDescription: name,
         slug: id ? undefined : name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
       };
 
@@ -156,12 +164,38 @@ const MainCategoryForm = () => {
           />
 
           <div className="space-y-2">
-            <span className="text-sm font-medium">Cover Image URL</span>
-            <Input
-              placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
+            <span className="text-sm font-medium">Cover Image</span>
+            <div className="flex items-center gap-3">
+              <label className="relative cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverUpload}
+                  disabled={coverUploading}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <Button type="button" variant="outline" size="sm" disabled={coverUploading}>
+                  {coverUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {coverUploading ? "Uploading..." : "Upload Cover"}
+                </Button>
+              </label>
+              {imageUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImageUrl("")}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remove
+                </Button>
+              )}
+            </div>
             {imageUrl && (
               <div className="mt-2 relative w-full h-40 bg-gray-100 rounded-md overflow-hidden">
                 <img src={getAdminThumbnail(imageUrl)} alt="Preview" className="w-full h-full object-cover" loading="lazy" />
@@ -189,20 +223,6 @@ const MainCategoryForm = () => {
             />
             <label htmlFor="taxable" className="text-sm font-medium">Taxable</label>
           </div>
-
-          <Select value={crvRate.toString()} onValueChange={(v) => setCrvRate(parseFloat(v))}>
-            <SelectTrigger>
-              <SelectValue placeholder="CRV Rate" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">No CRV</SelectItem>
-              <SelectItem value="0.05">$0.05 (under 24 oz)</SelectItem>
-              <SelectItem value="0.10">$0.10 (24 oz or larger)</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-sm text-muted-foreground">
-            CRV is calculated per container from each product's size label (e.g., 12 oz = $0.05, 24 oz or larger = $0.10). The selected rate is used only when a product's size cannot be parsed.
-          </p>
         </CardContent>
       </Card>
     </div>

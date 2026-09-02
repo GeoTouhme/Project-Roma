@@ -359,7 +359,7 @@ const Account = () => {
         </div>
       </div>
 
-      <div className="main">
+      <div className="main pb-[120px] md:pb-10">
         <div className="container mx-auto px-4">
           {/* Welcome Section */}
           <div className="mb-8">
@@ -797,7 +797,7 @@ const Account = () => {
                               id: product._id,
                               slug: product.slug,
                               title: product.name,
-                              image: product.image?.url,
+                              image: product.image,
                               priceSale: product.priceSale,
                               price: product.price,
                               rating: product.averageRating || 0,

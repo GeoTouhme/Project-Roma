@@ -22,9 +22,9 @@ import {
 import PageSizeSelector from "@/components/PageSizeSelector";
 import Pagination from "@/components/Pagination";
 import CategoryFilter from "@/components/category-filter/CategoryFilter";
-import { Plus, Download, Upload, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Plus, Download, Upload, CheckCircle2, XCircle, AlertTriangle, Eye } from "lucide-react";
 import { productsAPI, categoriesAPI } from "@/lib/api";
-import { getAdminThumbnail } from "@/lib/utils";
+import { getAdminThumbnail, resolveImageUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 const Products = () => {
@@ -39,6 +39,9 @@ const Products = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [importResultOpen, setImportResultOpen] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
+
+  // Preview dialog state
+  const [previewImages, setPreviewImages] = useState<{ open: boolean; product: any | null }>({ open: false, product: null });
 
   // Data state
   const [products, setProducts] = useState<any[]>([]);
@@ -312,12 +315,39 @@ const Products = () => {
             accessorKey: (row) => (
               <div className="flex items-center gap-3">
                 {row.image?.url ? (
-                  <img
-                    src={getAdminThumbnail(row.image.url)}
-                    alt={row.name}
-                    className="h-10 w-10 rounded-md object-cover border"
-                    loading="lazy"
-                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewImages({ open: true, product: row });
+                    }}
+                    className="relative h-10 w-10 rounded-md overflow-hidden border hover:ring-2 hover:ring-primary transition"
+                    title="View images"
+                  >
+                    <img
+                      src={getAdminThumbnail(row.image)}
+                      alt={row.name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                ) : Array.isArray(row.images) && row.images.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewImages({ open: true, product: row });
+                    }}
+                    className="relative h-10 w-10 rounded-md overflow-hidden border hover:ring-2 hover:ring-primary transition"
+                    title="View images"
+                  >
+                    <img
+                      src={getAdminThumbnail(row.images[0])}
+                      alt={row.name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
                 ) : (
                   <div className="h-10 w-10 rounded-md bg-gray-100 border flex items-center justify-center text-xs text-gray-400">
                     No img
@@ -488,6 +518,71 @@ const Products = () => {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Image Preview Dialog */}
+      <Dialog open={previewImages.open} onOpenChange={(open) => setPreviewImages({ open, product: open ? previewImages.product : null })}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewImages.product?.name || "Product Images"}</DialogTitle>
+            <DialogDescription>
+              {(() => {
+                const product = previewImages.product;
+                if (!product) return null;
+                const list = product.images && Array.isArray(product.images) && product.images.length > 0
+                  ? product.images
+                  : product.image?.url
+                  ? [product.image]
+                  : [];
+                return `${list.length} image${list.length === 1 ? '' : 's'} · SKU: ${product.sku || product.slug || '-'}`;
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const product = previewImages.product;
+            if (!product) return null;
+            const list = product.images && Array.isArray(product.images) && product.images.length > 0
+              ? product.images
+              : product.image?.url
+              ? [product.image]
+              : [];
+            if (list.length === 0) {
+              return (
+                <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+                  No images available
+                </div>
+              );
+            }
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+                {list.map((img: any, idx: number) => (
+                  <a
+                    key={idx}
+                    href={resolveImageUrl(img)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative aspect-square rounded-md border overflow-hidden bg-gray-100"
+                    title="Open full image"
+                  >
+                    <img
+                      src={resolveImageUrl(img)}
+                      alt={`${product.name} ${idx + 1}`}
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                      <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 drop-shadow" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" onClick={() => setPreviewImages({ open: false, product: null })}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

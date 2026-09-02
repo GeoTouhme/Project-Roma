@@ -71,20 +71,21 @@ const ReviewModal = ({ isOpen, onClose, pid, fetchReviews }) => {
                                 </Dialog.Title>
 
                                 {/* Star Rating */}
-                                <div className="flex justify-center mb-4">
+                                <div className="flex justify-center mb-4 gap-1 sm:gap-2">
                                     {[1, 2, 3, 4, 5].map((star) => (
-                                        <Star
+                                        <button
                                             key={star}
-                                            size={32}
-                                            className={`cursor-pointer mx-1 ${(hoveredStar || selectedStar) >= star
+                                            type="button"
+                                            className={`p-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded transition ${(hoveredStar || selectedStar) >= star
                                                 ? "text-yellow-400"
                                                 : "text-gray-300"
                                                 }`}
                                             onMouseEnter={() => setHoveredStar(star)}
                                             onMouseLeave={() => setHoveredStar(0)}
                                             onClick={() => setSelectedStar(star)}
-                                            fill="currentColor"
-                                        />
+                                            aria-label={`Rate ${star} stars`}>
+                                            <Star size={28} fill="currentColor" />
+                                        </button>
                                     ))}
                                 </div>
 

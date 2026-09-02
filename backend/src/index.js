@@ -132,6 +132,9 @@ const helmetDirectives = {
     'data:',
     'blob:',
     'https://res.cloudinary.com',
+    'https://balportliquors.com',
+    'https://www.balportliquors.com',
+    'https://images.balportliquors.com',
     'https://ui-avatars.com',
     'https://www.google.com',
     'https://*.googleusercontent.com',
@@ -372,6 +375,8 @@ const storeRoutes = require('./routes/store');
 const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 const dealRoutes = require('./routes/deal');
+const mixBundleRoutes = require('./routes/mixBundle');
+const imageFallbackRoutes = require('./routes/imageFallback');
 const doorDashWebhookRoutes = require('./routes/doorDashWebhook');
 const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
 const stripeWebhookRoutes = require('./routes/stripeWebhook');
@@ -409,8 +414,10 @@ app.use('/api', apiLimiter, couponCodeRoutes);
 app.use('/api', publicReadLimiter, reviewRoutes);
 app.use('/api', apiLimiter, delete_fileRoutes);
 app.use('/api', adminLimiter, uploadRoutes); // Mostly admin image uploads
+app.use('/api/images', publicReadLimiter, imageFallbackRoutes);
 app.use('/api', pollLimiter, notificationRoutes);
 app.use('/api', publicReadLimiter, dealRoutes);
+app.use('/api', publicReadLimiter, mixBundleRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // GET API

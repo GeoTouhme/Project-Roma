@@ -94,7 +94,7 @@ const RecommendationSection = ({
                 id: product._id,
                 slug: product.slug,
                 title: product.name,
-                image: product.image?.url,
+                image: product.image,
                 priceSale: product.priceSale,
                 price: product.price,
                 rating: 0,

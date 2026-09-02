@@ -52,7 +52,7 @@ const Billing = () => {
   const [cartSummary, setCartSummary] = useState({
     subtotal: 0,
     tax: 0,
-    crv: 0,
+    markup: 0,
     total: 0,
   });
 
@@ -62,8 +62,8 @@ const Billing = () => {
   const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
 
   const displayTotal = useMemo(
-    () => cartSummary.subtotal + cartSummary.tax + cartSummary.crv + deliveryFee + tip - couponDiscount,
-    [cartSummary.subtotal, cartSummary.tax, cartSummary.crv, deliveryFee, tip, couponDiscount]
+    () => Math.max(0, cartSummary.subtotal + cartSummary.tax + cartSummary.markup + deliveryFee + tip - couponDiscount),
+    [cartSummary.subtotal, cartSummary.tax, cartSummary.markup, deliveryFee, tip, couponDiscount]
   );
 
   // Auto-suggest best active coupon when cart subtotal is available.
@@ -81,11 +81,11 @@ const Billing = () => {
       .catch(() => {});
   }, [cartSummary.subtotal, couponCode]);
 
-  // Fetch authoritative tax/CRV/subtotal from the server whenever the cart changes.
+  // Fetch authoritative tax/markup/subtotal from the server whenever the cart changes.
   useEffect(() => {
     const loadCartSummary = async () => {
       if (cartItems.length === 0) {
-        setCartSummary({ subtotal: 0, tax: 0, crv: 0, total: 0 });
+        setCartSummary({ subtotal: 0, tax: 0, markup: 0, total: 0 });
         setTaxRate(0.0775);
         return;
       }
@@ -271,7 +271,7 @@ const Billing = () => {
       )
       .join("|");
     const timeBucket = Math.floor(Date.now() / 30000);
-    const raw = `${email}|${cartFingerprint}|${deliveryFee}|${tip}|${cartSummary.tax}|${cartSummary.crv}|${timeBucket}`;
+    const raw = `${email}|${cartFingerprint}|${deliveryFee}|${tip}|${cartSummary.tax}|${cartSummary.markup}|${timeBucket}`;
     try {
       return btoa(raw).slice(0, 255);
     } catch {
@@ -334,7 +334,7 @@ const Billing = () => {
       zip,
     };
 
-    // Recalculate tax and CRV server-side is source of truth; frontend shows estimate only.
+    // Recalculate tax and markup server-side is source of truth; frontend shows estimate only.
 
     const items = cartItems.map((item) => {
       if (item.type === "bundle") {
@@ -665,46 +665,38 @@ const Billing = () => {
         </div>
 
         {/* Right Section - Order Summary */}
-        <div className="md:w-1/3 p-6 rounded-lg">
-          <div className="border border-[#CECECE] rounded-lg p-4">
-            {/* Product */}
-            {cartItems.map((item, index) => (
-              <div key={index} className="flex justify-between items-start mb-4">
-                {/* Left: Image and Name */}
-                <div className="flex items-start gap-4">
-                  <img src={item.image ? getThumbnailImage(item.image) : Product} alt={item.name} className="w-12 h-12 object-cover rounded" loading="lazy" />
-                  <div>
-                    <p className="font-semibold">{item.name}</p>
-                    {item.type === 'bundle' && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {(item.products || []).map((p) => <p key={p.id}>{p.name}</p>)}
-                      </div>
-                    )}
-                    <div className="text-sm text-gray-500 flex items-center gap-4">
-                      <p>
-                        <span className="font-medium text-gray-600">Qty:</span> {item.quantity}
-                      </p>
-                      <p>
-                        <span className="font-medium text-gray-600">Price:</span> ${item.type === 'bundle' ? Number(item.bundlePrice).toFixed(2) : (item.priceSale || item.salePrice || item.price || 0)}
-                      </p>
+        <div className="md:w-1/3">
+          <div className="border border-[#CECECE] rounded-lg p-4 md:sticky md:top-24 bg-white">
+            <h3 className="text-lg font-semibold mb-4 hidden md:block">Order Summary</h3>
+            <div className="space-y-3 max-h-[40vh] overflow-y-auto md:max-h-none pr-1">
+              {cartItems.map((item, index) => (
+                <div key={index} className="flex justify-between items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <img
+                      src={item.image ? getThumbnailImage(item.image) : Product}
+                      alt={item.name}
+                      className="w-10 h-10 object-cover rounded flex-shrink-0"
+                      loading="lazy"
+                    />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                     </div>
                   </div>
+                  <p className="font-semibold text-sm text-right flex-shrink-0">
+                    ${item.type === 'bundle'
+                      ? (Number(item.bundlePrice) * item.quantity).toFixed(2)
+                      : ((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}
+                  </p>
                 </div>
+              ))}
+            </div>
 
-                {/* Right: Total */}
-                <p className="font-semibold text-right">
-                  ${item.type === 'bundle'
-                    ? (Number(item.bundlePrice) * item.quantity).toFixed(2)
-                    : ((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}
-                </p>
-              </div>
-            ))}
-
-            <hr />
+            <hr className="my-4" />
 
             {/* Coupon Code */}
-            <div className="mt-4 mb-4">
-              <label className="block font-semibold mb-1">Coupon Code</label>
+            <div className="mb-4">
+              <label className="block font-semibold text-sm mb-1">Coupon Code</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -722,10 +714,7 @@ const Billing = () => {
                   onClick={() => {
                     if (!couponCode.trim()) return;
                     toast.loading('Verifying coupon...');
-                    fetch(`/api/coupon-codes/${couponCode.trim()}`, {
-                      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
-                    })
-                      .then((res) => res.json())
+                    CouponService.verifyByCode(couponCode)
                       .then((res) => {
                         toast.dismiss();
                         if (!res?.success || !res.data) {
@@ -735,7 +724,8 @@ const Billing = () => {
                           return;
                         }
                         const coupon = res.data;
-                        const discount = coupon.type === 'percent' ? (cartSummary.subtotal * coupon.discount) / 100 : coupon.discount;
+                        const rawDiscount = coupon.type === 'percent' ? (cartSummary.subtotal * coupon.discount) / 100 : coupon.discount;
+                        const discount = Math.min(rawDiscount, cartSummary.subtotal);
                         setCouponDiscount(discount);
                         setCouponApplied(true);
                         toast.success(`Coupon applied: -$${discount.toFixed(2)}`);
@@ -755,47 +745,39 @@ const Billing = () => {
               )}
             </div>
 
-            <div className="mt-4 space-y-2">
+            <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <p>Subtotal:</p>
                 <p className="font-semibold">${cartSummary.subtotal.toFixed(2)}</p>
               </div>
               <div className="flex justify-between">
                 <p>Delivery Fee:</p>
-                <p className="font-semibold">
-                  {deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}
-                </p>
+                <p className="font-semibold">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</p>
               </div>
-              {!quoteVerified && (
-                <p className="text-xs text-gray-400 italic">
-                  Delivery fee calculated after address verification
-                </p>
-              )}
-              <hr />
               <div className="flex justify-between">
-                <p>CRV:</p>
-                <p className="font-semibold">${cartSummary.crv.toFixed(2)}</p>
+                <p>Markup (2%):</p>
+                <p className="font-semibold">${cartSummary.markup.toFixed(2)}</p>
               </div>
               <div className="flex justify-between">
                 <p>Tax ({(taxRate * 100).toFixed(2)}%):</p>
                 <p className="font-semibold">${cartSummary.tax.toFixed(2)}</p>
               </div>
               <hr />
-              <div className="flex justify-between font-semibold text-lg">
+              <div className="flex justify-between font-semibold text-base">
                 <p>Total:</p>
                 <p>${displayTotal.toFixed(2)}</p>
               </div>
             </div>
 
             {/* Driver Tip */}
-            <div className="mt-2">
-              <p className="font-semibold mb-1">Driver Tip</p>
-              <div className="flex gap-2">
+            <div className="mt-4">
+              <p className="font-semibold text-sm mb-2">Driver Tip</p>
+              <div className="flex gap-2 flex-wrap">
                 {[0, 2, 3, 5].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => setTip(amount)}
-                    className={`px-3 py-1 rounded-lg border text-sm font-semibold transition-colors ${
+                    className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors min-h-[44px] ${
                       tip === amount
                         ? "bg-[#B5223B] text-white border-[#B5223B]"
                         : "bg-white text-gray-700 border-gray-300 hover:border-[#B5223B]"
@@ -815,23 +797,44 @@ const Billing = () => {
             {checkoutError && <p className="text-red-500 font-semibold mb-2">{checkoutError}</p>}
             {quoteVerified && !checkoutError && <p className="text-green-600 font-semibold mb-2 flex items-center gap-1">✅ Delivery address verified</p>}
             {checkingQuote && <p className="text-blue-600 font-semibold mb-2 animate-pulse">Checking delivery availability...</p>}
-            
-            {/* Place Order Button */}
-            {cartItems.length > 0 && <div className="w-full flex flex-col items-end">
-              <div className="text-xs text-gray-500 mb-2 text-right max-w-[300px]">
-                By placing this order, you agree to our terms and that your personal data may be processed by our delivery partner for the purpose of identity verification as required by law.
+
+            {/* Desktop Place Order Button */}
+            {cartItems.length > 0 && (
+              <div className="hidden md:block mt-4">
+                <p className="text-xs text-gray-500 mb-2">
+                  By placing this order, you agree to our terms and that your personal data may be processed by our delivery partner for identity verification.
+                </p>
+                <button
+                  disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}
+                  onClick={handleSubmit}
+                  className={`w-full ${processing || checkingQuote || !isZipSupported || !storeIsOpen ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B] hover:bg-red-700"} text-white py-3 rounded-lg font-bold uppercase tracking-wider transition`}
+                >
+                  {processing ? "Placing Order.." : checkingQuote ? "Verifying..." : !quoteVerified ? "Verify Delivery" : "Place Order"}
+                </button>
               </div>
-              <button
-                disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}
-                onClick={handleSubmit}
-                className={`mt-2 ${processing || checkingQuote || !isZipSupported || !storeIsOpen ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B]"} text-white px-6 py-3 rounded-lg w-full md:w-auto font-bold uppercase tracking-wider`}
-              >
-                {processing ? "Placing Order.." : checkingQuote ? "Verifying..." : !quoteVerified ? "Verify Delivery" : "Place Order"}
-              </button>
-            </div>}
+            )}
           </div>
         </div>
       </div>
+
+      {/* Fixed mobile checkout bar */}
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] md:hidden z-[70]">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Total</p>
+              <p className="text-xl font-bold text-[#B5223B]">${displayTotal.toFixed(2)}</p>
+            </div>
+            <button
+              disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}
+              onClick={handleSubmit}
+              className={`flex-1 ${processing || checkingQuote || !isZipSupported || !storeIsOpen ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B]"} text-white py-3.5 rounded-lg font-bold uppercase tracking-wide transition`}
+            >
+              {processing ? "Placing Order.." : checkingQuote ? "Verifying..." : !quoteVerified ? "Verify Delivery" : "Place Order"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

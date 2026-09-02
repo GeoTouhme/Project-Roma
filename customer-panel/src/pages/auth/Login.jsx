@@ -132,8 +132,8 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="main py-4">
-        <div className="container mx-auto px-4 max-w-md">
+      <div className="main py-4 pb-[120px] md:pb-10">
+        <div className="container mx-auto px-4">
           <div className="bg-white shadow-md rounded-lg p-8">
             {!showMfa ? (
               <>

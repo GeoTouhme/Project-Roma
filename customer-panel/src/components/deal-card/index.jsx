@@ -1,6 +1,5 @@
 import React from "react";
 import { useDispatch } from "react-redux";
-import { Link } from "react-router-dom";
 import { getProductCardImage } from "../../utils/cloudinary";
 import { addBundleToCart } from "../../redux/cartSlice";
 import { toast } from "react-hot-toast";
@@ -42,7 +41,7 @@ const DealCard = ({ deal }) => {
         {products.slice(0, 3).map((p) => (
           <img
             key={p._id}
-            src={getProductCardImage(p.images?.[0]?.url)}
+            src={getProductCardImage(p.images?.[0])}
             alt={p.name}
             className="w-16 h-16 object-contain border rounded"
           />

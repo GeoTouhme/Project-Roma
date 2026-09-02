@@ -50,7 +50,7 @@ code {
 .header-sticky {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 50;
   backdrop-filter: blur(10px);
   background-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
@@ -111,6 +111,32 @@ code {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Safe bottom spacing for fixed mobile bottom nav */
+.pb-safe-mobile {
+  padding-bottom: 120px;
+}
+
+@media (min-width: 768px) {
+  .pb-safe-mobile {
+    padding-bottom: 100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pb-safe-mobile {
+    padding-bottom: 0;
+  }
+}
+
+/* Z-Index scale (mobile-first layering)
+   z-50  — sticky header
+   z-60  — mobile bottom navigation
+   z-70  — fixed bottom CTAs (cart, billing)
+   z-80  — mobile drawers / filter panels
+   z-90  — modals / overlays / age gate
+   z-100 — search dropdown (above header)
+*/
 
 
 .megamenu_col_title:after{
@@ -182,38 +208,53 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid #848484; 
-  border-radius: 2px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
+  flex-shrink: 0;
 }
 
 /* Custom checked state */
 input[type="checkbox"]:checked::before {
   content: "";
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   @apply bg-primary;
-  border-radius: 2px;
+  border-radius: 3px;
   position: absolute;
 }
 input[type="radio"] {
   appearance: none;
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid #848484; 
-  border-radius: 2px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
+  flex-shrink: 0;
+}
+
+input[type="radio"]:checked::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  @apply bg-primary;
+  border-radius: 50%;
+  position: absolute;
 }
 
 /* Hero slider dot overrides */

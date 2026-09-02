@@ -8,7 +8,7 @@ import { FaPlus, FaMinus } from "react-icons/fa6";
 import { BiSolidPencil } from "react-icons/bi";
 import { MdOutlineVerified } from "react-icons/md";
 import ProductService from "../../services/productService";
-import { getProductDetailImage, getProductThumbImage } from "../../utils/cloudinary";
+import { getProductDetailImage, getProductThumbImage, resolveImageUrl } from "../../utils/cloudinary";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css"
 import { useDispatch } from "react-redux";
@@ -66,16 +66,20 @@ const ProductPage = () => {
     infinite: false,
   };
 
-  // Handle Mouse Move for Zoom Effect
-  const handleMouseMove = (e) => {
+  // Handle pointer move for Zoom Effect
+  const handlePointerMove = (e) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = ((clientX - left) / width) * 100;
+    const y = ((clientY - top) / height) * 100;
     setZoomStyle({
       backgroundSize: "200%", // Zoom Level
       backgroundPosition: `${x}% ${y}%`,
     });
   };
+
+  const handlePointerLeave = () => setZoomStyle({ backgroundSize: "100%", backgroundImage: "none" });
 
   const [reviews, setReviews] = useState([]);
   const [reviewSummary, setReviewSummary] = useState([]);
@@ -209,7 +213,7 @@ const ProductPage = () => {
       price: product.price,
       priceSale: product.priceSale,
       salePrice: product.priceSale,
-      image: product.images?.[0]?.url,
+      image: product.images?.[0],
       quantity,
     };
     console.log("product = ", product);
@@ -235,7 +239,7 @@ const ProductPage = () => {
         price: product.price,
         priceSale: product.priceSale,
         salePrice: product.priceSale,
-        image: product.images?.[0]?.url,
+        image: product.images?.[0],
         quantity,
       };
 
@@ -256,9 +260,11 @@ const ProductPage = () => {
               <>
                 <div className="product_media w-full mx-auto">
                   <div
-                    className="relative w-full h-auto border border-[#000000] overflow-hidden bg-center bg-no-repeat"
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={() => setZoomStyle({ backgroundSize: "100%", backgroundImage: "none" })}
+                    className="relative w-full aspect-square border border-[#000000] overflow-hidden bg-center bg-no-repeat"
+                    onMouseMove={handlePointerMove}
+                    onMouseLeave={handlePointerLeave}
+                    onTouchMove={handlePointerMove}
+                    onTouchEnd={handlePointerLeave}
                     style={{
                       backgroundImage: `url(${zoomImage})`,
                       backgroundSize: zoomStyle.backgroundSize,
@@ -267,11 +273,11 @@ const ProductPage = () => {
                     }}
                   >
                     {/* Main Image Slider */}
-                    <Slider {...mainSettings} afterChange={(index) => setZoomImage(images[index]?.url)}>
+                    <Slider {...mainSettings} afterChange={(index) => setZoomImage(resolveImageUrl(images[index]))}>
                       {images.map((img, idx) => (
                         <div key={idx}>
                           <img
-                            src={getProductDetailImage(img.url)}
+                            src={getProductDetailImage(img)}
                             alt={`Product ${idx}`}
                             className="w-full h-auto pointer-events-none"
                             style={{ opacity: zoomStyle.backgroundSize !== "100%" ? 0 : 1 }}
@@ -288,7 +294,7 @@ const ProductPage = () => {
                       {images.map((img, idx) => (
                         <div key={idx} className="px-1">
                           <img
-                            src={getProductThumbImage(img?.url)}
+                            src={getProductThumbImage(img)}
                             alt={`Thumbnail ${idx}`}
                             className="w-full cursor-pointer border rounded-md hover:border-gray-700"
                             loading="lazy"
@@ -319,16 +325,20 @@ const ProductPage = () => {
 
                     {!ORDERING_DISABLED && (
                       /* Quantity Selector */
-                      <div className="flex items-center border border-[#CECECE] rounded-md">
-                        <div className="mx-6 my-1">
-                          <button onClick={decreaseQuantity} className="py-1 text-[#B5223B] text-sm font-bold">
-                            <FaMinus />
-                          </button>
-                          <span className="mx-4 text-lg text-[#B5223B]">{quantity}</span>
-                          <button onClick={increaseQuantity} className="py-1 text-[#B5223B]">
-                            <FaPlus />
-                          </button>
-                        </div>
+                      <div className="flex items-center border border-[#CECECE] rounded-lg overflow-hidden">
+                        <button
+                          onClick={decreaseQuantity}
+                          className="px-4 py-3 text-[#B5223B] text-sm font-bold min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-50 transition"
+                          aria-label="Decrease quantity">
+                          <FaMinus />
+                        </button>
+                        <span className="w-12 text-center text-lg font-semibold text-[#B5223B]">{quantity}</span>
+                        <button
+                          onClick={increaseQuantity}
+                          className="px-4 py-3 text-[#B5223B] text-sm font-bold min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-50 transition"
+                          aria-label="Increase quantity">
+                          <FaPlus />
+                        </button>
                       </div>
                     )}
                   </div>

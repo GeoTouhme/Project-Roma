@@ -24,7 +24,6 @@ export interface MainCategory {
   slug: string;
   status: "Active" | "Inactive";
   taxable?: boolean;
-  crvRate?: number;
   createdAt: string;
 }
 
@@ -131,11 +130,6 @@ const MainCategories = () => {
           {
             header: "Taxable",
             accessorKey: (row) => (row.taxable === false ? "No" : "Yes"),
-          },
-          {
-            header: "CRV",
-            accessorKey: (row) =>
-              row.crvRate === 0.05 ? "$0.05" : row.crvRate === 0.1 ? "$0.10" : "-",
           },
           {
             header: "Status",
