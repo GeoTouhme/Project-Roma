@@ -2,10 +2,10 @@
 
 ## The Problem
 
-Your `.env` file contains these credentials:
-- `UBER_DIRECT_CLIENT_ID=sSXl_eLBRdcyyD2mcw_J4i5hlA1QeCI9`
-- `UBER_DIRECT_CLIENT_SECRET=2MCkaVYY4KKC4aQt72J0wCgDJ6vcUMIHyJTP5I3a`
-- `UBER_DIRECT_CUSTOMER_ID=19a81c63-38e4-5b2b-98d6-2499a048b61a`
+Your `.env` file contains these credentials (replace with your actual values):
+- `UBER_DIRECT_CLIENT_ID=YOUR_CLIENT_ID`
+- `UBER_DIRECT_CLIENT_SECRET=YOUR_CLIENT_SECRET`
+- `UBER_DIRECT_CUSTOMER_ID=YOUR_CUSTOMER_ID`
 
 When we call Uber's OAuth endpoint, we get `invalid_scope` — which means either:
 1. The app doesn't exist in the dashboard you're logged into, OR

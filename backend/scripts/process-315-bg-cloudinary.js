@@ -19,10 +19,11 @@ const STORAGE_DIR = process.env.IMAGE_FALLBACK_DIR || path.join(PROJECT_ROOT, 'i
 const NON_WHITE_LIST = '/tmp/non-white-local.json';
 const REPORT_DIR = path.join(PROJECT_ROOT, 'uploads', 'Telegram', 'reports');
 
-// Temporary Cloudinary account
-const TMP_CLOUD_NAME = 'jwjuwxgx';
-const TMP_API_KEY = '554389218839616';
-const TMP_API_SECRET = 'LcYyDrWOGOntkiahr5J0FNpE0HY';
+// Temporary Cloudinary account credentials must be provided via env vars:
+// TMP_CLOUDINARY_CLOUD_NAME, TMP_CLOUDINARY_API_KEY, TMP_CLOUDINARY_API_SECRET
+const TMP_CLOUD_NAME = process.env.TMP_CLOUDINARY_CLOUD_NAME || '';
+const TMP_API_KEY = process.env.TMP_CLOUDINARY_API_KEY || '';
+const TMP_API_SECRET = process.env.TMP_CLOUDINARY_API_SECRET || '';
 
 cloudinary.config({
   cloud_name: TMP_CLOUD_NAME,

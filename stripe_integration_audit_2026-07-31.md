@@ -26,8 +26,8 @@ The secret was restored and the backend container was recreated so it loads the 
 ### 2. Stripe test keys are live in the container
 
 ```bash
-STRIPE_SECRET_KEY=sk_test_51RkySZDZuujZd4qgAHezS1A6HnPI0ZXesYfhZ8RjLth3CzGP7ngrbwHhaM2Mbo07sEZOZVdlG7tInvxlIS9BIja5004b9NNFXE
-REACT_APP_STRIPE_PUBLIC_KEY=pk_test_51RkySZDZuujZd4qgLnSagaPmWVM5ljaCz7YhmYcry1ViMZrDabTaNwfjFgtRu62FfeBNKeOA0bmtQAH0ILgMIPTm00FTmCWCuB
+STRIPE_SECRET_KEY=«redacted»
+REACT_APP_STRIPE_PUBLIC_KEY=«redacted»
 ```
 
 **Impact:** Real customer cards will be rejected or show a Stripe test-mode badge.
