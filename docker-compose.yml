@@ -14,6 +14,7 @@ services:
   mongodb:
     image: mongo:latest
     container_name: balport-mongo
+    restart: unless-stopped
     ports:
       - "127.0.0.1:27017:27017"
     volumes:
@@ -24,6 +25,7 @@ services:
   backend:
     build: ./backend
     container_name: balport-backend
+    restart: unless-stopped
     ports:
       - "0.0.0.0:5001:5001"
     environment:
@@ -81,6 +83,7 @@ services:
         - REACT_APP_ORDERING_DISABLED=false
         - REACT_APP_STRIPE_PUBLIC_KEY=${REACT_APP_STRIPE_PUBLIC_KEY}
     container_name: balport-customer-panel
+    restart: unless-stopped
     ports:
       - "0.0.0.0:3000:80"
     volumes:
@@ -94,6 +97,7 @@ services:
       args:
         - VITE_API_URL=/
     container_name: balport-admin-panel
+    restart: unless-stopped
     ports:
       - "127.0.0.1:5173:80"
     volumes:
