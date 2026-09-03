@@ -3,84 +3,44 @@
  *
  * Blocks registration and email-change flows from using disposable/temporary
  * inbox providers (Mailinator, Guerrilla Mail, 10MinuteMail, Temp-Mail, YOPmail,
- * Sharklasers, etc.). This platform is an age-restricted alcohol delivery
- * service: throwaway inboxes are the primary vehicle for fake accounts,
+ * Sharklasers, robustq.com, etc.). This platform is an age-restricted alcohol
+ * delivery service: throwaway inboxes are the primary vehicle for fake accounts,
  * OTP-flow abuse, per-user coupon fraud, and ban evasion.
+ *
+ * Domain blocklist: the community-maintained
+ * disposable-email-domains/disposable-email-domains list (~8,700 entries),
+ * loaded once at startup from src/data/disposable-domains.txt.
+ * Refresh the file periodically to pick up new providers.
  *
  * Also validates basic email format and rejects "+tag" local parts on
  * self-service flows (gmail aliases allow one real inbox to spawn unlimited
  * "unique" accounts).
  */
 
+const fs = require('fs');
+const path = require('path');
 const dns = require('dns').promises;
 
-// Known disposable / temporary email domains (suffix-matched, so subdomains
-// like anything.mailinator.com are caught too).
-const DISPOSABLE_DOMAINS = [
-  // Mailinator & family
-  'mailinator.com', 'mailinator.net', 'mailinator2.com', 'sogetthis.com',
-  'spamhereplease.com', 'binkmail.com', 'bobmail.info', 'chammy.info',
-  'devnullmail.com', 'letthemeailthat.com', 'mailinater.com', 'mailinator100.com',
-  'mailnesia.com', 'reallymymail.com', 'safetymail.info', 'sendspamhere.com',
-  'toomail.biz', 'trash2009.com', 'wegwerfmail.de', 'wegwerfmail.net',
-  // Guerrilla Mail & family
-  'guerrillamail.com', 'guerrillamail.net', 'guerrillamail.org', 'guerrillamail.biz',
-  'guerrillamailblock.com', 'sharklasers.com', 'grr.la', 'guerrillamail.info',
-  'pokemail.net', 'spam4.me', 'sharklasers.net',
-  // Temp-mail / 10-minute family
-  'temp-mail.org', 'temp-mail.io', 'temp-mail.world', 'tempmail.net', 'tempmail.plus',
-  'tempmail.dev', 'tempmailo.com', 'tempmail.space', '10minutemail.com',
-  '10minutemail.net', '10minutemail.org', '10minutemail.info', '10minuteemail.com',
-  '10minutesmail.com', '20minutemail.com', '1minutemail.com', 'tempinbox.com',
-  'tempail.com', 'tempr.email', 'tempemail.co', 'tempemail.net', 'tempmail.email',
-  'throwawaymail.com', 'throwawaymail.net', 'throwawaymail.org', 'maildrop.cc',
-  'discard.email', 'dispostable.com', 'mailtemp.info', 'faketempmail.com',
-  // YOPmail & family
-  'yopmail.com', 'yopmail.net', 'yopmail.fr', 'yopmail.org', 'cool.fr.nf',
-  'jetable.fr.nf', 'nospam.ze.tc', 'nomail.xl.cx', 'mega.zik.dj', 'speed.1s.fr',
-  'courriel.fr.nf', 'moncourriel.fr.nf', 'monemail.fr.nf', 'monmail.fr.nf',
-  // Nada / Mail7 / Mail.tm family
-  'getnada.com', 'nada.email', 'nada.ltd', 'mail7.io', 'inboxbear.com',
-  'mail.tm', 'mail.gw', 'tmail.ws', 'tmails.net',
-  // Other popular throwaway providers
-  'mailnesia.com', 'mytemp.email', 'mohmal.com', 'mohmal.im', 'emailondeck.com',
-  'email-fake.com', 'fakeinbox.com', 'fakemail.net', 'fakemailgenerator.com',
-  'trashmail.com', 'trashmail.de', 'trashmail.net', 'trashmail.org', 'trash-mail.com',
-  'byom.de', 'wegwerfmailaddress.com', 'wegwerfmail.info', 'mailed.ro',
-  'luxusmail.org', 'burnmail.io', 'instantemailaddress.com', 'instant-mail.de',
-  'one-time.email', 'onetimeemail.com', '1secmail.com', '1secmail.org', '1secmail.net',
-  'esiix.com', 'wwjmp.com', 'xojxe.com', 'yoggm.com', 'inboxkitten.com',
-  'mailcatch.com', 'mintemail.com', 'mail-temp.com', 'moakt.com', 'moakt.ws',
-  'tmpmail.net', 'tmpmail.org', 'mytrashmail.com', 'spamgourmet.com', 'spamhole.com',
-  'spambog.com', 'spamex.com', 'spaml.de', 'mailexpire.com', 'jetable.org',
-  'anonbox.net', 'deadaddress.com', 'despam.it', 'discard.cf', 'dropmail.me',
-  'dropmail.net', 'duskmail.com', 'e4ward.com', 'emailigo.de', 'emailsensei.com',
-  'emailtemporanea.net', 'emltmp.com', 'fake-mail.net', 'fleckens.hu',
-  'goemailgo.com', 'humaility.com', 'incognitomail.com', 'incognitomail.org',
-  'kasmail.com', 'killmail.net', 'kurzepost.de', 'mailde.de', 'mailde.info',
-  'maildrop2.com', 'maileimer.de', 'mailhazard.com', 'mailimate.com',
-  'mailsac.com', 'mailtemporar.com', 'mailtothis.com', 'mbx.cc', 'meltmail.com',
-  'messageboxx.org', 'mt2015.com', 'mvrht.net', 'my10minutemail.com',
-  'mytrashmail.com', 'no-spam.ws', 'nomail.xl.cx', 'nospam.ze.tc',
-  'objectmail.com', 'proxymail.eu', 'rcpt.at', 'rhyta.com', 'safetypost.net',
-  'scratchmail.com', 'shieldedmail.com', 'sneakemail.com', 'sofort-mail.de',
-  'sofortmail.de', 'spamavert.com', 'spambob.com', 'spambob.net', 'spambob.org',
-  'spambox.us', 'spamcannon.com', 'spamcereal.com', 'spamfree.eu.org',
-  'spamfree24.org', 'spamgourmet.net', 'spamgourmet.org', 'spamhole.org',
-  'spaminator.de', 'spaml.de', 'spammotel.com', 'spambox.ir', 'tempeml.com',
-  'tempmailaddress.com', 'tempmailadress.com', 'thankyou2010.com', 'tmails.net',
-  'tormail.org', 'trash-mail.net', 'trashmail.at', 'trashmail.me', 'trbvm.com',
-  'trbvn.com', 'vomoto.com', 'vpn.st', 'weg-werfmail.de', 'wetrainingscheibe.de',
-  'wh4f.org', 'whyspam.me', 'willselfdestruct.com', 'yandex.com.tr',
-  'zoemail.net', 'zomail.info', 'zippymail.info', 'zetmail.com',
-  'linshiyouxiang.net', 'bccto.me', 'chacuo.net', '027168.com', 'qq.cafe',
-  'edu.aiot.zeemail.org', 'smash.re', 'one-time.email', 'tempmail.best',
-  'inbox.si', 'inbox.lt', 'inbox.ee', 'mailinus.com', 'mailismagic.com',
-  'mailinator.101reviews.com', 'mailpond.com', 'mailspeed.ru', 'mailtea.com',
-  'mailt.net', 'mailtemp.uk', 'mainer.ru', 'mailtemp.net', 'mailinator.pro',
-];
+function loadDisposableDomains() {
+  const filePath = path.join(__dirname, '..', 'data', 'disposable-domains.txt');
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const domains = new Set(
+      raw
+        .split(/\r?\n/)
+        .map((line) => line.trim().toLowerCase())
+        .filter((line) => line && !line.startsWith('#'))
+    );
+    return domains;
+  } catch (err) {
+    console.error('❌ Failed to load disposable-domains.txt:', err.message);
+    // Fail closed for the blocklist is dangerous (blocks ALL signups on a
+    // missing file); instead fail open here but keep format/MX/alias checks.
+    return new Set();
+  }
+}
 
-const DISPOSABLE_SET = new Set(DISPOSABLE_DOMAINS.map((d) => d.toLowerCase()));
+const DISPOSABLE_SET = loadDisposableDomains();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -168,5 +128,5 @@ module.exports = {
   isValidEmailFormat,
   hasPlusAlias,
   assertAcceptableEmail,
-  DISPOSABLE_DOMAINS,
+  DISPOSABLE_DOMAIN_COUNT: DISPOSABLE_SET.size,
 };

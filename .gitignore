@@ -13,6 +13,9 @@ data/products-with-real-images.*
 data/extracted-images
 data/nextcloud-zips
 data/
+# Security blocklist vendored into the backend image (disposable-email defense)
+!backend/src/data/
+!backend/src/data/disposable-domains.txt
 *.csv
 node_modules/
 dist/
