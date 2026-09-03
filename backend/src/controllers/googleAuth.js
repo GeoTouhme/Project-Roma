@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Products = require('../models/Product');
 const sendEmail = require('../utils/mailer');
 const { emitToAdmins } = require('../utils/socketManager');
+const { isDisposableEmail } = require('../utils/emailGuard');
 
 const TOKEN_COOKIE_NAME = 'token';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -133,6 +134,17 @@ const googleAuth = async (req, res) => {
     }
 
     const safeEmail = email.toLowerCase().trim();
+
+    // 🛡️ SECURITY: Google verifies inbox ownership, not trustworthiness —
+    // Workspace/alias domains can still be disposable. Block known
+    // throwaway domains at the door.
+    if (isDisposableEmail(safeEmail)) {
+      console.warn('🚫 Google sign-up blocked (disposable domain):', { email: safeEmail });
+      return res.status(400).json({
+        success: false,
+        message: 'This email provider is not allowed. Please sign in with a permanent email address.',
+      });
+    }
 
     // Try to find an existing user by Google ID or verified email.
     let user = await User.findOne({ $or: [{ googleId }, { email: safeEmail }] });

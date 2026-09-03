@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/mailer');
 const { emitToAdmins } = require('../utils/socketManager');
 const { getClientIp } = require('../utils/getClientIp');
+const { assertAcceptableEmail } = require('../utils/emailGuard');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -150,12 +151,30 @@ const registerUser = async (req, res) => {
     }
     const safeEmail = request.email.toLowerCase().trim();
 
+    // 🛡️ SECURITY: block disposable/temporary inboxes and undeliverable
+    // domains before creating the account or sending any OTP mail.
+    try {
+      await assertAcceptableEmail(safeEmail);
+    } catch (guardError) {
+      console.warn('🚫 Registration blocked (email guard):', {
+        email: safeEmail,
+        ip: clientIp(req),
+        reason: guardError.message,
+      });
+      return res.status(400).json({ success: false, message: guardError.message });
+    }
+
     const existingUser = await User.findOne({ email: safeEmail });
 
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User With This Email Already Exists',
+      console.warn('🚫 Registration attempted with existing email:', { email: safeEmail, ip: clientIp(req) });
+      // 🛡️ SECURITY: respond exactly like a successful registration —
+      // prevents account enumeration via the register endpoint. No OTP
+      // email is sent for an address that already has an account.
+      return res.status(201).json({
+        success: true,
+        emailSent: true,
+        message: 'Created User Successfully. Please check your email to verify your account.',
       });
     }
 
@@ -265,25 +284,28 @@ const loginUser = async (req, res) => {
       '+password'
     );
 
+    // 🛡️ SECURITY: uniform response for unknown email / wrong password —
+    // prevents account enumeration via distinct error messages.
+    const genericLoginError = () =>
+      res.status(401).json({
+        success: false,
+        message: 'Invalid email or password.',
+      });
+
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'User Not Found' });
+      console.warn('🔐 Failed login attempt:', { email: safeEmail, ip: clientIp(req) });
+      return genericLoginError();
     }
 
     if (!user.password) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'User Password Not Found' });
+      return genericLoginError();
     }
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
       console.warn('🔐 Failed login attempt:', { email: safeEmail, ip: clientIp(req) });
-      return res
-        .status(400)
-        .json({ success: false, message: 'Incorrect Password' });
+      return genericLoginError();
     }
 
     console.log('🔐 User logged in:', { email: user.email, ip: clientIp(req) });
@@ -362,7 +384,8 @@ const loginUser = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: 'Login Successfully',
-      token,
+      // 🛡️ SECURITY: token intentionally omitted — session is carried by the
+      // HttpOnly cookie above. Never expose the JWT in the response body.
       user: {
         _id: user._id,
         firstName: user.firstName,
@@ -392,9 +415,12 @@ const forgetPassword = async (req, res) => {
 
     if (!user) {
       console.warn('🔐 Password reset requested for unknown email:', { email: request.email.toLowerCase().trim(), ip: clientIp(req) });
-      return res
-        .status(404)
-        .json({ success: false, message: 'User Not Found ' });
+      // 🛡️ SECURITY: respond as if the email was sent — prevents account
+      // enumeration through the password-reset flow.
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists for this email, a password reset link has been sent.',
+      });
     }
 
     console.log('🔐 Password reset link requested:', { email: user.email, ip: clientIp(req) });
@@ -511,10 +537,13 @@ const verifyOtp = async (req, res) => {
     // Find the user with the provided email
     const user = await User.findOne({ email: safeEmail }).maxTimeMS(30000).exec();
 
+    // 🛡️ SECURITY: generic 400 for unknown emails — consistent with the
+    // "Invalid OTP" failure path so the OTP flow can't be used to probe
+    // which addresses have accounts.
     if (!user) {
       return res
-        .status(404)
-        .json({ success: false, message: 'User Not Found' });
+        .status(400)
+        .json({ success: false, message: 'Invalid OTP' });
     }
 
     // Check if the OTP is already verified
@@ -606,10 +635,13 @@ const resendOtp = async (req, res) => {
     // Find the user with the provided email
     const user = await User.findOne({ email: safeEmail }).maxTimeMS(30000).exec();
 
+    // 🛡️ SECURITY: generic failure for unknown emails — the resend flow
+    // must not reveal which addresses hold accounts.
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'User Not Found' });
+      return res.status(400).json({
+        success: false,
+        message: 'Please wait before requesting a new verification code.',
+      });
     }
 
     if (user.isVerified) {
@@ -977,7 +1009,7 @@ const verifyMfa = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Login Successfully',
-      token,
+      // 🛡️ SECURITY: token intentionally omitted — cookie-only session.
       user: {
         _id: user._id,
         firstName: user.firstName,

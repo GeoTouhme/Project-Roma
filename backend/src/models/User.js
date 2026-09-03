@@ -15,6 +15,11 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please enter an email'],
       unique: true,
+      // 🛡️ SECURITY: basic RFC-lite format gate — blocks garbage strings
+      // that would otherwise persist and pollute OTP/coupon email flows.
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Please enter a valid email address'],
+      lowercase: true,
+      trim: true,
     },
     password: {
       type: String,

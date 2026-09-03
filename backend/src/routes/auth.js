@@ -45,7 +45,29 @@ const authLimiter = rateLimit({
   },
 });
 
-router.post("/auth/register", authLimiter, authController.registerUser);
+// 🛡️ SECURITY: strict registration limiter. The general authLimiter keys on
+// email:IP, so a fraudster rotating disposable emails gets a fresh bucket per
+// address — useless against mass fake-account creation. This limiter keys on
+// IP ONLY with a hard cap, so rotating throwaway addresses doesn't help.
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // max 5 new-account attempts per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many registration attempts from this network. Please try again later.',
+  },
+  keyGenerator: (req) => {
+    const role = getTokenRole(req.cookies?.token);
+    if (role === 'admin' || role === 'super admin') {
+      return `auth-admin:${req.cookies?.token}`;
+    }
+    return `register:${ipKeyGenerator(getClientIp(req))}`;
+  },
+});
+
+router.post("/auth/register", registrationLimiter, authLimiter, authController.registerUser);
 
 router.post("/auth/google", authLimiter, googleAuthController.googleAuth);
 
