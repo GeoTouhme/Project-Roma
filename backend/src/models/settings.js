@@ -38,6 +38,12 @@ const settingsSchema = new mongoose.Schema({
         default: 0.0775, // 7.75% for Newport Beach, CA
         min: 0,
     },
+    markupRate: {
+        type: Number,
+        default: 0.02, // 2% markup
+        min: 0,
+        max: 1,
+    },
     defaultDeliveryFee: {
         type: Number,
         default: 0,

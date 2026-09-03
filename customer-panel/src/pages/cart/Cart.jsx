@@ -277,7 +277,7 @@ const Cart = () => {
                   <p>${(summary.tax || 0).toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between text-gray-700 my-2">
-                  <p>Markup (2%):</p>
+                  <p>Markup ({(((summary.markupRate ?? 0.02) * 100)).toFixed(0)}%):</p>
                   <p>${(summary.markup || 0).toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between text-lg font-semibold mt-2 pt-2 border-t border-gray-300">

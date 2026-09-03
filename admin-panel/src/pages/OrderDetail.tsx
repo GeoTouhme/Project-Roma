@@ -425,8 +425,22 @@ const OrderDetail = () => {
                 </div>
                 {order.markup > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Markup (2%)</span>
+                    <span className="text-muted-foreground">
+                      Markup ({((order.markupRateSnapshot ?? 0.02) * 100).toFixed(0)}%)
+                    </span>
                     <span>${order.markup?.toFixed(2)}</span>
+                  </div>
+                )}
+                {order.tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax</span>
+                    <span>${order.tax?.toFixed(2)}</span>
+                  </div>
+                )}
+                {order.tip > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tip</span>
+                    <span>${order.tip?.toFixed(2)}</span>
                   </div>
                 )}
                 {order.discount > 0 && (

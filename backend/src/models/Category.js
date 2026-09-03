@@ -53,11 +53,6 @@ const CategorySchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    crvRate: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
     order: {
       type: Number,
       default: 0,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Product from "../../assets/images/product.png";
 import { useDispatch, useSelector } from "react-redux";
 import PaymentService from "../../services/paymentService";
@@ -61,9 +61,11 @@ const Billing = () => {
 
   const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
 
+  const [summaryError, setSummaryError] = useState(null);
+
   const displayTotal = useMemo(
-    () => Math.max(0, cartSummary.subtotal + cartSummary.tax + cartSummary.markup + deliveryFee + tip - couponDiscount),
-    [cartSummary.subtotal, cartSummary.tax, cartSummary.markup, deliveryFee, tip, couponDiscount]
+    () => Math.max(0, (cartSummary.total || 0) + deliveryFee + tip),
+    [cartSummary.total, deliveryFee, tip]
   );
 
   // Auto-suggest best active coupon when cart subtotal is available.
@@ -81,40 +83,57 @@ const Billing = () => {
       .catch(() => {});
   }, [cartSummary.subtotal, couponCode]);
 
-  // Fetch authoritative tax/markup/subtotal from the server whenever the cart changes.
-  useEffect(() => {
-    const loadCartSummary = async () => {
-      if (cartItems.length === 0) {
-        setCartSummary({ subtotal: 0, tax: 0, markup: 0, total: 0 });
-        setTaxRate(0.0775);
-        return;
-      }
+  // Fetch authoritative tax/markup/subtotal from the server whenever the cart or coupon changes.
+  const loadCartSummary = useCallback(async (codeToApply = (couponApplied ? couponCode : null)) => {
+    if (cartItems.length === 0) {
+      setCartSummary({ subtotal: 0, tax: 0, markup: 0, total: 0 });
+      setTaxRate(0.0775);
+      setSummaryError(null);
+      return null;
+    }
 
-      try {
-        const items = cartItems.map((item) => {
-          if (item.type === "bundle") {
-            return {
-              pid: item.id,
-              quantity: item.quantity,
-              type: "bundle",
-              bundlePrice: Number(item.bundlePrice),
-            };
-          }
-          return { pid: item.id, quantity: item.quantity };
-        });
-        const response = await OrderService.getCartSummary({ items });
-        if (response?.success && response?.data) {
-          const data = response.data;
-          setCartSummary(data);
-          setTaxRate(typeof data.taxRate === "number" ? data.taxRate : 0.0775);
+    try {
+      setSummaryError(null);
+      const items = cartItems.map((item) => {
+        if (item.type === "bundle") {
+          return {
+            pid: item.id,
+            quantity: item.quantity,
+            type: "bundle",
+            bundlePrice: Number(item.bundlePrice),
+            products: (item.products || []).map((p) => ({
+              pid: p.id || p._id,
+              quantity: p.quantity || 1,
+            })),
+          };
         }
-      } catch (error) {
-        console.error("Failed to load cart summary:", error);
+        return { pid: item.id, quantity: item.quantity };
+      });
+      const payload = { items };
+      if (codeToApply && typeof codeToApply === 'string' && codeToApply.trim()) {
+        payload.couponCode = codeToApply.trim();
       }
-    };
+      const response = await OrderService.getCartSummary(payload);
+      if (response?.success && response?.data) {
+        const data = response.data;
+        setCartSummary(data);
+        if (typeof data.taxRate === "number") setTaxRate(data.taxRate);
+        if (data.couponDiscount !== undefined) setCouponDiscount(data.couponDiscount);
+        return data;
+      } else {
+        throw new Error(response?.message || "Failed to calculate cart totals");
+      }
+    } catch (error) {
+      console.error("Failed to load cart summary:", error);
+      const msg = error?.response?.data?.message || error?.message || "Tax and markup could not be estimated right now.";
+      setSummaryError(msg);
+      throw error;
+    }
+  }, [cartItems, couponApplied, couponCode]);
 
-    loadCartSummary();
-  }, [cartItems]);
+  useEffect(() => {
+    loadCartSummary().catch(() => {});
+  }, [loadCartSummary]);
 
   // Load Google Maps Places library only when a valid key is configured.
   useEffect(() => {
@@ -711,56 +730,117 @@ const Billing = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!couponCode.trim()) return;
+                  onClick={async () => {
+                    const code = couponCode.trim().toUpperCase();
+                    if (!code) return;
                     toast.loading('Verifying coupon...');
-                    CouponService.verifyByCode(couponCode)
-                      .then((res) => {
+                    try {
+                      const res = await CouponService.verifyByCode(code);
+                      if (!res?.success || !res.data) {
                         toast.dismiss();
-                        if (!res?.success || !res.data) {
-                          toast.error('Invalid or expired coupon');
-                          setCouponApplied(false);
-                          setCouponDiscount(0);
-                          return;
-                        }
-                        const coupon = res.data;
-                        const rawDiscount = coupon.type === 'percent' ? (cartSummary.subtotal * coupon.discount) / 100 : coupon.discount;
-                        const discount = Math.min(rawDiscount, cartSummary.subtotal);
-                        setCouponDiscount(discount);
-                        setCouponApplied(true);
-                        toast.success(`Coupon applied: -$${discount.toFixed(2)}`);
-                      })
-                      .catch(() => {
+                        toast.error('Invalid coupon code');
+                        setCouponApplied(false);
+                        setCouponDiscount(0);
+                        loadCartSummary(null).catch(() => {});
+                        return;
+                      }
+
+                      const coupon = res.data;
+                      const now = new Date();
+                      if (coupon.expire && now >= new Date(coupon.expire)) {
                         toast.dismiss();
-                        toast.error('Failed to verify coupon');
-                      });
+                        toast.error('Coupon is expired');
+                        setCouponApplied(false);
+                        setCouponDiscount(0);
+                        loadCartSummary(null).catch(() => {});
+                        return;
+                      }
+
+                      if (coupon.maxUses && coupon.usedBy && coupon.usedBy.length >= coupon.maxUses) {
+                        toast.dismiss();
+                        toast.error('This coupon has reached its maximum usage limit');
+                        setCouponApplied(false);
+                        setCouponDiscount(0);
+                        loadCartSummary(null).catch(() => {});
+                        return;
+                      }
+
+                      if (coupon.minOrderAmount && cartSummary.subtotal < coupon.minOrderAmount) {
+                        toast.dismiss();
+                        toast.error(`This coupon requires a minimum order of $${Number(coupon.minOrderAmount).toFixed(2)}`);
+                        setCouponApplied(false);
+                        setCouponDiscount(0);
+                        loadCartSummary(null).catch(() => {});
+                        return;
+                      }
+
+                      // Fetch authoritative server totals with coupon applied
+                      const summaryData = await loadCartSummary(code);
+                      toast.dismiss();
+                      setCouponApplied(true);
+                      const appliedDisc = summaryData?.couponDiscount ?? (coupon.type === 'percent' ? (cartSummary.subtotal * coupon.discount) / 100 : coupon.discount);
+                      toast.success(`Coupon applied: -$${Number(appliedDisc).toFixed(2)}`);
+                    } catch (err) {
+                      toast.dismiss();
+                      const msg = err?.response?.data?.message || err?.message || 'Failed to apply coupon';
+                      toast.error(msg);
+                      setCouponApplied(false);
+                      setCouponDiscount(0);
+                      loadCartSummary(null).catch(() => {});
+                    }
                   }}
                   className="bg-black text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap hover:bg-gray-800 transition"
                 >
                   Apply
                 </button>
               </div>
-              {couponApplied && couponDiscount > 0 && (
-                <p className="text-green-600 text-sm mt-1">Discount: -${couponDiscount.toFixed(2)}</p>
+              {couponApplied && (cartSummary.couponDiscount > 0 || couponDiscount > 0) && (
+                <div className="flex justify-between items-center text-green-600 text-sm mt-1">
+                  <p>Discount: -${((cartSummary.couponDiscount || couponDiscount) || 0).toFixed(2)}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCouponApplied(false);
+                      setCouponDiscount(0);
+                      setCouponCode("");
+                      loadCartSummary(null).catch(() => {});
+                    }}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
               )}
             </div>
+
+            {summaryError && (
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 p-2.5 rounded-lg mb-2">
+                {summaryError}
+              </div>
+            )}
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <p>Subtotal:</p>
                 <p className="font-semibold">${cartSummary.subtotal.toFixed(2)}</p>
               </div>
+              {couponApplied && (cartSummary.couponDiscount > 0 || couponDiscount > 0) && (
+                <div className="flex justify-between text-green-600">
+                  <p>Coupon Discount:</p>
+                  <p className="font-semibold">-${((cartSummary.couponDiscount || couponDiscount) || 0).toFixed(2)}</p>
+                </div>
+              )}
               <div className="flex justify-between">
                 <p>Delivery Fee:</p>
                 <p className="font-semibold">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</p>
               </div>
               <div className="flex justify-between">
-                <p>Markup (2%):</p>
-                <p className="font-semibold">${cartSummary.markup.toFixed(2)}</p>
+                <p>Markup ({(((cartSummary.markupRate ?? 0.02) * 100)).toFixed(0)}%):</p>
+                <p className="font-semibold">${(cartSummary.markup || 0).toFixed(2)}</p>
               </div>
               <div className="flex justify-between">
-                <p>Tax ({(taxRate * 100).toFixed(2)}%):</p>
-                <p className="font-semibold">${cartSummary.tax.toFixed(2)}</p>
+                <p>Tax ({(((taxRate || 0.0775) * 100)).toFixed(2)}%):</p>
+                <p className="font-semibold">${(cartSummary.tax || 0).toFixed(2)}</p>
               </div>
               <hr />
               <div className="flex justify-between font-semibold text-base">

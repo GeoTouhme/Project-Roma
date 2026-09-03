@@ -34,13 +34,17 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    crv: {
-      type: Number,
-      default: 0,
-    },
     markup: {
       type: Number,
       default: 0,
+    },
+    taxRateSnapshot: {
+      type: Number,
+      default: 0.0775,
+    },
+    markupRateSnapshot: {
+      type: Number,
+      default: 0.02,
     },
     discount: {
       type: Number,

@@ -276,8 +276,9 @@ const createOrder = async (req, res) => {
         discount,
         tip: sanitizedTip,
         tax,
-        crv: 0,
         markup: markupTotal,
+        taxRateSnapshot: totals.taxRate,
+        markupRateSnapshot: totals.markupRate,
         total: orderTotal,
         subTotal: grandTotal,
         shipping,
@@ -392,9 +393,13 @@ const createOrder = async (req, res) => {
       });
 
       htmlContent = htmlContent.replace(/{{items}}/g, itemsHtml);
-      htmlContent = htmlContent.replace(/{{grandTotal}}/g, orderCreated.total); // Total includes shipping
-      htmlContent = htmlContent.replace(/{{Shipping}}/g, orderCreated.shipping > 0 ? `$${orderCreated.shipping}` : 'Free');
-      htmlContent = htmlContent.replace(/{{subTotal}}/g, orderCreated.subTotal);
+      htmlContent = htmlContent.replace(/{{grandTotal}}/g, `$${Number(orderCreated.total).toFixed(2)}`); // Total includes shipping
+      htmlContent = htmlContent.replace(/{{Shipping}}/g, orderCreated.shipping > 0 ? `$${Number(orderCreated.shipping).toFixed(2)}` : 'Free');
+      htmlContent = htmlContent.replace(/{{subTotal}}/g, `$${Number(orderCreated.subTotal).toFixed(2)}`);
+      htmlContent = htmlContent.replace(/{{tax}}/g, `$${Number(orderCreated.tax || 0).toFixed(2)}`);
+      htmlContent = htmlContent.replace(/{{markup}}/g, `$${Number(orderCreated.markup || 0).toFixed(2)}`);
+      htmlContent = htmlContent.replace(/{{tip}}/g, `$${Number(orderCreated.tip || 0).toFixed(2)}`);
+      htmlContent = htmlContent.replace(/{{discount}}/g, orderCreated.discount > 0 ? `-$${Number(orderCreated.discount).toFixed(2)}` : '$0.00');
 
       // ADD TRACKING INFO IF AVAILABLE
       let trackingHtml = '';
@@ -600,187 +605,82 @@ const deleteOrderByAdmin = async (req, res) => {
   }
 };
 
-const Deal = require('../models/Deal');
-
-const MARKUP_RATE = 0.02;
-
-/**
- * Calculate Deal (fixed-product bundle) discount for cart items.
- * Uses each item's own price instead of a single product's price for all.
- * @param {Array} items - Cart items
- * @param {Map} productById - Map of product ID -> product document (with price/priceSale)
- */
-const applyBundleDeals = async (items, productById = new Map()) => {
-  const now = new Date();
-  const deals = await Deal.find({
-    status: 'active',
-    startAt: { $lte: now },
-    $or: [{ expiresAt: null }, { expiresAt: { $gte: now } }],
-  }).lean();
-
-  if (!deals.length || !items.length) return 0;
-
-  let bundleDiscount = 0;
-
-  for (const deal of deals) {
-    const dealProductIds = new Set(deal.productIds.map((id) => id.toString()));
-    const matchingItems = items.filter((cartItem) => {
-      if (cartItem.type === 'bundle' || cartItem.bundleApplied) return false;
-      const itemId = (cartItem.pid || cartItem._id || cartItem.id)?.toString();
-      return dealProductIds.has(itemId);
-    });
-    const totalQty = matchingItems.reduce(
-      (sum, cartItem) => sum + Math.max(1, safeNumber(cartItem.quantity, 1)),
-      0
-    );
-    if (totalQty < deal.quantity) continue;
-
-    // Use each item's own price from the authoritative product DB lookup.
-    const regularTotal = matchingItems.reduce((sum, cartItem) => {
-      const pid = safeObjectId(cartItem.pid || cartItem._id || cartItem.id);
-      const product = pid ? productById.get(pid.toString()) : null;
-      const unitPrice = product?.priceSale || product?.price || 0;
-      return sum + Math.max(1, safeNumber(cartItem.quantity, 1)) * unitPrice;
-    }, 0);
-
-    const bundleCount = Math.floor(totalQty / deal.quantity);
-    const leftoverQty = totalQty % deal.quantity;
-    const avgUnitPrice = regularTotal / totalQty;
-    const discountedTotal = bundleCount * deal.bundlePrice + leftoverQty * avgUnitPrice;
-    const discount = round2(regularTotal - discountedTotal);
-    if (discount > 0) {
-      bundleDiscount += discount;
-      matchingItems.forEach((item) => { item.bundleApplied = true; });
-    }
-  }
-
-  return round2(bundleDiscount);
-};
-
 /**
  * Calculate tax and markup for a cart without requiring delivery details.
- * Used by the cart page to preview estimated taxes before checkout.
+ * Delegates to calculateOrderTotals as the single authoritative calculation engine.
  */
 const getCartSummary = async (req, res) => {
   try {
-    const { items } = req.body || {};
+    const { items, couponCode } = req.body || {};
 
     if (!Array.isArray(items) || items.length === 0) {
+      const settings = await Settings.findOneOrCreate();
+      const taxRate = typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
+      const markupRate = typeof settings.markupRate === 'number' ? settings.markupRate : 0.02;
       return res.status(200).json({
         success: true,
         data: {
           subtotal: 0,
           taxableSubtotal: 0,
           tax: 0,
+          taxBase: 0,
           markup: 0,
           total: 0,
           itemCount: 0,
+          taxRate,
+          markupRate,
+          bundleDiscount: 0,
+          mixBundleDiscount: 0,
+          couponDiscount: 0,
+          discount: 0,
         },
       });
     }
 
-    const bundleItems = items.filter((item) => item.type === 'bundle');
-    const regularItems = items.filter((item) => item.type !== 'bundle');
-    const bundleProductPids = bundleItems.flatMap((item) =>
-      (item.products || []).map((p) => safeObjectId(p.pid || p._id || p.id))
-    ).filter(Boolean);
+    const totals = await calculateOrderTotals({
+      items,
+      shipping: 0,
+      tip: 0,
+      couponCode,
+      userEmail: req.user?.email,
+    });
 
-    const pids = regularItems
-      .map((item) => safeObjectId(item.pid || item._id || item.id))
-      .filter(Boolean);
-
-    const products = await Products.find({
-      _id: { $in: [...pids, ...bundleProductPids] },
-    }).populate('category', 'name slug taxable');
-
-    const productById = new Map(products.map((p) => [p._id.toString(), p]));
-
-    const settings = await Settings.findOneOrCreate();
-    const taxRate =
-      typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
-
-    let subtotal = 0;
-    let taxableSubtotal = 0;
-    let itemCount = 0;
-
-    for (const item of regularItems) {
-      const pid = safeObjectId(item.pid || item._id || item.id);
-      if (!pid) continue;
-
-      const product = productById.get(pid.toString());
-      if (!product) continue;
-      // Skip unavailable products in cart preview (matches checkout validation).
-      if (product.status === 'disabled' || product.status === 'inactive') continue;
-      if (product.available <= 0) continue;
-
-      const qty = Math.max(1, safeNumber(item.quantity, 1));
-      const unitPrice = product.priceSale || product.price || 0;
-      const lineTotal = round2(unitPrice * qty);
-
-      subtotal += lineTotal;
-      itemCount += qty;
-
-      if (product.category?.taxable !== false) {
-        taxableSubtotal += lineTotal;
+    const itemCount = (totals.updatedItems || []).reduce((sum, item) => {
+      if (item.type === 'bundle') {
+        const physicalCount = (item.products || []).reduce(
+          (pSum, sub) => pSum + Math.max(1, safeNumber(sub.quantity, 1)),
+          0
+        );
+        return sum + physicalCount * Math.max(1, safeNumber(item.quantity, 1));
       }
-    }
+      return sum + Math.max(1, safeNumber(item.quantity, 1));
+    }, 0);
 
-    for (const item of bundleItems) {
-      const qty = Math.max(1, safeNumber(item.quantity, 1));
-      const bundlePrice = safeNumber(item.bundlePrice, 0);
-      const lineTotal = round2(bundlePrice * qty);
-      subtotal += lineTotal;
-
-      // Total physical item count for display.
-      const physicalCount = (item.products || []).reduce(
-        (sum, sub) => sum + Math.max(1, safeNumber(sub.quantity, 1)),
-        0
-      );
-      itemCount += physicalCount * qty;
-
-      // Determine taxability from bundle products; if any taxable, treat bundle as taxable.
-      const productTaxables = (item.products || [])
-        .map((p) => productById.get(safeObjectId(p.pid || p._id || p.id)?.toString())?.category?.taxable)
-        .filter((t) => t !== undefined);
-      const taxable = productTaxables.length === 0 || productTaxables.some((t) => t !== false);
-      if (taxable) taxableSubtotal += lineTotal;
-    }
-
-    subtotal = round2(subtotal);
-    taxableSubtotal = round2(taxableSubtotal);
-
-    // 2% markup on every product's base price. Not taxable, not reduced by discounts.
-    const markupTotal = round2(subtotal * MARKUP_RATE);
-
-    const regularDiscount = round2(await applyBundleDeals(regularItems, productById));
-    const mixDiscount = round2(await applyMixBundleDeals(regularItems));
-    const totalDiscount = regularDiscount + mixDiscount;
-    const discountedSubtotal = round2(Math.max(0, subtotal - totalDiscount));
-    const discountedTaxable = round2(
-      Math.max(0, taxableSubtotal - (taxableSubtotal / subtotal) * totalDiscount)
-    );
-    const tax = round2(discountedTaxable * taxRate);
-    const total = round2(discountedSubtotal + tax + markupTotal);
+    const discountedSubtotal = Math.max(0, Math.round((totals.grandTotal - totals.bundleDiscount) * 100) / 100);
 
     return res.status(200).json({
       success: true,
       data: {
         subtotal: discountedSubtotal,
-        taxableSubtotal: discountedTaxable,
-        tax,
-        markup: markupTotal,
-        total,
+        taxableSubtotal: totals.taxableSubtotal,
+        tax: totals.tax,
+        taxBase: totals.taxBase,
+        markup: totals.markupTotal,
+        total: totals.orderTotal,
         itemCount,
-        taxRate,
-        bundleDiscount: regularDiscount,
-        mixBundleDiscount: mixDiscount,
+        taxRate: totals.taxRate,
+        markupRate: totals.markupRate,
+        bundleDiscount: totals.dealDiscount,
+        mixBundleDiscount: totals.mixDiscount,
+        couponDiscount: totals.couponDiscount,
+        discount: totals.discount,
       },
     });
   } catch (error) {
     console.error('Cart summary error:', error);
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: 'Failed to calculate cart summary.',
+      message: error.message || 'Failed to calculate cart summary.',
       error: error.message,
     });
   }

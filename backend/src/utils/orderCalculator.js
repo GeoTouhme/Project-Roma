@@ -9,11 +9,10 @@
 const Products = require('../models/Product');
 const Coupons = require('../models/CouponCode');
 const Deal = require('../models/Deal');
+const MixBundle = require('../models/MixBundle');
 const Settings = require('../models/settings');
 const { safeObjectId, safeNumber } = require('./validators');
 const { applyMixBundleDeals } = require('./mixBundle');
-
-const MARKUP_RATE = 0.02;
 
 const alcoholCategorySlugs = [
   'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more',
@@ -171,7 +170,52 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
     });
   }
 
+  const bundleIds = bundleItems
+    .map((b) => safeObjectId(b.pid || b._id || b.id))
+    .filter(Boolean);
+
+  const [dbDeals, dbMixBundles] = await Promise.all([
+    bundleIds.length > 0 ? Deal.find({ _id: { $in: bundleIds } }).lean() : [],
+    bundleIds.length > 0 ? MixBundle.find({ _id: { $in: bundleIds } }).lean() : [],
+  ]);
+
+  const now = new Date();
   for (const bundle of bundleItems) {
+    const rawBundleId = safeObjectId(bundle.pid || bundle._id || bundle.id);
+    const bundleIdStr = rawBundleId?.toString();
+    let authoritativeBundlePrice = null;
+    let bundleName = bundle.name || 'Bundle';
+
+    const matchedDeal = dbDeals.find((d) => d._id.toString() === bundleIdStr);
+    if (matchedDeal) {
+      const isDealValid =
+        matchedDeal.status === 'active' &&
+        (!matchedDeal.startAt || new Date(matchedDeal.startAt) <= now) &&
+        (!matchedDeal.expiresAt || new Date(matchedDeal.expiresAt) >= now);
+      if (isDealValid) {
+        authoritativeBundlePrice = safeNumber(matchedDeal.bundlePrice, 0);
+        bundleName = matchedDeal.name || bundleName;
+      }
+    }
+
+    if (authoritativeBundlePrice === null) {
+      const matchedMixBundle = dbMixBundles.find((mb) => mb._id.toString() === bundleIdStr);
+      if (matchedMixBundle) {
+        const isMixValid =
+          matchedMixBundle.status === 'active' &&
+          (!matchedMixBundle.startAt || new Date(matchedMixBundle.startAt) <= now) &&
+          (!matchedMixBundle.expiresAt || new Date(matchedMixBundle.expiresAt) >= now);
+        if (isMixValid) {
+          authoritativeBundlePrice = safeNumber(matchedMixBundle.bundlePrice, 0);
+          bundleName = matchedMixBundle.name || bundleName;
+        }
+      }
+    }
+
+    if (authoritativeBundlePrice === null) {
+      throw new Error(`Bundle is invalid or expired: ${bundle.name || bundle.pid || bundle.id}`);
+    }
+
     const bundleProducts = (bundle.products || [])
       .map((p) => {
         const product = products.find(
@@ -194,26 +238,30 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
       })
       .filter(Boolean);
 
+    const bundleQty = Math.max(1, Math.floor(safeNumber(bundle.quantity, 1)));
+    const bundleLineTotal = round2(authoritativeBundlePrice * bundleQty);
+
     updatedItems.push({
       pid: bundle.pid || bundle._id || bundle.id,
-      name: bundle.name || 'Bundle',
+      name: bundleName,
       type: 'bundle',
-      bundlePrice: safeNumber(bundle.bundlePrice, 0),
-      quantity: safeNumber(bundle.quantity, 1),
-      subtotal: (safeNumber(bundle.bundlePrice, 0) * safeNumber(bundle.quantity, 1)).toFixed(2),
-      total: safeNumber(bundle.bundlePrice, 0) * safeNumber(bundle.quantity, 1),
+      bundlePrice: authoritativeBundlePrice,
+      quantity: bundleQty,
+      subtotal: bundleLineTotal.toFixed(2),
+      total: bundleLineTotal,
       products: bundleProducts,
     });
   }
 
-  const grandTotal = updatedItems.reduce((acc, item) => acc + (item.total || 0), 0);
+  const grandTotal = round2(updatedItems.reduce((acc, item) => acc + (item.total || 0), 0));
   const dealDiscount = round2(await applyBundleDealDiscounts(updatedItems));
   const mixDiscount = round2(await applyMixBundleDeals(updatedItems));
-  const bundleDiscount = dealDiscount + mixDiscount;
+  const bundleDiscount = round2(dealDiscount + mixDiscount);
   const discountedGrandTotal = round2(Math.max(0, grandTotal - bundleDiscount));
 
   const settings = await Settings.findOneOrCreate();
   const taxRate = typeof settings.taxRate === 'number' ? settings.taxRate : 0.0775;
+  const markupRate = typeof settings.markupRate === 'number' ? settings.markupRate : 0.02;
 
   let taxableSubtotal = 0;
   for (const item of updatedItems) {
@@ -234,9 +282,10 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
       taxableSubtotal += itemTotal;
     }
   }
+  taxableSubtotal = round2(taxableSubtotal);
 
-  // 2% markup on every product's base price. Not taxable, not reduced by discounts.
-  const markupTotal = round2(grandTotal * MARKUP_RATE);
+  // Store markup on every product's base price.
+  const markupTotal = round2(grandTotal * markupRate);
 
   let couponDiscount = 0;
   if (couponCode) {
@@ -286,10 +335,15 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
     couponDiscount = Math.min(couponDiscount, discountedGrandTotal);
   }
 
+  couponDiscount = round2(couponDiscount);
   const discount = round2(bundleDiscount + couponDiscount);
   const discountedTotal = round2(Math.max(0, discountedGrandTotal - couponDiscount));
-  const taxBase = Math.max(0, taxableSubtotal - (taxableSubtotal / grandTotal) * discount);
+
+  // Markup covers CRV deposits, payment processing, and VPS maintenance — excluded from taxBase.
+  const taxRatio = grandTotal > 0 ? (taxableSubtotal / grandTotal) : 0;
+  const taxBase = Math.max(0, round2(taxableSubtotal - taxRatio * discount));
   const tax = round2(taxBase * taxRate);
+
   const sanitizedTip = Math.max(0, Math.min(safeNumber(tip, 0), 100));
   const deliveryFee = Math.max(0, safeNumber(shipping, 0));
   const orderTotal = round2(discountedTotal + tax + markupTotal + deliveryFee + sanitizedTip);
@@ -302,9 +356,13 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
     dealDiscount,
     mixDiscount,
     bundleDiscount,
+    couponDiscount,
     taxableSubtotal,
     discount,
+    taxBase,
     tax,
+    taxRate,
+    markupRate,
     markupTotal,
     sanitizedTip,
     deliveryFee,

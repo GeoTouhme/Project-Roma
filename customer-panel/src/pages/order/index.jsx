@@ -64,6 +64,10 @@ const OrderPage = () => {
         subTotal,
         total,
         shipping,
+        tax,
+        markup,
+        markupRateSnapshot,
+        tip,
         discount,
         paymentMethod,
         status,
@@ -248,12 +252,25 @@ const OrderPage = () => {
                     </table>
 
                     {/* Totals */}
-                    <div className="mt-4 border-t pt-4 space-y-4 text-sm flex flex-col items-end">
-                        <div className="w-[200px] flex items-center justify-between">Subtotal: <span className="font-medium">${subTotal.toFixed(2)}</span></div>
-                        <div className="w-[200px] flex items-center justify-between">Shipping Fee: <span className="font-medium">${shipping.toFixed(2)}</span></div>
-                        <div className="w-[200px] flex items-center justify-between">Discount: <span className="font-medium text-green-600">-${discount.toFixed(2)}</span></div>
-                        <div className="text-lg font-bold w-[200px] flex items-center justify-between">
-                            Total: <span className="text-black">${total.toFixed(2)}</span>
+                    <div className="mt-4 border-t pt-4 space-y-2 text-sm flex flex-col items-end">
+                        <div className="w-[240px] flex items-center justify-between text-gray-700">Subtotal: <span className="font-medium">${Number(subTotal || 0).toFixed(2)}</span></div>
+                        {Number(discount || 0) > 0 && (
+                            <div className="w-[240px] flex items-center justify-between text-green-600">Discount: <span className="font-medium">-${Number(discount).toFixed(2)}</span></div>
+                        )}
+                        <div className="w-[240px] flex items-center justify-between text-gray-700">Shipping Fee: <span className="font-medium">{Number(shipping || 0) > 0 ? `$${Number(shipping).toFixed(2)}` : 'Free'}</span></div>
+                        {Number(markup || 0) > 0 && (
+                            <div className="w-[240px] flex items-center justify-between text-gray-700">
+                                Markup ({((markupRateSnapshot ?? 0.02) * 100).toFixed(0)}%): <span className="font-medium">${Number(markup).toFixed(2)}</span>
+                            </div>
+                        )}
+                        {Number(tax || 0) > 0 && (
+                            <div className="w-[240px] flex items-center justify-between text-gray-700">Tax: <span className="font-medium">${Number(tax).toFixed(2)}</span></div>
+                        )}
+                        {Number(tip || 0) > 0 && (
+                            <div className="w-[240px] flex items-center justify-between text-gray-700">Driver Tip: <span className="font-medium">${Number(tip).toFixed(2)}</span></div>
+                        )}
+                        <div className="text-lg font-bold w-[240px] flex items-center justify-between border-t pt-2 mt-1">
+                            Total: <span className="text-black">${Number(total || 0).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

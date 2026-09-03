@@ -97,6 +97,7 @@ const StoreSettings = () => {
     const queryClient = useQueryClient();
     const [timezone, setTimezone] = useState('America/Los_Angeles');
     const [taxRate, setTaxRate] = useState(0.0775);
+    const [markupRate, setMarkupRate] = useState(0.02);
     const [defaultDeliveryFee, setDefaultDeliveryFee] = useState(0);
     const [deliveryFeesByZip, setDeliveryFeesByZip] = useState<{ zip: string; fee: number }[]>([]);
     const [operatingHours, setOperatingHours] = useState<OperatingHour[]>([]);
@@ -121,6 +122,9 @@ const StoreSettings = () => {
         }
         if (settings?.data?.data?.taxRate !== undefined) {
             setTaxRate(settings.data.data.taxRate);
+        }
+        if (settings?.data?.data?.markupRate !== undefined) {
+            setMarkupRate(settings.data.data.markupRate);
         }
         if (settings?.data?.data?.defaultDeliveryFee !== undefined) {
             setDefaultDeliveryFee(settings.data.data.defaultDeliveryFee);
@@ -164,6 +168,7 @@ const StoreSettings = () => {
             timezone,
             operatingHours,
             taxRate,
+            markupRate,
             defaultDeliveryFee,
             deliveryFeesByZip,
             heroSlides: heroSlides.map((slide, index) => ({ ...slide, order: index })),
@@ -275,6 +280,21 @@ const StoreSettings = () => {
                             className="w-full md:w-[300px]"
                         />
                         <p className="text-xs text-gray-500">Default is 0.0775 (7.75% for Newport Beach, CA)</p>
+                    </div>
+
+                    {/* Store Markup Rate */}
+                    <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-500">Store Markup Rate</label>
+                        <Input
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            max="1"
+                            value={markupRate}
+                            onChange={(e) => setMarkupRate(parseFloat(e.target.value) || 0)}
+                            className="w-full md:w-[300px]"
+                        />
+                        <p className="text-xs text-gray-500">Default is 0.02 (2% store markup)</p>
                     </div>
 
                     {/* Default Delivery Fee */}

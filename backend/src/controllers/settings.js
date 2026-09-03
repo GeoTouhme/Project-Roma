@@ -17,7 +17,7 @@ const getSettings = async (req, res) => {
 // @access  Private/Admin
 const updateSettings = async (req, res) => {
     try {
-        const { timezone, operatingHours, deliveryProvider, taxRate, defaultDeliveryFee, deliveryFeesByZip, heroSlides } = req.body;
+        const { timezone, operatingHours, deliveryProvider, taxRate, markupRate, defaultDeliveryFee, deliveryFeesByZip, heroSlides } = req.body;
 
         // Validate deliveryProvider if provided
         if (deliveryProvider && !['doordash', 'uberdirect', 'store'].includes(deliveryProvider)) {
@@ -27,6 +27,12 @@ const updateSettings = async (req, res) => {
         if (taxRate !== undefined) {
             if (typeof taxRate !== 'number' || taxRate < 0 || taxRate > 1) {
                 return res.status(400).json({ success: false, message: 'Tax rate must be a number between 0 and 1 (e.g. 0.0775 for 7.75%).' });
+            }
+        }
+
+        if (markupRate !== undefined) {
+            if (typeof markupRate !== 'number' || markupRate < 0 || markupRate > 1) {
+                return res.status(400).json({ success: false, message: 'Markup rate must be a number between 0 and 1 (e.g. 0.02 for 2%).' });
             }
         }
 
@@ -104,6 +110,7 @@ const updateSettings = async (req, res) => {
         if (operatingHours) updateData.operatingHours = operatingHours;
         if (deliveryProvider) updateData.deliveryProvider = deliveryProvider;
         if (taxRate !== undefined) updateData.taxRate = taxRate;
+        if (markupRate !== undefined) updateData.markupRate = markupRate;
         if (defaultDeliveryFee !== undefined) updateData.defaultDeliveryFee = defaultDeliveryFee;
         if (deliveryFeesByZip !== undefined) updateData.deliveryFeesByZip = deliveryFeesByZip;
         if (heroSlides !== undefined) updateData.heroSlides = heroSlides;
