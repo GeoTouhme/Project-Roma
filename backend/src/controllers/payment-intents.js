@@ -6,13 +6,13 @@ const { calculateOrderTotals } = require("../utils/orderCalculator");
 
 const payment_intents = async (req, res) => {
 	try {
-		const { items, shipping, tip, couponCode, idempotencyKey } = req.body;
+		const { items, shipping, tip, couponCode, idempotencyKey, fulfillmentType } = req.body;
 
 		// 🛡️ SECURITY: Do not trust the client-submitted amount. Compute the total
 		// server-side from the cart items, using authoritative product prices.
 		let totals;
 		try {
-			totals = await calculateOrderTotals({ items, shipping, tip, couponCode, userEmail: req.user?.email });
+			totals = await calculateOrderTotals({ items, shipping, tip, couponCode, userEmail: req.user?.email, fulfillmentType });
 		} catch (calcError) {
 			return res.status(400).json({ success: false, message: calcError.message });
 		}

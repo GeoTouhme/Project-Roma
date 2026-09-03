@@ -23,6 +23,7 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [fulfillmentFilter, setFulfillmentFilter] = useState<"all" | "delivery" | "pickup">("all");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -38,6 +39,9 @@ const Orders = () => {
       if (statusFilter && statusFilter !== "all") {
         params.status = statusFilter;
       }
+      if (fulfillmentFilter && fulfillmentFilter !== "all") {
+        params.fulfillmentType = fulfillmentFilter;
+      }
       const response = await ordersAPI.getOrders(params);
 
       if (response.data.success) {
@@ -45,6 +49,9 @@ const Orders = () => {
         let data = response.data.data || [];
         if (statusFilter && statusFilter !== "all") {
           data = data.filter((o: any) => o.status === statusFilter);
+        }
+        if (fulfillmentFilter && fulfillmentFilter !== "all") {
+          data = data.filter((o: any) => (o.fulfillmentType || "delivery") === fulfillmentFilter);
         }
         setOrders(data);
         setTotalOrders(response.data.total);
@@ -63,7 +70,7 @@ const Orders = () => {
     }, 500); // Debounce search
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, pageSize, searchQuery, statusFilter]);
+  }, [currentPage, pageSize, searchQuery, statusFilter, fulfillmentFilter]);
 
   const handleRowClick = (order: any) => {
     navigate(`/orders/${order._id}`);
@@ -96,11 +103,59 @@ const Orders = () => {
         description="View and manage all customer orders."
       />
 
+      {/* Fulfillment Tabs */}
+      <div className="flex bg-muted p-1 rounded-lg w-fit border">
+        <button
+          type="button"
+          onClick={() => {
+            setFulfillmentFilter("all");
+            setCurrentPage(1);
+          }}
+          className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${
+            fulfillmentFilter === "all"
+              ? "bg-background text-foreground shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          All Orders
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setFulfillmentFilter("delivery");
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition ${
+            fulfillmentFilter === "delivery"
+              ? "bg-blue-600 text-white shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-blue-300 inline-block" />
+          Delivery
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setFulfillmentFilter("pickup");
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition ${
+            fulfillmentFilter === "pickup"
+              ? "bg-amber-600 text-white shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-amber-300 inline-block" />
+          Pick Up
+        </button>
+      </div>
+
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <SearchBar
           onSearch={setSearchQuery}
-          placeholder="Search by customer name..."
+          placeholder="Search by customer name or order #..."
           className="w-full sm:max-w-sm"
         />
 
@@ -132,6 +187,30 @@ const Orders = () => {
             {
               header: "Order ID",
               accessorKey: (item: any) => <span className="font-mono text-xs">{item.orderNo || item._id.substring(0, 8)}</span>
+            },
+            {
+              header: "Fulfillment",
+              accessorKey: (item: any) => {
+                const isPickup = item.fulfillmentType === "pickup";
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold w-fit ${
+                        isPickup
+                          ? "bg-amber-100 text-amber-900 border border-amber-300"
+                          : "bg-blue-100 text-blue-900 border border-blue-300"
+                      }`}
+                    >
+                      {isPickup ? "🏪 Pick Up" : "🚚 Delivery"}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">
+                      {isPickup
+                        ? (item.user?.phone || "Store counter")
+                        : (item.user?.address ? item.user.address.split(",")[0] : "Local")}
+                    </span>
+                  </div>
+                );
+              }
             },
             {
               header: "Customer",

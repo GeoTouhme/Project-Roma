@@ -180,6 +180,7 @@ const OrderDetail = () => {
   const isPending = order.status === "pending";
   const isProcessing = order.status === "processing";
   const isDenied = order.status === "denied";
+  const isPickup = (order.fulfillmentType || "delivery") === "pickup";
 
   return (
     <div className="space-y-6 w-full">
@@ -236,13 +237,61 @@ const OrderDetail = () => {
         </div>
       </div>
 
+      {/* Prominent Fulfillment Header Banner */}
+      {isPickup ? (
+        <div className="rounded-xl p-5 bg-amber-600 text-white shadow-md flex items-start gap-4">
+          <div className="p-3 bg-white/20 rounded-lg shrink-0">
+            <Package className="h-7 w-7 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full">
+                Pick Up Order
+              </span>
+            </div>
+            <h3 className="text-xl font-bold mt-1">Prepare for Counter Pickup</h3>
+            <p className="text-amber-100 text-sm mt-0.5 font-medium">
+              Customer collects at store counter • Check government-issued photo ID
+            </p>
+            <p className="text-amber-200 text-xs mt-1">
+              Customer: <strong>{order.user?.firstName} {order.user?.lastName}</strong> • Phone: {order.user?.phone || "No phone"}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl p-5 bg-blue-600 text-white shadow-md flex items-start gap-4">
+          <div className="p-3 bg-white/20 rounded-lg shrink-0">
+            <Truck className="h-7 w-7 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full">
+                Delivery Order
+              </span>
+            </div>
+            <h3 className="text-xl font-bold mt-1">Dispatch a Driver</h3>
+            <p className="text-blue-100 text-sm mt-0.5 font-medium">
+              Deliver to: <strong>{order.user?.address ? `${order.user.address}, ${order.user.city} ${order.user.zip}` : "Address not specified"}</strong>
+            </p>
+            <p className="text-blue-200 text-xs mt-1">
+              Customer: <strong>{order.user?.firstName} {order.user?.lastName}</strong> • Phone: {order.user?.phone || "No phone"}
+            </p>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title={`Order ${order.orderNo || order._id.substring(0, 8)}`}
         description={`Placed on ${new Date(order.createdAt).toLocaleDateString()}`}
         actions={
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${statusColor(order.status)}`}>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            <span className="capitalize">{order.status}</span>
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white ${isPickup ? "bg-amber-600" : "bg-blue-600"}`}>
+              {isPickup ? "🏪 Pick Up" : "🚚 Delivery"}
+            </span>
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${statusColor(order.status)}`}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              <span className="capitalize">{order.status}</span>
+            </div>
           </div>
         }
       />
@@ -253,19 +302,31 @@ const OrderDetail = () => {
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
           <AlertTitle className="text-yellow-800">Action Required</AlertTitle>
           <AlertDescription className="text-yellow-700">
-            This order is waiting for staff acceptance. Accept to prepare the order, or deny if it cannot be fulfilled.
+            {isPickup
+              ? "This pickup order is waiting for staff acceptance. Accept to prepare the items for store pickup, or deny if items are unavailable."
+              : "This delivery order is waiting for staff acceptance. Accept to prepare the order, or deny if it cannot be fulfilled."}
           </AlertDescription>
         </Alert>
       )}
 
       {isProcessing && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <Truck className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">Driver Needed</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            Order accepted. Please open the DoorDash or Uber Eats app and request a driver manually using the customer address below. Click "Mark as Shipped" once the driver is on the way.
-          </AlertDescription>
-        </Alert>
+        isPickup ? (
+          <Alert className="border-amber-200 bg-amber-50">
+            <Package className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800">Ready for Counter Pickup</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Order accepted. Please prepare and bag items behind the counter. When the customer arrives, verify their photo ID and mark order as delivered.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="border-blue-200 bg-blue-50">
+            <Truck className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-800">Driver Needed</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              Order accepted. Please open the DoorDash or Uber Eats app and request a driver manually using the customer address below. Click "Mark as Shipped" once the driver is on the way.
+            </AlertDescription>
+          </Alert>
+        )
       )}
 
       {isDenied && order.staffDenialReason && (
@@ -327,38 +388,66 @@ const OrderDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Shipping Information */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium flex items-center">
-                  <Truck className="mr-2 h-4 w-4" />
-                  Shipping Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Delivery Address</p>
-                  <p className="text-sm text-muted-foreground">
-                    {order.user?.address}<br />
-                    {order.user?.city}, {order.user?.state} {order.user?.zip}<br />
-                    {order.user?.country || "Country not specified"}
-                  </p>
-                  {order.trackingUrl && (
-                    <div className="pt-2">
-                      <a
-                        href={order.trackingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-sm text-primary hover:underline"
-                      >
-                        <ExternalLink className="mr-1 h-4 w-4" />
-                        Tracking Link
-                      </a>
+            {/* Fulfillment Information: Pickup Details vs Shipping Address */}
+            {isPickup ? (
+              <Card className="border-amber-200 bg-amber-50/40">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium flex items-center text-amber-900">
+                    <Package className="mr-2 h-4 w-4" />
+                    Store Counter Pickup
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-amber-950">Store Collection</p>
+                    <p className="text-sm text-amber-900">
+                      Customer will collect order at store counter. No driver dispatch required.
+                    </p>
+                    <div className="pt-2 text-xs font-semibold text-amber-800">
+                      ⚠️ Identification: Verify valid photo ID matches <strong>{order.user?.firstName} {order.user?.lastName}</strong>.
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    {order.pickupNote && (
+                      <div className="mt-3 p-3 bg-white rounded border border-amber-200">
+                        <span className="text-xs font-bold text-amber-950 uppercase tracking-wider block">Customer Pickup Note:</span>
+                        <p className="text-sm text-gray-800 mt-1">{order.pickupNote}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium flex items-center">
+                    <Truck className="mr-2 h-4 w-4" />
+                    Shipping Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="font-semibold">Delivery Address</p>
+                    <p className="text-sm text-muted-foreground">
+                      {order.user?.address}<br />
+                      {order.user?.city}, {order.user?.state} {order.user?.zip}<br />
+                      {order.user?.country || "Country not specified"}
+                    </p>
+                    {order.trackingUrl && (
+                      <div className="pt-2">
+                        <a
+                          href={order.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-sm text-primary hover:underline"
+                        >
+                          <ExternalLink className="mr-1 h-4 w-4" />
+                          Tracking Link
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Order Items */}
@@ -419,10 +508,17 @@ const OrderDetail = () => {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>${order.subTotal?.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span>${Number(order.shipping)?.toFixed(2)}</span>
-                </div>
+                {isPickup ? (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Fulfillment</span>
+                    <span className="text-green-600 font-medium">Free Pick Up</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span>${Number(order.shipping)?.toFixed(2)}</span>
+                  </div>
+                )}
                 {order.markup > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
@@ -437,7 +533,7 @@ const OrderDetail = () => {
                     <span>${order.tax?.toFixed(2)}</span>
                   </div>
                 )}
-                {order.tip > 0 && (
+                {!isPickup && order.tip > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tip</span>
                     <span>${order.tip?.toFixed(2)}</span>

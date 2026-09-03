@@ -114,7 +114,12 @@ const createOrder = async (req, res) => {
       totalItems,
       shipping,
       tip,
+      fulfillmentType: rawFulfillmentType,
+      pickupNote: rawPickupNote,
     } = await req.body;
+
+    const fulfillmentType = (rawFulfillmentType || 'delivery').toLowerCase() === 'pickup' ? 'pickup' : 'delivery';
+    const pickupNote = typeof rawPickupNote === 'string' ? rawPickupNote.trim() : '';
 
     // Security: Only allow Stripe payments for now to prevent fraud
     if (paymentMethod !== 'Stripe') {
@@ -137,6 +142,20 @@ const createOrder = async (req, res) => {
         .json({ success: false, message: 'Please Provide Item(s)' });
     }
 
+    // Optional shipping details from the client must still come from a trusted source
+    const shippingDetails = user || {};
+
+    // Validate delivery address ONLY if fulfillmentType === 'delivery'
+    if (fulfillmentType === 'delivery') {
+      const deliveryAddress = (shippingDetails.address || req.user?.address || '').trim();
+      if (!deliveryAddress) {
+        return res.status(400).json({
+          success: false,
+          message: 'Delivery address is required',
+        });
+      }
+    }
+
     // Issue 2: Idempotency - check if order with this paymentId already exists
     const existingOrder = await Orders.findOne({ paymentId });
     if (existingOrder) {
@@ -152,7 +171,14 @@ const createOrder = async (req, res) => {
     // not from client-submitted prices. This prevents price/tax tampering.
     let totals;
     try {
-      totals = await calculateOrderTotals({ items, shipping, tip, couponCode, userEmail: req.user?.email });
+      totals = await calculateOrderTotals({
+        items,
+        shipping,
+        tip,
+        couponCode,
+        userEmail: req.user?.email,
+        fulfillmentType,
+      });
     } catch (calcError) {
       return res.status(400).json({ success: false, message: calcError.message });
     }
@@ -205,9 +231,6 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // Optional shipping details from the client must still come from a trusted source
-    const shippingDetails = user || {};
-
     // Use authenticated user ID/email from JWT, but allow the billing form’s first/last
     // name to override empty JWT values (common for Google sign-up users whose Google
     // profile may not expose a name, or for account holders updating their name).
@@ -222,11 +245,11 @@ const createOrder = async (req, res) => {
       lastName: billingLastName || jwtLastName || '',
       email: req.user.email,
       phone: shippingDetails.phone || req.user.phone || '',
-      address: shippingDetails.address || req.user.address || '',
-      city: shippingDetails.city || req.user.city || '',
-      state: shippingDetails.state || req.user.state || '',
-      country: shippingDetails.country || req.user.country || '',
-      zip: shippingDetails.zip || req.user.zip || '',
+      address: fulfillmentType === 'delivery' ? (shippingDetails.address || req.user.address || '') : '',
+      city: fulfillmentType === 'delivery' ? (shippingDetails.city || req.user.city || '') : '',
+      state: fulfillmentType === 'delivery' ? (shippingDetails.state || req.user.state || 'CA') : 'CA',
+      country: fulfillmentType === 'delivery' ? (shippingDetails.country || req.user.country || 'US') : 'US',
+      zip: fulfillmentType === 'delivery' ? (shippingDetails.zip || req.user.zip || '') : '',
     };
 
     const orderNo = await generateOrderNumber();
@@ -281,7 +304,9 @@ const createOrder = async (req, res) => {
         markupRateSnapshot: totals.markupRate,
         total: orderTotal,
         subTotal: grandTotal,
-        shipping,
+        shipping: deliveryFee,
+        fulfillmentType: totals.fulfillmentType || fulfillmentType,
+        pickupNote,
         items: updatedItems.map(({ image, ...others }) => others),
         user: orderUser,
         totalItems,
@@ -341,15 +366,20 @@ const createOrder = async (req, res) => {
     // panel and arrange delivery manually. Delivery service code is kept for
     // future use only.
     let trackingUrl = null;
-    console.log(`⏸️ Staff-only delivery: order ${orderNo} awaiting staff acceptance.`);
+    console.log(`⏸️ Staff order: ${orderCreated.fulfillmentType} order ${orderNo} awaiting staff acceptance.`);
     // --------------------------------------
+
+    const isPickupOrder = orderCreated.fulfillmentType === 'pickup';
+    const notificationTitle = isPickupOrder
+      ? `New Pick Up Order: ${orderUser.firstName} ${orderUser.lastName} placed a pick up order.`
+      : `New Delivery Order: ${orderUser.firstName} ${orderUser.lastName} placed an order from ${orderUser.city || 'local'}.`;
 
     const [notificationDoc] = await Notifications.create([{
       opened: false,
-      title: `${orderUser.firstName} ${orderUser.lastName} placed an order from ${orderUser.city}.`,
+      title: notificationTitle,
       paymentMethod,
       orderId: orderCreated._id,
-      city: orderUser.city,
+      city: isPickupOrder ? 'Pick Up' : (orderUser.city || 'Local'),
       cover: req.user?.cover?.url || '',
     }]);
     emitToAdmins('notification:new', notificationDoc);
@@ -392,18 +422,52 @@ const createOrder = async (req, res) => {
         `;
       });
 
+      const orderHeadline = isPickupOrder
+        ? 'Your order will be ready at our store!'
+        : 'Your order is on the way!';
+
+      const fulfillmentInfo = isPickupOrder
+        ? `
+          <p style="margin: 0; font-weight: bold; color: #B5223B; font-size: 13px;">Store Pick Up Location:</p>
+          <p style="margin: 4px 0 0 0; color: #222; font-size: 13px; line-height: 18px;">
+            <strong>Bal-Port Liquors</strong><br/>
+            1779 Newport Blvd, Costa Mesa / Newport Beach, CA 92627
+          </p>
+          <p style="margin: 10px 0 0 0; font-weight: bold; color: #b45309; font-size: 12px;">
+            ⚠️ Please bring a valid ID upon pickup.
+          </p>
+          ${orderCreated.pickupNote ? `<p style="margin: 6px 0 0 0; color: #555; font-size: 11px;"><strong>Customer Note:</strong> ${orderCreated.pickupNote}</p>` : ''}
+        `
+        : `
+          <p style="margin: 0; font-weight: bold; color: #1e3a8a; font-size: 13px;">Delivery Address:</p>
+          <p style="margin: 4px 0 0 0; color: #333; font-size: 13px; line-height: 18px;">
+            ${orderUser.address}<br/>
+            ${orderUser.city}, ${orderUser.state} ${orderUser.zip}
+          </p>
+        `;
+
+      const fulfillmentFeeRow = isPickupOrder
+        ? `<tr><td style="border-spacing: 0; border: 0">Pickup :</td><td style="border-spacing: 0; border: 0; color: #16a34a;">Free</td></tr>`
+        : `<tr><td style="border-spacing: 0; border: 0">Delivery Fee :</td><td style="border-spacing: 0; border: 0">${orderCreated.shipping > 0 ? `$${Number(orderCreated.shipping).toFixed(2)}` : 'Free'}</td></tr>`;
+
+      const tipRow = (!isPickupOrder && orderCreated.tip > 0)
+        ? `<tr><td style="border-spacing: 0; border: 0">Tip :</td><td style="border-spacing: 0; border: 0">$${Number(orderCreated.tip).toFixed(2)}</td></tr>`
+        : '';
+
       htmlContent = htmlContent.replace(/{{items}}/g, itemsHtml);
-      htmlContent = htmlContent.replace(/{{grandTotal}}/g, `$${Number(orderCreated.total).toFixed(2)}`); // Total includes shipping
-      htmlContent = htmlContent.replace(/{{Shipping}}/g, orderCreated.shipping > 0 ? `$${Number(orderCreated.shipping).toFixed(2)}` : 'Free');
+      htmlContent = htmlContent.replace(/{{orderHeadline}}/g, orderHeadline);
+      htmlContent = htmlContent.replace(/{{fulfillmentInfo}}/g, fulfillmentInfo);
+      htmlContent = htmlContent.replace(/{{fulfillmentFeeRow}}/g, fulfillmentFeeRow);
+      htmlContent = htmlContent.replace(/{{tipRow}}/g, tipRow);
+      htmlContent = htmlContent.replace(/{{grandTotal}}/g, `$${Number(orderCreated.total).toFixed(2)}`);
       htmlContent = htmlContent.replace(/{{subTotal}}/g, `$${Number(orderCreated.subTotal).toFixed(2)}`);
       htmlContent = htmlContent.replace(/{{tax}}/g, `$${Number(orderCreated.tax || 0).toFixed(2)}`);
       htmlContent = htmlContent.replace(/{{markup}}/g, `$${Number(orderCreated.markup || 0).toFixed(2)}`);
-      htmlContent = htmlContent.replace(/{{tip}}/g, `$${Number(orderCreated.tip || 0).toFixed(2)}`);
       htmlContent = htmlContent.replace(/{{discount}}/g, orderCreated.discount > 0 ? `-$${Number(orderCreated.discount).toFixed(2)}` : '$0.00');
 
-      // ADD TRACKING INFO IF AVAILABLE
+      // ADD TRACKING INFO IF AVAILABLE (delivery only)
       let trackingHtml = '';
-      if (trackingUrl) {
+      if (!isPickupOrder && trackingUrl) {
         trackingHtml = `
           <tr>
             <td style="border-spacing: 0; border: 0; color: #B5223B;">Track Delivery :</td>
@@ -415,12 +479,16 @@ const createOrder = async (req, res) => {
       htmlContent = htmlContent.replace(/{{trackingInfo}}/g, trackingHtml);
 
       // Send email via OAuth2 utility
+      const emailSubject = isPickupOrder
+        ? `Your Balport Order #${orderNo} Pick Up Confirmation`
+        : `Your Balport Order #${orderNo} Confirmation`;
+
       await sendEmail({
         to: orderUser.email,
-        subject: `Your Balport Order #${orderNo} Confirmation`,
+        subject: emailSubject,
         html: htmlContent
       });
-      console.log(`✅ Order confirmation email sent to ${user.email}`);
+      console.log(`✅ Order confirmation email sent to ${orderUser.email}`);
     } catch (emailError) {
       console.error('❌ Failed to send order confirmation email:', emailError.message);
     }
@@ -468,6 +536,7 @@ const getOrdersByAdmin = async (req, res) => {
       page: pageQuery,
       limit: limitQuery,
       search: searchQuery,
+      fulfillmentType,
     } = req.query;
 
     const limit = parseInt(limitQuery) || 10;
@@ -476,19 +545,32 @@ const getOrdersByAdmin = async (req, res) => {
     const skip = limit * (page - 1);
     let matchQuery = {};
 
+    if (fulfillmentType && ['delivery', 'pickup'].includes(fulfillmentType)) {
+      matchQuery.fulfillmentType = fulfillmentType;
+    }
+
     // Escape special regex characters to prevent ReDoS
     const safeSearch = (searchQuery || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    const totalOrders = await Orders.countDocuments({
-      $or: [
-        { 'user.firstName': { $regex: safeSearch, $options: 'i' } },
-        { 'user.lastName': { $regex: safeSearch, $options: 'i' } },
-      ],
+    const searchCondition = safeSearch
+      ? {
+          $or: [
+            { 'user.firstName': { $regex: safeSearch, $options: 'i' } },
+            { 'user.lastName': { $regex: safeSearch, $options: 'i' } },
+            { orderNo: { $regex: safeSearch, $options: 'i' } },
+          ],
+        }
+      : {};
+
+    const filterQuery = {
+      ...searchCondition,
       ...matchQuery,
-    });
+    };
+
+    const totalOrders = await Orders.countDocuments(filterQuery);
 
     const orders = await Orders.aggregate([
-      { $match: { ...matchQuery } },
+      { $match: filterQuery },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
@@ -611,7 +693,7 @@ const deleteOrderByAdmin = async (req, res) => {
  */
 const getCartSummary = async (req, res) => {
   try {
-    const { items, couponCode } = req.body || {};
+    const { items, couponCode, fulfillmentType } = req.body || {};
 
     if (!Array.isArray(items) || items.length === 0) {
       const settings = await Settings.findOneOrCreate();
@@ -633,6 +715,7 @@ const getCartSummary = async (req, res) => {
           mixBundleDiscount: 0,
           couponDiscount: 0,
           discount: 0,
+          fulfillmentType: fulfillmentType === 'pickup' ? 'pickup' : 'delivery',
         },
       });
     }
@@ -643,6 +726,7 @@ const getCartSummary = async (req, res) => {
       tip: 0,
       couponCode,
       userEmail: req.user?.email,
+      fulfillmentType,
     });
 
     const itemCount = (totals.updatedItems || []).reduce((sum, item) => {
@@ -674,6 +758,7 @@ const getCartSummary = async (req, res) => {
         mixBundleDiscount: totals.mixDiscount,
         couponDiscount: totals.couponDiscount,
         discount: totals.discount,
+        fulfillmentType: totals.fulfillmentType,
       },
     });
   } catch (error) {

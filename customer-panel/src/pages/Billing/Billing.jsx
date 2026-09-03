@@ -43,6 +43,8 @@ const Billing = () => {
   const [checkingQuote, setCheckingQuote] = useState(false);
   const [quoteVerified, setQuoteVerified] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
+  const [fulfillmentType, setFulfillmentType] = useState('delivery'); // 'delivery' | 'pickup'
+  const [pickupNote, setPickupNote] = useState('');
   const [tip, setTip] = useState(0);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [taxRate, setTaxRate] = useState(0.0775);
@@ -63,10 +65,11 @@ const Billing = () => {
 
   const [summaryError, setSummaryError] = useState(null);
 
-  const displayTotal = useMemo(
-    () => Math.max(0, (cartSummary.total || 0) + deliveryFee + tip),
-    [cartSummary.total, deliveryFee, tip]
-  );
+  const displayTotal = useMemo(() => {
+    const fee = fulfillmentType === 'pickup' ? 0 : deliveryFee;
+    const driverTip = fulfillmentType === 'pickup' ? 0 : tip;
+    return Math.max(0, (cartSummary.total || 0) + fee + driverTip);
+  }, [cartSummary.total, deliveryFee, tip, fulfillmentType]);
 
   // Auto-suggest best active coupon when cart subtotal is available.
   useEffect(() => {
@@ -109,7 +112,7 @@ const Billing = () => {
         }
         return { pid: item.id, quantity: item.quantity };
       });
-      const payload = { items };
+      const payload = { items, fulfillmentType };
       if (codeToApply && typeof codeToApply === 'string' && codeToApply.trim()) {
         payload.couponCode = codeToApply.trim();
       }
@@ -129,7 +132,7 @@ const Billing = () => {
       setSummaryError(msg);
       throw error;
     }
-  }, [cartItems, couponApplied, couponCode]);
+  }, [cartItems, couponApplied, couponCode, fulfillmentType]);
 
   useEffect(() => {
     loadCartSummary().catch(() => {});
@@ -290,7 +293,7 @@ const Billing = () => {
       )
       .join("|");
     const timeBucket = Math.floor(Date.now() / 30000);
-    const raw = `${email}|${cartFingerprint}|${deliveryFee}|${tip}|${cartSummary.tax}|${cartSummary.markup}|${timeBucket}`;
+    const raw = `${email}|${fulfillmentType}|${cartFingerprint}|${fulfillmentType === 'pickup' ? 0 : deliveryFee}|${fulfillmentType === 'pickup' ? 0 : tip}|${cartSummary.tax}|${cartSummary.markup}|${timeBucket}`;
     try {
       return btoa(raw).slice(0, 255);
     } catch {
@@ -305,36 +308,43 @@ const Billing = () => {
 
     if (!firstName.trim()) newErrors.firstName = "First name is required";
     if (!lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!address.trim()) newErrors.address = "Address is required";
-    if (!country.trim()) newErrors.country = "Country is required";
-    if (!city.trim()) newErrors.city = "City is required";
-    if (!state.trim()) newErrors.state = "State is required";
 
     if (!phone.trim()) newErrors.phone = "Phone number is required";
     else if (!/^[0-9+\s()-]{7,15}$/.test(phone)) newErrors.phone = "Enter a valid phone number";
 
-    const cleanZip = zip.trim();
-    if (!cleanZip) {
-      newErrors.zip = "Zip code is required";
-    } else if (!/^\d{5}$/.test(cleanZip)) {
-      newErrors.zip = "Enter a valid 5-digit Zip Code";
-    } else if (!supportedZipCodes.includes(cleanZip)) {
-      newErrors.zip = "We don't deliver to this area";
-      setCheckoutError("Delivery not available for this area");
+    if (fulfillmentType === 'delivery') {
+      if (!address.trim()) newErrors.address = "Address is required";
+      if (!country.trim()) newErrors.country = "Country is required";
+      if (!city.trim()) newErrors.city = "City is required";
+      if (!state.trim()) newErrors.state = "State is required";
+
+      const cleanZip = zip.trim();
+      if (!cleanZip) {
+        newErrors.zip = "Zip code is required";
+      } else if (!/^\d{5}$/.test(cleanZip)) {
+        newErrors.zip = "Enter a valid 5-digit Zip Code";
+      } else if (!supportedZipCodes.includes(cleanZip)) {
+        newErrors.zip = "We don't deliver to this area";
+        setCheckoutError("Delivery not available for this area");
+      }
     }
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0 || !isZipSupported || (cleanZip && !supportedZipCodes.includes(cleanZip))) return;
+    if (Object.keys(newErrors).length > 0) return;
 
-    if (!quoteVerified) {
-      setCheckoutError("Please verify your delivery address first.");
-      checkDeliveryQuote();
-      return;
+    if (fulfillmentType === 'delivery') {
+      const cleanZip = zip.trim();
+      if (!isZipSupported || (cleanZip && !supportedZipCodes.includes(cleanZip))) return;
+
+      if (!quoteVerified) {
+        setCheckoutError("Please verify your delivery address first.");
+        checkDeliveryQuote();
+        return;
+      }
     }
 
-    // 🛡️ Google sign-up users can browse without a phone, but a phone number is
-    // required at checkout for delivery contact and compliance.
+    // 🛡️ Phone number is required at checkout for contact and compliance.
     if (!userInfo?.phone && !phone.trim()) {
       setCheckoutError("Please add a phone number to your account or enter one below to complete checkout.");
       setErrors((prev) => ({ ...prev, phone: "Phone number is required at checkout." }));
@@ -346,11 +356,11 @@ const Billing = () => {
       lastName,
       phone,
       email,
-      address,
-      city,
-      state, // Optional
-      country,
-      zip,
+      address: fulfillmentType === 'delivery' ? address : '',
+      city: fulfillmentType === 'delivery' ? city : '',
+      state: fulfillmentType === 'delivery' ? state : 'CA',
+      country: fulfillmentType === 'delivery' ? country : 'US',
+      zip: fulfillmentType === 'delivery' ? zip : '',
     };
 
     // Recalculate tax and markup server-side is source of truth; frontend shows estimate only.
@@ -399,8 +409,10 @@ const Billing = () => {
       user,
       totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
       couponCode: couponApplied ? couponCode : null,
-      shipping: deliveryFee.toString(),
-      tip,
+      shipping: fulfillmentType === 'pickup' ? "0" : deliveryFee.toString(),
+      tip: fulfillmentType === 'pickup' ? 0 : tip,
+      fulfillmentType,
+      pickupNote: fulfillmentType === 'pickup' ? pickupNote.trim() : '',
     };
 
     // 🛡️ PREVENT DOUBLE-CHARGES: Generate a deterministic idempotency key for this
@@ -507,8 +519,63 @@ const Billing = () => {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left Section - Billing Details */}
         <div className="md:w-2/3 p-6 rounded-lg">
-          <h2 className="text-3xl font-semibold mb-4">Billing Details</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <h2 className="text-3xl font-semibold">Billing Details</h2>
 
+            {/* Fulfillment Selector Toggle */}
+            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 w-full sm:w-60">
+              <button
+                type="button"
+                onClick={() => {
+                  setFulfillmentType("delivery");
+                  setCheckoutError(null);
+                }}
+                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+                  fulfillmentType === "delivery"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-500 hover:text-black"
+                }`}
+              >
+                Delivery
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFulfillmentType("pickup");
+                  setDeliveryFee(0);
+                  setTip(0);
+                  setQuoteVerified(true);
+                  setCheckoutError(null);
+                  setErrors({});
+                }}
+                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+                  fulfillmentType === "pickup"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-500 hover:text-black"
+                }`}
+              >
+                Pick Up
+              </button>
+            </div>
+          </div>
+
+          {/* Pickup Store Location Notice */}
+          {fulfillmentType === "pickup" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5 text-amber-950">
+              <div className="flex items-start gap-2">
+                <span className="text-xl">🏪</span>
+                <div>
+                  <p className="font-bold text-sm text-amber-900">In-Store Counter Pickup</p>
+                  <p className="text-sm mt-0.5">
+                    <strong>Bal-Port Liquors:</strong> 1779 Newport Blvd, Costa Mesa / Newport Beach, CA
+                  </p>
+                  <p className="text-xs text-amber-700 font-medium mt-1">
+                    ⚠️ Please bring a valid government-issued photo ID upon pickup.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <form action="">
 
@@ -545,70 +612,86 @@ const Billing = () => {
                 </div>
               </div>
 
-              {/* Address */}
-              <div>
-                <label className="block font-semibold">Address</label>
-                <input
-                  type="text"
-                  ref={addressInputRef}
-                  value={address}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    setErrors((prev) => ({ ...prev, address: "" }));
-                    setQuoteVerified(false);
-                    setDeliveryFee(0);
-                  }}
-                  className={`border rounded-lg h-11 p-3 w-full ${errors.address ? "border-red-500" : ""}`}
-                  placeholder="Start typing your address..."
-                />
-                {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
-              </div>
+              {/* Delivery Address Fields - ONLY shown for delivery */}
+              {fulfillmentType === "delivery" && (
+                <>
+                  {/* Address */}
+                  <div>
+                    <label className="block font-semibold">Address</label>
+                    <input
+                      type="text"
+                      ref={addressInputRef}
+                      value={address}
+                      onChange={(e) => {
+                        setAddress(e.target.value);
+                        setErrors((prev) => ({ ...prev, address: "" }));
+                        setQuoteVerified(false);
+                        setDeliveryFee(0);
+                      }}
+                      className={`border rounded-lg h-11 p-3 w-full ${errors.address ? "border-red-500" : ""}`}
+                      placeholder="Start typing your address..."
+                    />
+                    {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+                  </div>
 
-              {/* Country and City */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block font-semibold">City</label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => {
-                      setCity(e.target.value);
-                      setErrors((prev) => ({ ...prev, city: "" }));
-                      setQuoteVerified(false);
-                      setDeliveryFee(0);
-                    }}
-                    className={`border rounded-lg h-11 p-3 w-full ${errors.city ? "border-red-500" : ""}`}
-                    placeholder="Enter city"
-                  />
-                  {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
-                </div>
-                {/* State */}
-                <div>
-                  <label className="block font-semibold">State</label>
-                  <select
-                    value={state}
-                    disabled
-                    className="bg-gray-100 cursor-not-allowed border rounded-lg h-11 p-2 w-full"
-                  >
-                    <option value="CA">California</option>
-                  </select>
-                </div>
+                  {/* Country and City */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block font-semibold">City</label>
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => {
+                          setCity(e.target.value);
+                          setErrors((prev) => ({ ...prev, city: "" }));
+                          setQuoteVerified(false);
+                          setDeliveryFee(0);
+                        }}
+                        className={`border rounded-lg h-11 p-3 w-full ${errors.city ? "border-red-500" : ""}`}
+                        placeholder="Enter city"
+                      />
+                      {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                    </div>
+                    {/* State */}
+                    <div>
+                      <label className="block font-semibold">State</label>
+                      <select
+                        value={state}
+                        disabled
+                        className="bg-gray-100 cursor-not-allowed border rounded-lg h-11 p-2 w-full"
+                      >
+                        <option value="CA">California</option>
+                      </select>
+                    </div>
 
-                {/* Zip Code */}
-                <div>
-                  <label className="block font-semibold">Zip Code</label>
-                  <input
-                    type="text"
-                    value={zip}
-                    onChange={(e) => handleZipChange(e.target.value)}
-                    className={`border rounded-lg h-11 p-3 w-full ${errors.zip || !isZipSupported ? "border-red-500 bg-red-50" : ""}`}
-                    placeholder="Enter zip code"
-                  />
-                  {(errors.zip || !isZipSupported) && (
-                    <p className="text-red-500 text-sm mt-1">{errors.zip || "Delivery not available for this area"}</p>
-                  )}
-                </div>
-              </div>
+                    {/* Zip Code */}
+                    <div>
+                      <label className="block font-semibold">Zip Code</label>
+                      <input
+                        type="text"
+                        value={zip}
+                        onChange={(e) => handleZipChange(e.target.value)}
+                        className={`border rounded-lg h-11 p-3 w-full ${errors.zip || !isZipSupported ? "border-red-500 bg-red-50" : ""}`}
+                        placeholder="Enter zip code"
+                      />
+                      {(errors.zip || !isZipSupported) && (
+                        <p className="text-red-500 text-sm mt-1">{errors.zip || "Delivery not available for this area"}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold">Country</label>
+                    <select
+                      value={country}
+                      disabled
+                      className="bg-gray-100 cursor-not-allowed border rounded-lg h-11 p-2 w-full"
+                    >
+                      <option value="US">United States</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               {/* Phone and Email */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -620,8 +703,10 @@ const Billing = () => {
                     onChange={(e) => {
                       setPhone(e.target.value);
                       setErrors((prev) => ({ ...prev, phone: "" }));
-                      setQuoteVerified(false);
-                      setDeliveryFee(0);
+                      if (fulfillmentType === "delivery") {
+                        setQuoteVerified(false);
+                        setDeliveryFee(0);
+                      }
                     }}
                     className={`border rounded-lg h-11 p-3 w-full ${errors.phone ? "border-red-500" : ""}`}
                     placeholder="Enter your phone number"
@@ -645,16 +730,19 @@ const Billing = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-semibold">Country</label>
-                <select
-                  value={country}
-                  disabled
-                  className="bg-gray-100 cursor-not-allowed border rounded-lg h-11 p-2 w-full"
-                >
-                  <option value="US">United States</option>
-                </select>
-              </div>
+              {/* Pickup Note (Optional) - ONLY shown for pickup */}
+              {fulfillmentType === "pickup" && (
+                <div>
+                  <label className="block font-semibold">Pickup Note (Optional)</label>
+                  <textarea
+                    rows={2}
+                    value={pickupNote}
+                    onChange={(e) => setPickupNote(e.target.value)}
+                    className="border rounded-lg p-3 w-full text-sm"
+                    placeholder="Any special instructions for your pickup?"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Payment Methods */}
@@ -830,10 +918,17 @@ const Billing = () => {
                   <p className="font-semibold">-${((cartSummary.couponDiscount || couponDiscount) || 0).toFixed(2)}</p>
                 </div>
               )}
-              <div className="flex justify-between">
-                <p>Delivery Fee:</p>
-                <p className="font-semibold">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</p>
-              </div>
+              {fulfillmentType === "pickup" ? (
+                <div className="flex justify-between">
+                  <p>Pickup:</p>
+                  <p className="font-semibold text-green-600">Free</p>
+                </div>
+              ) : (
+                <div className="flex justify-between">
+                  <p>Delivery Fee:</p>
+                  <p className="font-semibold">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</p>
+                </div>
+              )}
               <div className="flex justify-between">
                 <p>Markup ({(((cartSummary.markupRate ?? 0.02) * 100)).toFixed(0)}%):</p>
                 <p className="font-semibold">${(cartSummary.markup || 0).toFixed(2)}</p>
@@ -849,25 +944,27 @@ const Billing = () => {
               </div>
             </div>
 
-            {/* Driver Tip */}
-            <div className="mt-4">
-              <p className="font-semibold text-sm mb-2">Driver Tip</p>
-              <div className="flex gap-2 flex-wrap">
-                {[0, 2, 3, 5].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setTip(amount)}
-                    className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors min-h-[44px] ${
-                      tip === amount
-                        ? "bg-[#B5223B] text-white border-[#B5223B]"
-                        : "bg-white text-gray-700 border-gray-300 hover:border-[#B5223B]"
-                    }`}
-                  >
-                    {amount === 0 ? "No tip" : `$${amount}`}
-                  </button>
-                ))}
+            {/* Driver Tip - ONLY shown for delivery */}
+            {fulfillmentType === "delivery" && (
+              <div className="mt-4">
+                <p className="font-semibold text-sm mb-2">Driver Tip</p>
+                <div className="flex gap-2 flex-wrap">
+                  {[0, 2, 3, 5].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => setTip(amount)}
+                      className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors min-h-[44px] ${
+                        tip === amount
+                          ? "bg-[#B5223B] text-white border-[#B5223B]"
+                          : "bg-white text-gray-700 border-gray-300 hover:border-[#B5223B]"
+                      }`}
+                    >
+                      {amount === 0 ? "No tip" : `$${amount}`}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Stripe card input */}
             <div className="mt-4 border rounded p-4">
@@ -875,21 +972,45 @@ const Billing = () => {
               <CardElement options={cardElementOpts} onChange={() => setCheckoutError(null)} />
             </div>
             {checkoutError && <p className="text-red-500 font-semibold mb-2">{checkoutError}</p>}
-            {quoteVerified && !checkoutError && <p className="text-green-600 font-semibold mb-2 flex items-center gap-1">✅ Delivery address verified</p>}
-            {checkingQuote && <p className="text-blue-600 font-semibold mb-2 animate-pulse">Checking delivery availability...</p>}
+            {fulfillmentType === "delivery" && quoteVerified && !checkoutError && (
+              <p className="text-green-600 font-semibold mb-2 flex items-center gap-1">✅ Delivery address verified</p>
+            )}
+            {fulfillmentType === "delivery" && checkingQuote && (
+              <p className="text-blue-600 font-semibold mb-2 animate-pulse">Checking delivery availability...</p>
+            )}
 
             {/* Desktop Place Order Button */}
             {cartItems.length > 0 && (
               <div className="hidden md:block mt-4">
                 <p className="text-xs text-gray-500 mb-2">
-                  By placing this order, you agree to our terms and that your personal data may be processed by our delivery partner for identity verification.
+                  {fulfillmentType === "pickup"
+                    ? "By placing this order, you agree that you will collect the items at Bal-Port Liquors with a valid photo ID."
+                    : "By placing this order, you agree to our terms and that your personal data may be processed by our delivery partner for identity verification."}
                 </p>
                 <button
-                  disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}
+                  disabled={
+                    processing ||
+                    !storeIsOpen ||
+                    (fulfillmentType === "delivery" && (checkingQuote || !isZipSupported))
+                  }
                   onClick={handleSubmit}
-                  className={`w-full ${processing || checkingQuote || !isZipSupported || !storeIsOpen ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B] hover:bg-red-700"} text-white py-3 rounded-lg font-bold uppercase tracking-wider transition`}
+                  className={`w-full ${
+                    processing ||
+                    !storeIsOpen ||
+                    (fulfillmentType === "delivery" && (checkingQuote || !isZipSupported))
+                      ? "bg-[#B5223B]/50 cursor-not-allowed"
+                      : "bg-[#B5223B] hover:bg-red-700"
+                  } text-white py-3 rounded-lg font-bold uppercase tracking-wider transition`}
                 >
-                  {processing ? "Placing Order.." : checkingQuote ? "Verifying..." : !quoteVerified ? "Verify Delivery" : "Place Order"}
+                  {processing
+                    ? "Placing Order.."
+                    : fulfillmentType === "pickup"
+                    ? "Place Pick Up Order"
+                    : checkingQuote
+                    ? "Verifying..."
+                    : !quoteVerified
+                    ? "Verify Delivery"
+                    : "Place Order"}
                 </button>
               </div>
             )}
@@ -906,11 +1027,29 @@ const Billing = () => {
               <p className="text-xl font-bold text-[#B5223B]">${displayTotal.toFixed(2)}</p>
             </div>
             <button
-              disabled={processing || checkingQuote || !isZipSupported || !storeIsOpen}
+              disabled={
+                processing ||
+                !storeIsOpen ||
+                (fulfillmentType === "delivery" && (checkingQuote || !isZipSupported))
+              }
               onClick={handleSubmit}
-              className={`flex-1 ${processing || checkingQuote || !isZipSupported || !storeIsOpen ? "bg-[#B5223B]/50 cursor-not-allowed" : "bg-[#B5223B]"} text-white py-3.5 rounded-lg font-bold uppercase tracking-wide transition`}
+              className={`flex-1 ${
+                processing ||
+                !storeIsOpen ||
+                (fulfillmentType === "delivery" && (checkingQuote || !isZipSupported))
+                  ? "bg-[#B5223B]/50 cursor-not-allowed"
+                  : "bg-[#B5223B]"
+              } text-white py-3.5 rounded-lg font-bold uppercase tracking-wide transition`}
             >
-              {processing ? "Placing Order.." : checkingQuote ? "Verifying..." : !quoteVerified ? "Verify Delivery" : "Place Order"}
+              {processing
+                ? "Placing Order.."
+                : fulfillmentType === "pickup"
+                ? "Place Pick Up Order"
+                : checkingQuote
+                ? "Verifying..."
+                : !quoteVerified
+                ? "Verify Delivery"
+                : "Place Order"}
             </button>
           </div>
         </div>

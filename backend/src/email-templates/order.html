@@ -103,16 +103,13 @@
 		<div class="container">
 			<div class="card">
 				<div class="header">
-					<!-- <img
-						src="https://i.ibb.co/r5SB9yQ/nextall-logo.png"
-						alt="Logo"
-						class="logo"
-					/> -->
 					<h2>Hello, {{recipientName}}</h2>
-					<p>
-						Thanks you for your purchase. We’ve received your order. When the
-						order ships, we will send you another email with tracking info.
+					<p style="font-size: 14px; font-weight: bold; color: #B5223B; margin-top: 5px;">
+						{{orderHeadline}}
 					</p>
+					<div style="background: #fdf2f2; border: 1px solid #f9d6d6; border-radius: 8px; padding: 12px; margin: 15px 0; text-align: left;">
+						{{fulfillmentInfo}}
+					</div>
 				</div>
 				<table class="order-details" border="0">
 					<thead>
@@ -126,12 +123,6 @@
 					</thead>
 					<tbody>
 						{{items}}
-						<!-- <tr>
-        <td>Product 2</td>
-        <td>SKU002</td>
-        <td>1</td>
-        <td>$30.00</td>
-      </tr> -->
 					</tbody>
 				</table>
 
@@ -145,10 +136,7 @@
 						<td style="border-spacing: 0; border: 0">Discount :</td>
 						<td style="border-spacing: 0; border: 0">{{discount}}</td>
 					</tr>
-					<tr>
-						<td style="border-spacing: 0; border: 0">Shipping :</td>
-						<td style="border-spacing: 0; border: 0">{{Shipping}}</td>
-					</tr>
+					{{fulfillmentFeeRow}}
 					<tr>
 						<td style="border-spacing: 0; border: 0">Markup :</td>
 						<td style="border-spacing: 0; border: 0">{{markup}}</td>
@@ -157,10 +145,7 @@
 						<td style="border-spacing: 0; border: 0">Tax :</td>
 						<td style="border-spacing: 0; border: 0">{{tax}}</td>
 					</tr>
-					<tr>
-						<td style="border-spacing: 0; border: 0">Tip :</td>
-						<td style="border-spacing: 0; border: 0">{{tip}}</td>
-					</tr>
+					{{tipRow}}
 					<tr>
 						<td style="border-spacing: 0; border: 0">Grand Total :</td>
 						<td style="border-spacing: 0; border: 0">{{grandTotal}}</td>

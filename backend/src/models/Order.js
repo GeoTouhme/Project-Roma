@@ -67,6 +67,16 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    fulfillmentType: {
+      type: String,
+      enum: ['delivery', 'pickup'],
+      default: 'delivery',
+      required: true,
+    },
+    pickupNote: {
+      type: String,
+      default: '',
+    },
     containsAlcohol: {
       type: Boolean,
       default: false,
@@ -157,23 +167,23 @@ const OrderSchema = new mongoose.Schema(
       },
       address: {
         type: String,
-        required: [true, 'Address is required.'],
+        default: '',
       },
       city: {
         type: String,
-        required: [true, 'City is required.'],
+        default: '',
       },
       zip: {
         type: String,
-        required: [true, 'Postal code is required.'],
+        default: '',
       },
       country: {
         type: String,
-        required: [true, 'Country is required.'],
+        default: 'US',
       },
       state: {
         type: String,
-        required: [true, 'State is required.'],
+        default: 'CA',
       },
     },
   },

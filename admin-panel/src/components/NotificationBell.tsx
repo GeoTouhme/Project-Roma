@@ -153,6 +153,18 @@ export const NotificationBell: React.FC = () => {
         return [notification, ...prev];
       });
       setUnreadCount((count) => count + 1);
+      const isPickup = notification.title?.toLowerCase().includes("pick up") || notification.city === "Pick Up";
+      if (isPickup) {
+        toast.info(notification.title || "New Pick Up Order", {
+          description: "Customer arriving for store counter collection",
+          duration: 8000,
+        });
+      } else {
+        toast.info(notification.title || "New Delivery Order", {
+          description: "Staff driver dispatch required",
+          duration: 8000,
+        });
+      }
       if (soundEnabled && audioUnlocked) {
         playAlarm();
       }
@@ -291,9 +303,18 @@ export const NotificationBell: React.FC = () => {
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {notification.title}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                          notification.title?.toLowerCase().includes("pick up") || notification.city === "Pick Up"
+                            ? "bg-amber-100 text-amber-800 border border-amber-300"
+                            : "bg-blue-100 text-blue-800 border border-blue-300"
+                        }`}>
+                          {notification.title?.toLowerCase().includes("pick up") || notification.city === "Pick Up" ? "Pick Up" : "Delivery"}
+                        </span>
+                        <p className="text-sm font-medium truncate">
+                          {notification.title}
+                        </p>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {notification.city} • {notification.paymentMethod}
                       </p>

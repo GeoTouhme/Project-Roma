@@ -82,9 +82,10 @@ async function applyBundleDealDiscounts(items) {
  * @param {number|string} tip - Tip amount
  * @param {string} [couponCode] - Optional coupon code
  * @param {string} [userEmail] - Optional user email for per-user coupon validation
+ * @param {string} [fulfillmentType='delivery'] - 'delivery' | 'pickup'
  * @returns {Promise<Object>} Totals plus updatedItems and products for downstream use.
  */
-async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmail }) {
+async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmail, fulfillmentType = 'delivery' }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Please Provide Item(s)');
   }
@@ -344,8 +345,10 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
   const taxBase = Math.max(0, round2(taxableSubtotal - taxRatio * discount));
   const tax = round2(taxBase * taxRate);
 
-  const sanitizedTip = Math.max(0, Math.min(safeNumber(tip, 0), 100));
-  const deliveryFee = Math.max(0, safeNumber(shipping, 0));
+  const isPickup = fulfillmentType === 'pickup';
+  // When fulfillmentType === 'pickup', force shipping and tip to 0 regardless of client input.
+  const sanitizedTip = isPickup ? 0 : Math.max(0, Math.min(safeNumber(tip, 0), 100));
+  const deliveryFee = isPickup ? 0 : Math.max(0, safeNumber(shipping, 0));
   const orderTotal = round2(discountedTotal + tax + markupTotal + deliveryFee + sanitizedTip);
 
   return {
@@ -368,6 +371,7 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
     deliveryFee,
     orderTotal,
     expectedAmountCents: Math.round(orderTotal * 100),
+    fulfillmentType: isPickup ? 'pickup' : 'delivery',
   };
 }
 
