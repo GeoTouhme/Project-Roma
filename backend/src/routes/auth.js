@@ -49,9 +49,11 @@ const authLimiter = rateLimit({
 // email:IP, so a fraudster rotating disposable emails gets a fresh bucket per
 // address — useless against mass fake-account creation. This limiter keys on
 // IP ONLY with a hard cap, so rotating throwaway addresses doesn't help.
+// 10 per 30 min: generous enough for shared-IP legit users (CGNAT, offices),
+// still throttles bulk signup; the disposable blocklist catches the rest.
 const registrationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // max 5 new-account attempts per IP per hour
+  windowMs: 30 * 60 * 1000, // 30 minutes
+  max: 10, // max 10 new-account attempts per IP per 30 minutes
   standardHeaders: true,
   legacyHeaders: false,
   message: {
