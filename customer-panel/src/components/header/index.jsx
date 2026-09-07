@@ -5,7 +5,6 @@ import Icons from "../svg";
 import { useLocation } from "react-router-dom";
 import SearchService from "../../services/searchService";
 import { useSelector } from "react-redux";
-import AnnouncementBar from "./AnnouncementBar";
 import { ORDERING_DISABLED, DOORDASH_ORDER_URL } from "../../config/orderingConfig";
 import { getThumbnailImage } from "../../utils/cloudinary";
 import PromoBanner from "../promo-banner";
@@ -139,7 +138,6 @@ const Header = () => {
       <PromoBanner />
 
       {/* Tier 1: Announcement Bar */}
-      <AnnouncementBar />
 
       {/* Tier 2: Main Navigation Bar */}
       <div className="bg-white border-b border-border_light">

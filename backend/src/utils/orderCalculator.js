@@ -78,14 +78,17 @@ async function applyBundleDealDiscounts(items) {
 /**
  * Calculate authoritative order totals from cart items.
  * @param {Array} items - Cart items with at least { pid/_id/id, quantity, ... }
- * @param {number|string} shipping - Delivery fee
  * @param {number|string} tip - Tip amount
  * @param {string} [couponCode] - Optional coupon code
  * @param {string} [userEmail] - Optional user email for per-user coupon validation
  * @param {string} [fulfillmentType='delivery'] - 'delivery' | 'pickup'
+ * @param {string} [deliveryZip] - Delivery zip code. When provided (and not pickup),
+ *   the delivery fee is computed server-side from store settings. The client-
+ *   submitted shipping value is never trusted. Cart-summary omits it (fee shown
+ *   separately by the storefront after the delivery quote).
  * @returns {Promise<Object>} Totals plus updatedItems and products for downstream use.
  */
-async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmail, fulfillmentType = 'delivery' }) {
+async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfillmentType = 'delivery', deliveryZip }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Please Provide Item(s)');
   }
@@ -346,9 +349,18 @@ async function calculateOrderTotals({ items, shipping, tip, couponCode, userEmai
   const tax = round2(taxBase * taxRate);
 
   const isPickup = fulfillmentType === 'pickup';
-  // When fulfillmentType === 'pickup', force shipping and tip to 0 regardless of client input.
+  // When fulfillmentType === 'pickup', force tip and delivery fee to 0 regardless of client input.
   const sanitizedTip = isPickup ? 0 : Math.max(0, Math.min(safeNumber(tip, 0), 100));
-  const deliveryFee = isPickup ? 0 : Math.max(0, safeNumber(shipping, 0));
+  // 🛡️ SECURITY: delivery fee is computed server-side from store settings — the
+  // client-submitted shipping value is never trusted. Zip-specific fee wins,
+  // otherwise the store default. deliveryZip is only passed by the order/payment
+  // flows; cart-summary omits it and gets no fee.
+  let deliveryFee = 0;
+  if (!isPickup && deliveryZip !== undefined) {
+    const zipFee = settings.deliveryFeesByZip?.find((z) => z.zip === deliveryZip)?.fee;
+    deliveryFee = zipFee !== undefined ? zipFee : (settings.defaultDeliveryFee || 0);
+  }
+  deliveryFee = round2(Math.max(0, deliveryFee));
   const orderTotal = round2(discountedTotal + tax + markupTotal + deliveryFee + sanitizedTip);
 
   return {

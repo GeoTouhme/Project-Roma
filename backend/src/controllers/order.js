@@ -112,7 +112,6 @@ const createOrder = async (req, res) => {
       paymentId,
       couponCode,
       totalItems,
-      shipping,
       tip,
       fulfillmentType: rawFulfillmentType,
       pickupNote: rawPickupNote,
@@ -169,11 +168,12 @@ const createOrder = async (req, res) => {
 
     // 🛡️ SECURITY: Calculate the total from the authoritative product database,
     // not from client-submitted prices. This prevents price/tax tampering.
+    // The delivery fee is likewise computed server-side from the delivery zip.
     let totals;
     try {
       totals = await calculateOrderTotals({
         items,
-        shipping,
+        deliveryZip: fulfillmentType === 'delivery' ? (shippingDetails.zip || req.user?.zip || '') : undefined,
         tip,
         couponCode,
         userEmail: req.user?.email,
@@ -722,7 +722,6 @@ const getCartSummary = async (req, res) => {
 
     const totals = await calculateOrderTotals({
       items,
-      shipping: 0,
       tip: 0,
       couponCode,
       userEmail: req.user?.email,

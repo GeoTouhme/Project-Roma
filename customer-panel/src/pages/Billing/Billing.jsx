@@ -229,6 +229,21 @@ const Billing = () => {
     }
   };
 
+  // Auto-verify the delivery quote in the background once all required fields are
+  // filled, so the delivery fee shows up without a manual "Verify" click (e.g. when
+  // Google autocomplete fills the zip before the phone number is typed).
+  useEffect(() => {
+    if (fulfillmentType !== 'delivery') return;
+    if (!firstName.trim() || !address.trim() || !city.trim() || !phone.trim()) return;
+    const cleanZip = zip.trim();
+    if (!/^\d{5}$/.test(cleanZip) || !supportedZipCodes.includes(cleanZip)) return;
+    const timer = setTimeout(() => {
+      checkDeliveryQuote(cleanZip, true);
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fulfillmentType, firstName, address, city, zip, phone]);
+
   const checkDeliveryQuote = async (zipCode = zip, silent = false) => {
     if (!address || !city || !zipCode || !phone || !firstName) {
       if (!silent) setCheckoutError("Please fill in all details to verify delivery.");
@@ -567,7 +582,7 @@ const Billing = () => {
                 <div>
                   <p className="font-bold text-sm text-amber-900">In-Store Counter Pickup</p>
                   <p className="text-sm mt-0.5">
-                    <strong>Bal-Port Liquors:</strong> 1779 Newport Blvd, Costa Mesa / Newport Beach, CA
+                    <strong>Bal-Port Liquors:</strong> 4521 West Coast Hwy, Newport Beach, CA 92663
                   </p>
                   <p className="text-xs text-amber-700 font-medium mt-1">
                     ⚠️ Please bring a valid government-issued photo ID upon pickup.
@@ -926,7 +941,7 @@ const Billing = () => {
               ) : (
                 <div className="flex justify-between">
                   <p>Delivery Fee:</p>
-                  <p className="font-semibold">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</p>
+                  <p className="font-semibold">{quoteVerified ? (deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free") : "TBD"}</p>
                 </div>
               )}
               <div className="flex justify-between">

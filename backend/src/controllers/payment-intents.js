@@ -6,13 +6,14 @@ const { calculateOrderTotals } = require("../utils/orderCalculator");
 
 const payment_intents = async (req, res) => {
 	try {
-		const { items, shipping, tip, couponCode, idempotencyKey, fulfillmentType } = req.body;
+		const { items, user, tip, couponCode, idempotencyKey, fulfillmentType } = req.body;
 
 		// 🛡️ SECURITY: Do not trust the client-submitted amount. Compute the total
 		// server-side from the cart items, using authoritative product prices.
+		// Delivery fee also comes from store settings via the delivery zip.
 		let totals;
 		try {
-			totals = await calculateOrderTotals({ items, shipping, tip, couponCode, userEmail: req.user?.email, fulfillmentType });
+			totals = await calculateOrderTotals({ items, deliveryZip: fulfillmentType === 'pickup' ? undefined : (user?.zip || ''), tip, couponCode, userEmail: req.user?.email, fulfillmentType });
 		} catch (calcError) {
 			return res.status(400).json({ success: false, message: calcError.message });
 		}

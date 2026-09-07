@@ -274,6 +274,8 @@ const getProductsByAdmin = async (request, response) => {
       category: categoryQuery,
       subCategory: subCategoryQuery,
       filter: filterQuery, // Add support for object filters
+      sortBy: sortByQuery,
+      sortOrder: sortOrderQuery,
     } = request.query;
 
     const limit = parseInt(limitQuery) || 10;
@@ -333,11 +335,16 @@ const getProductsByAdmin = async (request, response) => {
 
     console.log('Gemini Fixed Match Query:', JSON.stringify(matchQuery));
 
+    // Whitelist sortable fields — prevents arbitrary field/operator injection via query params
+    const SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'priceSale', 'available', 'sku'];
+    const sortBy = SORT_FIELDS.includes(sortByQuery) ? sortByQuery : 'createdAt';
+    const sortOrder = sortOrderQuery === 'asc' ? 1 : -1;
+
     const totalProducts = await Product.countDocuments(matchQuery);
 
     const products = await Product.aggregate([
       { $match: matchQuery },
-      { $sort: { createdAt: -1 } },
+      { $sort: { [sortBy]: sortOrder, _id: 1 } },
       { $skip: skip },
       { $limit: limit },
       {

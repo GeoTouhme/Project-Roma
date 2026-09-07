@@ -33,6 +33,8 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
@@ -80,6 +82,8 @@ const Products = () => {
           limit: pageSize,
           search: searchQuery,
           category: categoryFilter !== 'all' ? categoryFilter : undefined,
+          sortBy,
+          sortOrder,
         });
 
         if (response.data.success) {
@@ -111,7 +115,7 @@ const Products = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, pageSize, searchQuery, categoryFilter, statusFilter]);
+  }, [currentPage, pageSize, searchQuery, categoryFilter, statusFilter, sortBy, sortOrder]);
 
   // Helper to get category name
   const getCategoryName = (categoryId: string) => {
@@ -138,6 +142,8 @@ const Products = () => {
         limit: pageSize,
         search: searchQuery,
         category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        sortBy,
+        sortOrder,
       });
       if (response.data.success) {
         let result = response.data.data;
@@ -289,6 +295,31 @@ const Products = () => {
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="low stock">Low Stock</SelectItem>
               <SelectItem value="out of stock">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Sort */}
+          <Select
+            value={`${sortBy}:${sortOrder}`}
+            onValueChange={(val) => {
+              const [field, dir] = val.split(":");
+              setSortBy(field);
+              setSortOrder(dir);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort products" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt:desc">Newest First</SelectItem>
+              <SelectItem value="createdAt:asc">Oldest First</SelectItem>
+              <SelectItem value="name:asc">Name (A–Z)</SelectItem>
+              <SelectItem value="name:desc">Name (Z–A)</SelectItem>
+              <SelectItem value="price:asc">Price (Low–High)</SelectItem>
+              <SelectItem value="price:desc">Price (High–Low)</SelectItem>
+              <SelectItem value="available:asc">Stock (Low–High)</SelectItem>
+              <SelectItem value="available:desc">Stock (High–Low)</SelectItem>
             </SelectContent>
           </Select>
         </div>
