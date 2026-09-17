@@ -8,10 +8,7 @@ import DefaultSlide4DeliveryNew from "../../assets/images/slide-4-delivery-new.j
 import DefaultSlide5Summer from "../../assets/images/slide-5-summer.jpg";
 
 import FixedBg from "../../assets/images/fixed-bg.png";
-import Shape1 from "../../assets/images/shape-1.png";
-import Shape2 from "../../assets/images/shape-2.png";
 import ProductCard from "../../components/product-card";
-import Icons from "../../components/svg";
 import Slider from "react-slick";
 import HomeService from "../../services/homeService";
 import SettingsService from "../../services/settingsService";
@@ -272,50 +269,10 @@ const Home = () => {
     fade: true
   };
 
-  const [openIndex, setOpenIndex] = useState(null);
-  const toggleAccordion = (index) => {
-    setOpenIndex(openIndex === index ? null : index);
-  };
-  const faqs = [
-    {
-      question: "What is Balport Liquors' delivery area?",
-      answer:
-        "We currently provide local delivery to Newport Beach and surrounding areas including zip codes: 92663, 92646, 92612, 92647, 92661, 92707, and 92648. If your zip code isn't listed, please check back as we expand our service area.",
-    },
-    {
-      question: "Do I need to show ID for my delivery?",
-      answer:
-        "Yes, absolutely. Since we sell alcoholic beverages, California law requires a valid government-issued photo ID showing you are 21 or older at the time of delivery. Our DoorDash delivery partner (Dasher) will scan your ID to verify your age.",
-    },
-    {
-      question: "How long does delivery usually take?",
-      answer:
-        "We pride ourselves on speed! Once your order is placed, we typically prepare it within 15 minutes, and a DoorDash driver will deliver it directly to your door. Most deliveries are completed within 30-60 minutes.",
-    },
-    {
-      question: "What payment methods do you accept?",
-      answer:
-        "We accept all major credit and debit cards through our secure Stripe payment gateway. To ensure the safety of our drivers and prevent fraud, we do not accept cash on delivery (COD).",
-    },
-    {
-      question: "What happens if I'm not home for the delivery?",
-      answer:
-        "For orders containing alcohol, someone 21+ must be present to receive the order. If no one is available or ID cannot be verified, the driver will return the products to our store. A return fee may apply.",
-    },
-    {
-      question: "Can I track my order in real-time?",
-      answer:
-        "Yes! Once your order is dispatched, you will receive a tracking link via email/SMS that allows you to see the driver's location and estimated arrival time on a live map.",
-    },
-    {
-      question: "Where is Balport Liquors located?",
-      answer:
-        "Our physical store is located at 4521 W Coast Hwy, Newport Beach, CA 92663. You can always stop by to browse our full selection of premium spirits, wines, and beers.",
-    },
-  ];
-
   return (
     <div className="main">
+      <CategorySlider categories={categories} />
+
       <section className="hero">
         <Slider {...heroSliderSettings} className="hero-slider">
           {heroSlides.map((slide, index) => (
@@ -354,8 +311,6 @@ const Home = () => {
           ))}
         </Slider>
       </section>
-
-      <CategorySlider categories={categories} />
 
       {!dealProductsLoading && dealProducts.length === 0 ? null : (
         <section className="deals md:mb-[100px] mb-[40px]">
@@ -583,46 +538,7 @@ const Home = () => {
           </div>
         </div>
       </section>
-      <section className="faqs md:pb-[100px] pb-[40px] relative">
-        <div className="container">
-          <div className="section_head mb-8 text-center">
-            <h6 className="md:text-[20px]/[28px] text-[16px]/[18px] text-primary font-semibold md:mb-3 mb-2 uppercase">
-              Faqs
-            </h6>
-            <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-black">
-              Frequently Asked Questions
-            </h2>
-          </div>
-          <div className="section_content">
-            <div className="faqs_list grid md:gap-5 gap-3 max-w-[800px] mx-auto z-[1] relative">
-              {faqs.map((faq, index) => (
-                <div key={index} className="bg-white rounded-lg py-3 px-4">
-                  <button
-                    onClick={() => toggleAccordion(index)}
-                    className="flex justify-between items-center w-full text-left text-lg font-medium"
-                  >
-                    {faq.question}
-                    <span
-                      className="transition-transform duration-300"
-                      style={{ transform: openIndex === index ? "rotate(180deg)" : "rotate(0deg)" }}
-                    >
-                      <Icons name="menu_down_arrow" width={12} height={12} color="#000000" />
-                    </span>
-                  </button>
-                  <div
-                    className={`grid transition-all duration-300 ease-in-out overflow-hidden border-t ${openIndex === index ? "max-h-40 opacity-100 pt-3 mt-3" : "max-h-0 opacity-0 py-0"
-                      }`}
-                  >
-                    <p className="text-grey_text">{faq.answer}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <img src={Shape1} alt="shape1" className="hidden lg:block shape1 w-[250px] absolute right-0 bottom-[-20px]" />
-        <img src={Shape2} alt="shape1" className="hidden lg:block shape2 w-[300px] absolute left-0 bottom-[-50px]" />
-      </section>
+      {/* Removed FAQs section */}
 
     </div>
   );

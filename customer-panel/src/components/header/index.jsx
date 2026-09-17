@@ -21,6 +21,7 @@ const Header = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,17 +59,35 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle escape key to close search
+  // Handle escape key to close search and mobile menu
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
         setIsSearchExpanded(false);
         setShowSuggestions(false);
+        setIsMobileMenuOpen(false);
       }
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
 
   // Handle Search Suggestions with Debounce
   useEffect(() => {
@@ -144,15 +163,23 @@ const Header = () => {
         <div className="container">
           {/* === MOBILE HEADER (below xl) === */}
           <div className="xl:hidden">
-            {/* Top row: Logo centered + Cart right */}
+            {/* Top row: Hamburger + Logo on left, Cart right */}
             <div className="flex items-center justify-between py-3">
-              {/* Spacer left to center logo */}
-              <div className="w-[42px]"></div>
+              {/* Left: Hamburger menu + Logo */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="text-black hover:text-primary p-1 -ml-1 transition-colors flex items-center justify-center focus:outline-none"
+                  aria-label="Open menu"
+                >
+                  <Icons name="menu_bar" height={26} width={26} color="#111111" />
+                </button>
 
-              {/* Centered Logo */}
-              <Link to="/" className="logo">
-                <img src={Logo} alt="logo" className="w-[70px]" />
-              </Link>
+                <Link to="/" className="logo flex-shrink-0">
+                  <img src={Logo} alt="logo" className="w-[65px]" />
+                </Link>
+              </div>
 
               {/* Right: Cart */}
               <div className="flex items-center">
@@ -477,6 +504,123 @@ const Header = () => {
                 </a>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Drawer (Hamburger Menu) */}
+      <div
+        className={`fixed inset-0 z-[1000] transition-opacity duration-300 ${
+          isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/60 transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+
+        {/* Drawer Panel */}
+        <div
+          className={`absolute top-0 left-0 bottom-0 w-[85%] max-w-[320px] bg-white shadow-2xl flex flex-col z-10 transform transition-transform duration-300 ease-in-out ${
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* Drawer Top */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
+              <img src={Logo} alt="logo" className="w-[65px]" />
+            </Link>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 text-gray-500 hover:text-black rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close menu"
+            >
+              <Icons name="close" width={16} height={16} color="currentColor" />
+            </button>
+          </div>
+
+          {/* Drawer Navigation Links */}
+          <div className="flex-1 overflow-y-auto py-3 px-4 space-y-1">
+            <Link
+              to="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-3 rounded-xl font-medium text-gray-800 hover:bg-gray-50 hover:text-primary transition-colors"
+            >
+              <span>Home</span>
+              <Icons name="right_arrow" width={8} height={8} color="currentColor" />
+            </Link>
+            <Link
+              to="/products"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-3 rounded-xl font-medium text-gray-800 hover:bg-gray-50 hover:text-primary transition-colors"
+            >
+              <span>Products</span>
+              <Icons name="right_arrow" width={8} height={8} color="currentColor" />
+            </Link>
+            <Link
+              to="/deals"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-3 rounded-xl font-semibold text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <span>Deals & Offers</span>
+              <Icons name="right_arrow" width={8} height={8} color="currentColor" />
+            </Link>
+
+            <div className="pt-4 pb-2 border-t border-gray-100 mt-3">
+              <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">My Account</p>
+              {!ORDERING_DISABLED && (
+                <>
+                  <div
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleAccountNavigate();
+                    }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors text-sm cursor-pointer"
+                  >
+                    <Icons name="user" width={18} height={18} color="currentColor" />
+                    <span>{isAuthenticated ? "Account Dashboard" : "Sign In / Register"}</span>
+                  </div>
+                  {isAuthenticated && (
+                    <Link
+                      to="/wishlist"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors text-sm"
+                    >
+                      <Icons name="wishlist" width={18} height={18} color="currentColor" />
+                      <span>Wishlist</span>
+                    </Link>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="pt-3 pb-2 border-t border-gray-100">
+              <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Help & Info</p>
+              <Link
+                to="/privacy-policy"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors text-sm"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms-and-conditions"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors text-sm"
+              >
+                Terms & Conditions
+              </Link>
+            </div>
+          </div>
+
+          {/* Drawer Footer Info */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-600">
+            <p className="font-semibold text-gray-800">Balport Liquors</p>
+            <p className="mt-0.5 text-gray-500">4521 West Coast Hwy, Newport Beach, CA</p>
+            <a href="tel:(+1) 949-200-9377" className="mt-2 inline-block text-primary font-semibold">
+              Call (+1) 949-200-9377
+            </a>
           </div>
         </div>
       </div>
