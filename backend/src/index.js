@@ -382,7 +382,9 @@ const uberDirectWebhookRoutes = require('./routes/uberDirectWebhook');
 const stripeWebhookRoutes = require('./routes/stripeWebhook');
 const notificationRoutes = require('./routes/notification');
 const analyticsRoutes = require('./routes/analytics');
+const sitemapRoutes = require('./routes/sitemap');
 
+app.use('/api', publicReadLimiter, sitemapRoutes); // Dynamic XML sitemap (no auth required)
 app.use('/api/store', publicReadLimiter, storeRoutes);
 app.use('/api', analyticsRoutes); // Public tracking + admin analytics (adminLimiter inside route)
 app.use('/api/settings', publicReadLimiter, settingsRoutes);

@@ -1,3 +1,28 @@
 # https://www.robotstxt.org/robotstxt.html
+# Balport Liquors - robots.txt
 User-agent: *
-Disallow:
+# Allow public content & catalog
+Allow: /
+Allow: /products
+Allow: /product/
+Allow: /category/
+Allow: /deals
+Allow: /terms-and-conditions
+Allow: /privacy-policy
+# Disallow cart, checkout, auth, and private user areas
+Disallow: /cart
+Disallow: /billing
+Disallow: /account
+Disallow: /account/
+Disallow: /orders
+Disallow: /orders/
+Disallow: /wishlist
+Disallow: /login
+Disallow: /register
+Disallow: /verify-otp
+Disallow: /verify-email
+Disallow: /reset-password
+# Disallow API endpoints from indexing
+Disallow: /api/
+# Sitemap
+Sitemap: https://balportliquors.com/sitemap.xml
