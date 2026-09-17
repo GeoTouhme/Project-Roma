@@ -32,6 +32,9 @@ const payment_intents = async (req, res) => {
 		const createOptions = {
 			amount: expectedAmountCents,
 			currency: currency.toLowerCase(),
+			automatic_payment_methods: {
+				enabled: true,
+			},
 		};
 
 		// 🛡️ PREVENT DOUBLE-CHARGES: Stripe idempotency key must be passed as a

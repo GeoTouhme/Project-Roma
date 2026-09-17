@@ -10,19 +10,13 @@ import store from "./redux/store";
 import { Toaster } from "react-hot-toast";
 import ScrollToTop from "./components/scroll-to-top/ScrollToTop";
 import AgeGate from "./components/age-gate/AgeGate";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import { STRIPE_PUBLIC_KEY } from "./config/AppConfig";
 import MaintenancePage from "./components/maintenance/MaintenancePage";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { fetchStoreStatus } from "./redux/storeStatusSlice";
-import { ORDERING_DISABLED } from "./config/orderingConfig";
 import { trackPageView } from "./services/analyticsService";
 
 const MAINTENANCE = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
-
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 const PageTracker = () => {
   const location = useLocation();
@@ -102,17 +96,9 @@ function App() {
 
   return (
     <Provider store={store}>
-      {ORDERING_DISABLED ? (
-        <Router>
-          <AppContent />
-        </Router>
-      ) : (
-        <Elements stripe={stripePromise}>
-          <Router>
-            <AppContent />
-          </Router>
-        </Elements>
-      )}
+      <Router>
+        <AppContent />
+      </Router>
     </Provider>
   );
 }

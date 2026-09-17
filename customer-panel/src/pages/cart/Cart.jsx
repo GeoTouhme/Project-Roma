@@ -284,6 +284,14 @@ const Cart = () => {
                   <p>Total:</p>
                   <p>${(summary.total || subtotal)?.toFixed(2)}</p>
                 </div>
+
+                <button
+                  className="w-full mt-6 bg-[#B5223B] text-white py-3.5 rounded-lg font-bold uppercase tracking-wide hover:bg-red-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  onClick={() => handleBillingNavigate()}
+                  disabled={!storeIsOpen}
+                >
+                  {!storeIsOpen ? "Store is Closed" : "Proceed to checkout"}
+                </button>
               </div>
             </div>
           </div>

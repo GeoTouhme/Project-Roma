@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import Product from "../../assets/images/product.png";
 import { useDispatch, useSelector } from "react-redux";
 import PaymentService from "../../services/paymentService";
-import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { PaymentElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
+import { stripePromise } from "../../config/stripe";
 import OrderService from "../../services/orderService";
 import CouponService from "../../services/couponService";
 import { clearCart } from "../../redux/cartSlice";
@@ -10,7 +11,7 @@ import { getThumbnailImage } from "../../utils/cloudinary";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-const Billing = () => {
+const BillingForm = () => {
   let userInfo = null;
   try {
     const storedUser = localStorage.getItem("user");
@@ -70,6 +71,17 @@ const Billing = () => {
     const driverTip = fulfillmentType === 'pickup' ? 0 : tip;
     return Math.max(0, (cartSummary.total || 0) + fee + driverTip);
   }, [cartSummary.total, deliveryFee, tip, fulfillmentType]);
+
+  // Keep Stripe Elements amount in sync when delivery fee, tip, or coupon changes.
+  useEffect(() => {
+    if (elements && displayTotal > 0) {
+      try {
+        elements.update({ amount: Math.max(50, Math.round(displayTotal * 100)) });
+      } catch (e) {
+        // Elements may still be initializing
+      }
+    }
+  }, [elements, displayTotal]);
 
   // Auto-suggest best active coupon when cart subtotal is available.
   useEffect(() => {
@@ -437,43 +449,48 @@ const Billing = () => {
     setProcessing(true);
     setCheckoutError(null);
 
-    const cardElement = elements.getElement(CardElement);
-
-    if (!stripe || !elements || !cardElement) {
+    if (!stripe || !elements) {
       setCheckoutError("Stripe has not loaded yet.");
       setProcessing(false);
       return;
     }
 
     try {
-      const clientSecret = await PaymentService.paymentIntentCreate(orderPayload, idempotencyKey).then(res => res.client_secret);
-
-      const billingDetails = {
-        name: `${firstName} ${lastName}`,
-        email,
-        phone,
-        address: {
-          city,
-          country,
-          line1: address,
-          postal_code: zip,
-        },
-      };
-
-      const paymentMethodReq = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: billingDetails,
-      });
-
-      if (paymentMethodReq.error) {
-        setCheckoutError(paymentMethodReq.error.message);
+      // 1. Validate payment element form inputs before calling backend
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setCheckoutError(submitError.message);
         setProcessing(false);
         return;
       }
 
-      const confirmRes = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: paymentMethodReq.paymentMethod.id,
+      const clientSecret = await PaymentService.paymentIntentCreate(orderPayload, idempotencyKey).then(res => res.client_secret);
+      if (!clientSecret) {
+        throw new Error("Failed to initialize payment intent.");
+      }
+
+      const billingDetails = {
+        name: `${firstName} ${lastName}`.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        address: {
+          city: city.trim(),
+          country: country || 'US',
+          line1: address.trim(),
+          postal_code: zip.trim(),
+        },
+      };
+
+      const confirmRes = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          payment_method_data: {
+            billing_details: billingDetails,
+          },
+          return_url: `${window.location.origin}/orders`,
+        },
+        redirect: 'if_required',
       });
 
       if (confirmRes.error) {
@@ -488,12 +505,12 @@ const Billing = () => {
       });
 
       console.log("orderResponse= ", orderResponse?.orderId);
-      toast.success("Order placed!")
+      toast.success("Order placed!");
       setProcessing(false);
       dispatch(clearCart());
       setTimeout(() => {
         if (orderResponse?.orderId)
-          navigate(`/order/${orderResponse?.orderId}`)
+          navigate(`/order/${orderResponse?.orderId}`);
       }, 1500);
     } catch (err) {
       console.log("err= ", err);
@@ -501,32 +518,6 @@ const Billing = () => {
       setCheckoutError(err?.response?.data?.message || 'Payment failed');
       setProcessing(false);
     }
-  };
-
-  const iframeStyles = {
-    base: {
-      color: '#111111', // black from your theme
-      fontSize: '16px',
-      fontFamily: 'Jost, sans-serif',
-      iconColor: '#B5223B', // primary color
-      '::placeholder': {
-        color: '#777777' // grey_text from your theme
-      }
-    },
-    invalid: {
-      color: '#dc2626', // red-600 from Tailwind (for error)
-      iconColor: '#dc2626'
-    },
-    complete: {
-      color: '#111111', // black
-      iconColor: '#16a34a' // green-600 from Tailwind
-    }
-  };
-
-  const cardElementOpts = {
-    iconStyle: 'solid',
-    style: iframeStyles,
-    hidePostalCode: true
   };
 
   return (
@@ -981,10 +972,19 @@ const Billing = () => {
               </div>
             )}
 
-            {/* Stripe card input */}
-            <div className="mt-4 border rounded p-4">
-              <label className="block font-semibold mb-2">Card Details</label>
-              <CardElement options={cardElementOpts} onChange={() => setCheckoutError(null)} />
+            {/* Stripe Payment Element (Cards, Apple Pay, Google Pay, Link, Amazon Pay) */}
+            <div className="mt-4 border rounded-xl p-4 bg-white shadow-sm">
+              <label className="block font-semibold mb-3 text-gray-800">Payment Method</label>
+              <PaymentElement
+                options={{
+                  layout: "tabs",
+                  wallets: {
+                    applePay: "auto",
+                    googlePay: "auto",
+                  },
+                }}
+                onChange={() => setCheckoutError(null)}
+              />
             </div>
             {checkoutError && <p className="text-red-500 font-semibold mb-2">{checkoutError}</p>}
             {fulfillmentType === "delivery" && quoteVerified && !checkoutError && (
@@ -1070,6 +1070,53 @@ const Billing = () => {
         </div>
       )}
     </div>
+  );
+};
+
+const Billing = () => {
+  const cartItems = useSelector((state) => state.cart.cartItems);
+
+  const initialAmount = useMemo(() => {
+    const sub = cartItems.reduce((total, item) => {
+      if (item.type === "bundle") {
+        return total + Number(item.bundlePrice || 0) * item.quantity;
+      }
+      return total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity;
+    }, 0);
+    return Math.max(50, Math.round(sub * 100));
+  }, [cartItems]);
+
+  const elementsOptions = useMemo(
+    () => ({
+      mode: "payment",
+      amount: initialAmount,
+      currency: "usd",
+      appearance: {
+        theme: "stripe",
+        variables: {
+          colorPrimary: "#B5223B",
+          colorBackground: "#ffffff",
+          colorText: "#111111",
+          fontFamily: "Jost, sans-serif",
+          borderRadius: "8px",
+        },
+      },
+    }),
+    [initialAmount]
+  );
+
+  if (!stripePromise) {
+    return (
+      <div className="container py-20 text-center text-red-600">
+        Stripe configuration is missing. Please check your environment settings.
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise} options={elementsOptions}>
+      <BillingForm />
+    </Elements>
   );
 };
 
