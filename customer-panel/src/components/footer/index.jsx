@@ -1,80 +1,12 @@
-import React, { useState } from "react";
-import Shape from "../../assets/images/footer_subscribe_shape1.png";
+import React from "react";
 import PaymentImage from "../../assets/images/payment_img.png";
 import { Link } from "react-router-dom";
 import Icons from "../svg";
-import NewsletterService from "../../services/newsletterService";
-import toast from "react-hot-toast";
 
 
 const Footer = () => {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error("Please enter an email address");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    setLoading(true);
-    NewsletterService.subscribe({ email })
-      .then((res) => {
-        if (res.success) {
-          toast.success("Subscribed successfully!");
-          setEmail("");
-        } else {
-          toast.error(res.message || "Subscription failed");
-        }
-      })
-      .catch((err) => {
-        toast.error("An error occurred. Please try again.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
   return (
     <div className="footer">
-      <div className="footer_subscription bg-primary md:py-[58px] py-8 relative">
-        <div className="container">
-          <div className="section_head mb-8 text-center">
-            <h2 className="md:text-[45px]/[50px] text-[26px]/[32px] font-semibold text-white md:mb-3 mb-2">Subscribe Our Newsletter</h2>
-            <p className="md:text-[18px]/[28px] text-[16px]/[18px] text-white ">Subscribe to our latest newsletter to get news about special discounts and upcoming sales</p>
-          </div>
-          <div className="subscribe_form">
-            <form className="form flex items-center gap-2 justify-center flex-wrap" onSubmit={handleSubscribe}>
-              <input
-                className="px-5 md:py-3 py-2 rounded-lg max-w-[650px] w-full text-[18px]"
-                placeholder="Email"
-                name="subscribe_email"
-                id="subscribe_email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-              />
-              <button
-                type="submit"
-                id="subscribe_btn"
-                className="bg-white md:px-10 px-7 md:py-3 py-2 inline-block rounded-lg text-primary font-medium text-[18px] disabled:opacity-50"
-                disabled={loading}
-              >
-                {loading ? "Subscribing..." : "Subscribe"}
-              </button>
-            </form>
-          </div>
-        </div>
-        <img src={Shape} alt="shape1" className="hidden lg:block shape1 w-[250px] absolute right-0 bottom-0" />
-        <img src={Shape} alt="shape1" className="hidden lg:block shape2 w-[300px] absolute left-0 bottom-0" />
-      </div>
       <div className="footer_bottom bg-black pt-[70px] py-5">
         <div className="container">
           <div className="footer_blocks flex justify-between gap-x-5 gap-y-10 flex-wrap xl:flex-nowrap">

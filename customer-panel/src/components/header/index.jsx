@@ -142,17 +142,140 @@ const Header = () => {
       {/* Tier 2: Main Navigation Bar */}
       <div className="bg-white border-b border-border_light">
         <div className="container">
-          <div className="b_header flex items-center justify-between py-3 flex-wrap lg:flex-nowrap gap-4">
-            {/* Logo */}
-            <div className="flex-shrink-0 order-1">
+          {/* === MOBILE HEADER (below xl) === */}
+          <div className="xl:hidden">
+            {/* Top row: Logo centered + Cart right */}
+            <div className="flex items-center justify-between py-3">
+              {/* Spacer left to center logo */}
+              <div className="w-[42px]"></div>
+
+              {/* Centered Logo */}
               <Link to="/" className="logo">
-                <img src={Logo} alt="logo" className="xl:w-[90px] w-[70px]" />
+                <img src={Logo} alt="logo" className="w-[70px]" />
+              </Link>
+
+              {/* Right: Cart */}
+              <div className="flex items-center">
+                {!ORDERING_DISABLED ? (
+                  <div
+                    className="relative cursor-pointer"
+                    onClick={() => navigate("/cart")}
+                  >
+                    <Icons name="cart_bag" height={22} width={22} color="#111111" />
+                    {cartCount !== 0 && (
+                      <div className="absolute w-[18px] h-[18px] rounded-full bg-primary flex items-center justify-center text-[10px] text-white right-[-8px] top-[-6px]">
+                        {cartCount}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <a
+                    href={DOORDASH_ORDER_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#B5223B] text-white px-4 py-1.5 rounded-full text-xs font-semibold"
+                  >
+                    Order
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Always-visible search bar (BevMo style) */}
+            <div className="pb-3 relative" ref={searchRef}>
+              <form onSubmit={handleSearch} className="relative flex items-center">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Icons name="search" height={18} width={18} color="currentColor" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search Balport"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
+                  className="w-full bg-gray-100 rounded-full py-2.5 px-4 pl-10 text-sm transition-all outline-none text-black placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                />
+              </form>
+
+              {/* Mobile suggestions dropdown */}
+              {showSuggestions && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-2xl border border-gray-100 z-[100] overflow-hidden max-h-[60vh] overflow-y-auto">
+                  {suggestions.products.length === 0 && suggestions.categories.length === 0 && !isSearching ? (
+                    <div className="p-8 text-center">
+                      <p className="text-gray-400 text-sm font-medium">
+                        No results found for "{searchTerm}"
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {suggestions.categories.length > 0 && (
+                        <div className="p-3 border-b border-gray-50">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">Categories</p>
+                          <div className="flex flex-wrap gap-2 px-2">
+                            {suggestions.categories.map((cat) => (
+                              <div
+                                key={cat._id}
+                                onClick={() => handleSuggestionClick("category", cat)}
+                                className="bg-gray-50 hover:bg-primary/10 hover:text-primary transition-colors px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer"
+                              >
+                                {cat.name}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {suggestions.products.length > 0 && (
+                        <div className="p-2">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-2">Products</p>
+                          {suggestions.products.map((prod) => (
+                            <div
+                              key={prod._id}
+                              onClick={() => handleSuggestionClick("product", prod)}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors cursor-pointer rounded-xl"
+                            >
+                              <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                                <img
+                                  src={getThumbnailImage(prod.images?.[0])}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{prod.name}</p>
+                                <p className="text-xs text-primary font-bold">${prod.priceSale || prod.price}</p>
+                              </div>
+                              <div className="text-gray-300">
+                                <Icons name="right_arrow" width={10} height={10} color="currentColor" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {isSearching && (
+                    <div className="p-6 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* === DESKTOP HEADER (xl and above) — unchanged === */}
+          <div className="b_header hidden xl:flex items-center justify-between py-3 gap-4">
+            {/* Logo */}
+            <div className="flex-shrink-0">
+              <Link to="/" className="logo">
+                <img src={Logo} alt="logo" className="w-[90px]" />
               </Link>
             </div>
 
             {/* Center: Nav Links */}
-            <div className="order-2 hidden xl:block flex-1">
-              <div className="hidden xl:flex gap-8 text-black text-[16px] font-medium justify-center">
+            <div className="flex-1">
+              <div className="flex gap-8 text-black text-[16px] font-medium justify-center">
                 {menuData.map((menu, index) => {
                     const isActive = location.pathname.startsWith(menu.link);
                     return (
@@ -201,138 +324,38 @@ const Header = () => {
             </div>
 
             {/* Right: Icons */}
-            <div className="flex items-center gap-5 xl:gap-6 order-3">
+            <div className="flex items-center gap-6">
               {/* Search */}
               <div className="relative" ref={searchRef}>
                 {isSearchExpanded ? (
-                  <>
-                    {/* Mobile full-width search overlay */}
-                    <div className="fixed inset-x-0 top-0 z-[100] bg-white shadow-lg px-4 py-3 md:hidden">
-                      <div className="flex items-center gap-2">
-                        <form onSubmit={handleSearch} className="relative flex items-center flex-1">
-                          <input
-                            type="text"
-                            placeholder="Search products..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
-                            className="w-full bg-gray-100 border-2 border-primary/10 rounded-full py-2.5 px-4 pl-10 pr-20 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-black"
-                            autoFocus
-                          />
-                          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                            <Icons name="search" height={18} width={18} color="currentColor" />
-                          </div>
-                          <button
-                            type="submit"
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-opacity-90 transition-all"
-                          >
-                            Search
-                          </button>
-                        </form>
-                        <button
-                          onClick={toggleSearch}
-                          className="text-gray-500 hover:text-black transition-colors p-2"
-                        >
-                          <Icons name="close" width={20} height={20} color="currentColor" />
-                        </button>
+                  <div className="flex items-center gap-2">
+                    <form onSubmit={handleSearch} className="relative flex items-center">
+                      <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
+                        className="w-64 lg:w-80 bg-gray-100 border-2 border-primary/10 rounded-full py-2.5 px-4 pl-10 pr-20 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-black"
+                        autoFocus
+                      />
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Icons name="search" height={18} width={18} color="currentColor" />
                       </div>
-
-                      {/* Mobile suggestions dropdown */}
-                      {showSuggestions && (
-                        <div className="mt-2 bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden max-h-[70vh] overflow-y-auto w-full">
-                          {suggestions.products.length === 0 && suggestions.categories.length === 0 && !isSearching ? (
-                            <div className="p-8 text-center">
-                              <p className="text-gray-400 text-sm font-medium">
-                                No results found for "{searchTerm}"
-                              </p>
-                            </div>
-                          ) : (
-                            <>
-                              {suggestions.categories.length > 0 && (
-                                <div className="p-3 border-b border-gray-50">
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">Categories</p>
-                                  <div className="flex flex-wrap gap-2 px-2">
-                                    {suggestions.categories.map((cat) => (
-                                      <div
-                                        key={cat._id}
-                                        onClick={() => handleSuggestionClick("category", cat)}
-                                        className="bg-gray-50 hover:bg-primary/10 hover:text-primary transition-colors px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer"
-                                      >
-                                        {cat.name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              {suggestions.products.length > 0 && (
-                                <div className="p-2">
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-2">Products</p>
-                                  {suggestions.products.map((prod) => (
-                                    <div
-                                      key={prod._id}
-                                      onClick={() => handleSuggestionClick("product", prod)}
-                                      className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors cursor-pointer rounded-xl"
-                                    >
-                                      <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                                        <img
-                                          src={getThumbnailImage(prod.images?.[0])}
-                                          alt=""
-                                          className="w-full h-full object-cover"
-                                          loading="lazy"
-                                        />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-gray-900 truncate">{prod.name}</p>
-                                        <p className="text-xs text-primary font-bold">${prod.priceSale || prod.price}</p>
-                                      </div>
-                                      <div className="text-gray-300">
-                                        <Icons name="right_arrow" width={10} height={10} color="currentColor" />
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )}
-                          {isSearching && (
-                            <div className="p-6 flex items-center justify-center">
-                              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Desktop expanded search */}
-                    <div className="hidden md:flex items-center gap-2">
-                      <form onSubmit={handleSearch} className="relative flex items-center">
-                        <input
-                          type="text"
-                          placeholder="Search products..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
-                          className="w-64 lg:w-80 bg-gray-100 border-2 border-primary/10 rounded-full py-2.5 px-4 pl-10 pr-20 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none text-black"
-                          autoFocus
-                        />
-                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                          <Icons name="search" height={18} width={18} color="currentColor" />
-                        </div>
-                        <button
-                          type="submit"
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-opacity-90 transition-all"
-                        >
-                          Search
-                        </button>
-                      </form>
                       <button
-                        onClick={toggleSearch}
-                        className="text-gray-500 hover:text-black transition-colors"
+                        type="submit"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-opacity-90 transition-all"
                       >
-                        <Icons name="close" width={18} height={18} color="currentColor" />
+                        Search
                       </button>
-                    </div>
-                  </>
+                    </form>
+                    <button
+                      onClick={toggleSearch}
+                      className="text-gray-500 hover:text-black transition-colors"
+                    >
+                      <Icons name="close" width={18} height={18} color="currentColor" />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={toggleSearch}
@@ -345,7 +368,7 @@ const Header = () => {
 
                 {/* Desktop suggestions dropdown */}
                 {showSuggestions && (
-                  <div className="hidden md:block absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white shadow-2xl rounded-2xl border border-gray-100 z-[100] overflow-hidden max-h-[400px] overflow-y-auto w-[92vw] max-w-[450px] min-w-[300px]">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white shadow-2xl rounded-2xl border border-gray-100 z-[100] overflow-hidden max-h-[400px] overflow-y-auto w-[92vw] max-w-[450px] min-w-[300px]">
                     {suggestions.products.length === 0 && suggestions.categories.length === 0 && !isSearching ? (
                       <div className="p-8 text-center">
                         <p className="text-gray-400 text-sm font-medium">No results found for "{searchTerm}"</p>
@@ -407,27 +430,27 @@ const Header = () => {
                 )}
               </div>
 
-              {/* User — HIDDEN when ordering disabled */}
+              {/* User */}
               {!ORDERING_DISABLED && (
                 <div
-                  className="cursor-pointer hidden xl:block"
+                  className="cursor-pointer"
                   onClick={handleAccountNavigate}
                 >
                   <Icons name="user" height={22} width={22} color="#111111" />
                 </div>
               )}
 
-              {/* Wishlist — HIDDEN when ordering disabled */}
+              {/* Wishlist */}
               {!ORDERING_DISABLED && isAuthenticated && (
                 <div
-                  className="relative cursor-pointer hidden xl:block"
+                  className="relative cursor-pointer"
                   onClick={() => navigate("/wishlist")}
                 >
                   <Icons name="wishlist" height={22} width={22} color="#111111" />
                 </div>
               )}
 
-              {/* Cart — HIDDEN when ordering disabled */}
+              {/* Cart */}
               {!ORDERING_DISABLED && (
                 <div
                   className="relative cursor-pointer"
@@ -442,19 +465,17 @@ const Header = () => {
                 </div>
               )}
 
-              {/* DoorDash Order Button — SHOWN when ordering disabled */}
+              {/* DoorDash Order Button */}
               {ORDERING_DISABLED && (
                 <a
                   href={DOORDASH_ORDER_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-[#B5223B] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-red-700 transition hidden xl:inline-block"
+                  className="bg-[#B5223B] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-red-700 transition"
                 >
                   Order Now
                 </a>
               )}
-
-
             </div>
           </div>
         </div>

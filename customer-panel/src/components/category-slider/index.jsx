@@ -73,7 +73,7 @@ const CategorySlider = ({ categories = [] }) => {
   };
 
   return (
-    <section className="category-slider-section bg-white py-5 md:py-8 border-b border-gray-100">
+    <section className="category-slider-section bg-white py-3 md:py-8 border-b border-gray-100">
       <div className="container">
         <div className="relative px-1 md:px-4">
           <Slider {...settings} className="category-slider">
@@ -86,7 +86,7 @@ const CategorySlider = ({ categories = [] }) => {
                 <div key={category._id || category.slug} className="px-2 md:px-3">
                   <Link
                     to={link}
-                    className="group flex flex-col items-center text-center gap-2 md:gap-3"
+                    className="group flex flex-col items-center text-center gap-1.5 md:gap-3"
                   >
                     <div className="relative w-full aspect-square max-w-[120px] rounded-full overflow-hidden bg-gray-100 ring-2 ring-transparent group-hover:ring-primary/20 transition-all duration-300 shadow-sm group-hover:shadow-md">
                       {imageUrl ? (
