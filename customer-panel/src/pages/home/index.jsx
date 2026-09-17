@@ -1,13 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import DefaultSlide1Wine from "../../assets/images/slide-1-wine.jpg";
-import DefaultSlide2Cocktail from "../../assets/images/slide-2-cocktail.jpg";
-import DefaultSlide3Beer from "../../assets/images/slide-3-beer.jpg";
-import DefaultSlide4DeliveryNew from "../../assets/images/slide-4-delivery-new.jpg";
-import DefaultSlide5Summer from "../../assets/images/slide-5-summer.jpg";
-
-import FixedBg from "../../assets/images/fixed-bg.png";
 import ProductCard from "../../components/product-card";
 import Slider from "react-slick";
 import HomeService from "../../services/homeService";
@@ -20,53 +13,7 @@ import CountdownTimer from "../../components/countdown-timer";
 import DealCard from "../../components/deal-card";
 import MixBundleCard from "../../components/mix-bundle-card";
 
-const DEFAULT_HERO_SLIDES = [
-  {
-    image: DefaultSlide1Wine,
-    alt: "Premium Wine",
-    tagline: "Premium Collection",
-    title: "Natural & Premium Wines",
-    subtitle: "Curated Selection for Every Occasion",
-    buttonText: "Shop Wine",
-    buttonLink: "/category/wine",
-  },
-  {
-    image: DefaultSlide2Cocktail,
-    alt: "Premium Cocktails",
-    tagline: "Top Shelf Selection",
-    title: "Elevate Your Spirits",
-    subtitle: "Premium Tequila, Vodka & Mixers",
-    buttonText: "Shop Spirits",
-    buttonLink: "/products",
-  },
-  {
-    image: DefaultSlide3Beer,
-    alt: "Cold Beers",
-    tagline: "Ice Cold Selection",
-    title: "Game Night Ready",
-    subtitle: "Cold Beers & Your Favorite Snacks",
-    buttonText: "Shop Beer",
-    buttonLink: "/products",
-  },
-  {
-    image: DefaultSlide4DeliveryNew,
-    alt: "Fast Delivery",
-    tagline: "Fast & Reliable",
-    title: "Premium Drinks, Delivered Fast",
-    subtitle: "Your Favorite Liquor at Your Doorstep",
-    buttonText: "Order Now",
-    buttonLink: "/products",
-  },
-  {
-    image: DefaultSlide5Summer,
-    alt: "Summer Drinks",
-    tagline: "Seasonal Picks",
-    title: "Taste the Summer",
-    subtitle: "Ice-Cold Beers & Hard Seltzers",
-    buttonText: "Refresh Now",
-    buttonLink: "/products",
-  },
-];
+const DEFAULT_HERO_SLIDES = [];
 
 const Home = () => {
   const [bestSellerProducts, setBestSellerProducts] = useState([]);
@@ -273,44 +220,46 @@ const Home = () => {
     <div className="main">
       <CategorySlider categories={categories} />
 
-      <section className="hero">
-        <Slider {...heroSliderSettings} className="hero-slider">
-          {heroSlides.map((slide, index) => (
-            <div key={index} className="hero-inner relative">
-              <img
-                src={getHeroSlideImage(slide.image, false)}
-                srcSet={`${getHeroSlideImage(slide.image, true)} 800w, ${getHeroSlideImage(slide.image, false)} 1920w`}
-                sizes="100vw"
-                alt={slide.alt || slide.title || `Slide ${index + 1}`}
-                className="w-full aspect-video object-cover md:max-h-[500px] max-h-[350px]"
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
-              <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
-                {slide.tagline && (
-                  <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">{slide.tagline}</p>
-                )}
-                {slide.title && (
-                  <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
-                    {slide.title}
-                  </h1>
-                )}
-                {slide.subtitle && (
-                  <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">{slide.subtitle}</p>
-                )}
-                {slide.buttonText && slide.buttonLink && (
-                  <a
-                    href={slide.buttonLink}
-                    className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
-                  >
-                    {slide.buttonText}
-                  </a>
-                )}
+      {heroSlides && heroSlides.length > 0 && (
+        <section className="hero">
+          <Slider {...heroSliderSettings} className="hero-slider">
+            {heroSlides.map((slide, index) => (
+              <div key={index} className="hero-inner relative">
+                <img
+                  src={getHeroSlideImage(slide.image, false)}
+                  srcSet={`${getHeroSlideImage(slide.image, true)} 800w, ${getHeroSlideImage(slide.image, false)} 1920w`}
+                  sizes="100vw"
+                  alt={slide.alt || slide.title || `Slide ${index + 1}`}
+                  className="w-full aspect-video object-cover md:max-h-[500px] max-h-[350px]"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>
+                <div className="hero-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center max-w-[800px] w-full px-4">
+                  {slide.tagline && (
+                    <p className="text-white/80 text-sm md:text-base font-medium uppercase tracking-widest mb-3">{slide.tagline}</p>
+                  )}
+                  {slide.title && (
+                    <h1 className="md:text-[56px]/[64px] text-[34px]/[44px] font-bold text-white mb-4">
+                      {slide.title}
+                    </h1>
+                  )}
+                  {slide.subtitle && (
+                    <p className="text-white/90 text-lg md:text-xl mb-8 max-w-xl mx-auto">{slide.subtitle}</p>
+                  )}
+                  {slide.buttonText && slide.buttonLink && (
+                    <a
+                      href={slide.buttonLink}
+                      className="bg-primary mt-2 md:px-12 px-8 md:py-4 py-3 inline-block rounded-full text-white font-semibold text-[16px] md:text-[18px] shadow-lg hover:bg-opacity-90 hover:scale-105 transition-all"
+                    >
+                      {slide.buttonText}
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </Slider>
-      </section>
+            ))}
+          </Slider>
+        </section>
+      )}
 
       {!dealProductsLoading && dealProducts.length === 0 ? null : (
         <section className="deals md:mb-[100px] mb-[40px]">
@@ -396,8 +345,7 @@ const Home = () => {
       )}
 
       <section
-        className="fixed-bg md:py-[150px] pt-10 md:mb-[100px] mb-[40px]"
-        style={{ backgroundImage: `url(${FixedBg})` }}
+        className="fixed-bg bg-gradient-to-b from-gray-50 to-white border-y border-gray-100 md:py-[120px] py-12 md:mb-[100px] mb-[40px]"
       >
         <div className="container">
           <div className="fixed-bg-inner text-center max-w-[600px] mx-auto">

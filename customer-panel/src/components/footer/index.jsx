@@ -1,5 +1,4 @@
 import React from "react";
-import PaymentImage from "../../assets/images/payment_img.png";
 import { Link } from "react-router-dom";
 import Icons from "../svg";
 
@@ -30,7 +29,6 @@ const Footer = () => {
               <h2 className="text-white uppercase text-[20px]/[20px] font-medium mb-5">Services</h2>
               <div className="footer_menu_links grid gap-3">
                 <Link to="/privacy-policy" className="text-white tracking-[0.5px] text-[16px]/[20px] hover:text-primary">Privacy Policy</Link>
-                <Link to="#" className="text-white tracking-[0.5px] text-[16px]/[20px] hover:text-primary">FAQs</Link>
                 <Link to="/terms-and-conditions" className="text-white tracking-[0.5px] text-[16px]/[20px] hover:text-primary">Terms & Conditions</Link>
               </div>
             </div>
@@ -76,7 +74,6 @@ const Footer = () => {
             <p className="text-white text-[16px]/[20px]">Please Drink Responsibly</p>
             <p className="text-white text-[16px]/[20px]"> If you're useing our website you agree to our terms and conditions</p>
             <p className="text-white text-[16px]/[20px]">© 2025. All rights reserved.</p>
-            <img src={PaymentImage} alt="Accepted payment methods" className="max-w-full" />
           </div>
         </div>
       </div>

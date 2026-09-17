@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Slider from "react-slick";
 import { Star } from "lucide-react";
-import PaymentMethods from "../../assets/images/payment-methods.svg";
-import Visa from "../../assets/images/visa.svg";
-import MasterCard from "../../assets/images/mastercard.svg";
 import { FaPlus, FaMinus } from "react-icons/fa6";
 import { BiSolidPencil } from "react-icons/bi";
 import { MdOutlineVerified } from "react-icons/md";
@@ -371,18 +368,10 @@ const ProductPage = () => {
                     )}
                   </div>
 
-                  <div className="relative mt-10 p-4 border rounded-lg text-center border-[#CECECE]">
-                    {/* Guarantee Text */}
-                    <p className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-[#F7F5F0] px-3 py-3 h-11 text-sm font-normal text-[#111111] leading-6 flex items-center">
-                      Guarantee Safe & Secure Checkout
+                  <div className="mt-8 p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                    <p className="text-xs font-semibold text-gray-700 flex items-center justify-center gap-1.5">
+                      🔒 Guaranteed Safe & Secure Checkout
                     </p>
-
-                    {/* Payment Methods */}
-                    <div className="my-9 flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4">
-                      <img src={PaymentMethods} alt="Visa" className="h-8" />
-                      <img src={Visa} alt="MasterCard" className="h-8" />
-                      <img src={MasterCard} alt="American Express" className="h-8" />
-                    </div>
                   </div>
                 </div>
               </>

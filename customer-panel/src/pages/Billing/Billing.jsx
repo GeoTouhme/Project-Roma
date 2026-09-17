@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import Product from "../../assets/images/product.png";
 import { useDispatch, useSelector } from "react-redux";
 import PaymentService from "../../services/paymentService";
 import { PaymentElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
@@ -786,9 +785,9 @@ const BillingForm = () => {
                 <div key={index} className="flex justify-between items-start gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <img
-                      src={item.image ? getThumbnailImage(item.image) : Product}
+                      src={item.image ? getThumbnailImage(item.image) : ""}
                       alt={item.name}
-                      className="w-10 h-10 object-cover rounded flex-shrink-0"
+                      className="w-10 h-10 object-cover rounded flex-shrink-0 bg-gray-100"
                       loading="lazy"
                     />
                     <div className="min-w-0">
