@@ -10,6 +10,7 @@ import store from "./redux/store";
 import { Toaster } from "react-hot-toast";
 import ScrollToTop from "./components/scroll-to-top/ScrollToTop";
 import AgeGate from "./components/age-gate/AgeGate";
+import CookieConsent from "./components/cookie-consent/CookieConsent";
 import MaintenancePage from "./components/maintenance/MaintenancePage";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
@@ -85,6 +86,7 @@ const AppContent = () => {
       <ScrollToTop />
       <Toaster />
       <AppRoutes />
+      <CookieConsent />
     </>
   );
 };
