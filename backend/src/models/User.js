@@ -112,6 +112,22 @@ const UserSchema = new mongoose.Schema(
     lastOtpSentAt: {
       type: Date,
     },
+
+    // 🛡️ SECURITY: Refresh token rotation — raw token is stored as a SHA-256
+    // hash so a leaked DB dump cannot be used to forge new sessions.
+    // On every /auth/refresh call the old hash is replaced with a new one
+    // (rotation). If a previously-used token is presented, both hash and expiry
+    // will fail, triggering an immediate forced logout (theft detection).
+    refreshTokenHash: {
+      type: String,
+      default: null,
+      select: false, // never returned in normal queries
+    },
+    refreshTokenExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
     role: {
       type: String,
       enum: ['super admin', 'admin', 'user'],

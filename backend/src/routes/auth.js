@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const authController = require("../controllers/auth");
+const { refreshToken } = authController;
 const googleAuthController = require("../controllers/googleAuth");
 const verifyToken = require("../config/jwt");
 const { getClientIp } = require("../utils/getClientIp");
@@ -98,4 +99,10 @@ router.post("/auth/confirm-mfa", verifyToken, authLimiter, authController.confir
 router.post("/auth/verify-mfa", authLimiter, authController.verifyMfa);
 router.post("/auth/disable-mfa", verifyToken, authLimiter, authController.disableMfa);
 
+// 🛡️ Refresh token rotation — issues a new access+refresh pair from the
+// HttpOnly refresh cookie. Rate-limited to prevent brute-force against the
+// hashed token stored in DB.
+router.post("/auth/refresh", authLimiter, refreshToken);
+
 module.exports = router;
+

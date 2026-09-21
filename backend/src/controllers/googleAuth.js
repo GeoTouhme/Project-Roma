@@ -1,52 +1,16 @@
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const Products = require('../models/Product');
 const sendEmail = require('../utils/mailer');
 const { emitToAdmins } = require('../utils/socketManager');
 const { isDisposableEmail } = require('../utils/emailGuard');
+// 🛡️ Reuse the shared token-pair issuer so Google login participates in
+// refresh token rotation exactly like email/password login.
+const { issueTokenPair } = require('./auth');
 
-const TOKEN_COOKIE_NAME = 'token';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
-/**
- * 🛡️ SECURITY: Issue auth token as an HttpOnly, Secure, SameSite=Strict cookie.
- * Reuses the same cookie settings as the email/password auth controller so
- * Google users receive an identical session.
- */
-function getCookieDomain() {
-  if (process.env.NODE_ENV !== 'production') return undefined;
-  const frontendUrl = process.env.FRONTEND_URL || '';
-  try {
-    const hostname = new URL(frontendUrl).hostname;
-    if (hostname && !hostname.includes('localhost') && !/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-      const parts = hostname.split('.');
-      if (parts.length >= 2) {
-        return `.${parts.slice(-2).join('.')}`;
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return undefined;
-}
-
-function setAuthCookie(res, token, maxAgeMs) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const cookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'strict',
-    maxAge: maxAgeMs,
-    path: '/',
-  };
-  const domain = getCookieDomain();
-  if (domain) {
-    cookieOptions.domain = domain;
-  }
-  res.cookie(TOKEN_COOKIE_NAME, token, cookieOptions);
-}
 
 // Build the same wishlist response shape used in the password login flow.
 async function getWishlistProducts(wishlistIds) {
@@ -195,14 +159,8 @@ const googleAuth = async (req, res) => {
       }
     }
 
-    // Issue JWT cookie (valid for 7 days, same as password login).
-    const token = jwt.sign(
-      { _id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+    // 🛡️ Issue short-lived access token + rotating refresh token pair.
+    await issueTokenPair(res, user);
 
     const products = await getWishlistProducts(user.wishlist || []);
 

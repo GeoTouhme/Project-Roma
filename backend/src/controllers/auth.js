@@ -16,6 +16,12 @@ const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
 const TOKEN_COOKIE_NAME = 'token';
+const REFRESH_COOKIE_NAME = 'refreshToken';
+
+// Access token lifetime: short — limits the damage window if stolen.
+const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
+// Refresh token lifetime: long — but rotated on every use and hashed in DB.
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // 🛡️ SECURITY: Use the Cloudflare-aware client IP attached by defense-in-depth
 // middleware, falling back to the standalone helper if unavailable.
@@ -59,20 +65,67 @@ function setAuthCookie(res, token, maxAgeMs) {
     path: '/',
   };
   const domain = getCookieDomain();
-  if (domain) {
-    cookieOptions.domain = domain;
-  }
+  if (domain) cookieOptions.domain = domain;
   res.cookie(TOKEN_COOKIE_NAME, token, cookieOptions);
+}
+
+// 🛡️ SECURITY: Refresh token cookie — same security flags as access token.
+// Stored separately so it can be cleared independently on rotation.
+function setRefreshCookie(res, token, maxAgeMs) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict',
+    maxAge: maxAgeMs,
+    path: '/',
+  };
+  const domain = getCookieDomain();
+  if (domain) cookieOptions.domain = domain;
+  res.cookie(REFRESH_COOKIE_NAME, token, cookieOptions);
 }
 
 function clearAuthCookie(res) {
   const cookieOptions = { path: '/' };
   const domain = getCookieDomain();
-  if (domain) {
-    cookieOptions.domain = domain;
-  }
+  if (domain) cookieOptions.domain = domain;
   res.clearCookie(TOKEN_COOKIE_NAME, cookieOptions);
+  res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions);
 }
+
+// 🛡️ Hash a refresh token before storing in DB so a leaked DB can't be replayed.
+function hashToken(raw) {
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+/**
+ * Issue an access token + refresh token pair and set both as HttpOnly cookies.
+ * Also persists the hashed refresh token to the user document in MongoDB.
+ * Call this from any auth flow that completes successfully (login, MFA verify,
+ * email verify, token refresh).
+ */
+async function issueTokenPair(res, user) {
+  // Short-lived access token — carries identity for every API request.
+  const accessToken = jwt.sign(
+    { _id: user._id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  // Long-lived refresh token — opaque random bytes, not a JWT.
+  // We hash it before storing so the raw value is never in the DB.
+  const rawRefresh = crypto.randomBytes(40).toString('hex');
+  const refreshExpiry = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+
+  await User.findByIdAndUpdate(user._id, {
+    refreshTokenHash: hashToken(rawRefresh),
+    refreshTokenExpiresAt: refreshExpiry,
+  });
+
+  setAuthCookie(res, accessToken, ACCESS_TOKEN_TTL_MS);
+  setRefreshCookie(res, rawRefresh, REFRESH_TOKEN_TTL_MS);
+}
+
 
 // 🛡️ MFA: deterministic 32-byte AES key derived from a dedicated env secret.
 // Using a dedicated MFA_SECRET_KEY lets JWT rotation happen without invalidating MFA enrollments.
@@ -328,18 +381,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: '7d',
-      }
-    );
-
     const products = await Products.aggregate([
       {
         $match: {
@@ -379,7 +420,8 @@ const loginUser = async (req, res) => {
       },
     ]);
 
-    setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+    // 🛡️ Issue short-lived access token + rotating refresh token pair.
+    await issueTokenPair(res, user);
 
     return res.status(201).json({
       success: true,
@@ -592,13 +634,8 @@ const verifyOtp = async (req, res) => {
 
       await user.save();
 
-      // After verification, issue the auth cookie so the user is immediately authenticated.
-      const token = jwt.sign(
-        { _id: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-      setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+      // After verification, issue access + refresh token pair.
+      await issueTokenPair(res, user);
 
       message = 'OTP Verified Successfully';
       console.log('🔐 Email verified via OTP:', { email: user.email, ip: clientIp(req) });
@@ -788,12 +825,8 @@ const verifyEmailToken = async (req, res) => {
 
     console.log('🔐 Email verified via signed link:', { email: user.email, ip: clientIp(req) });
 
-    const authToken = jwt.sign(
-      { _id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    setAuthCookie(res, authToken, 7 * 24 * 60 * 60 * 1000);
+    // Issue access + refresh token pair after email verification.
+    await issueTokenPair(res, user);
 
     return res.status(201).json({
       success: true,
@@ -1002,7 +1035,8 @@ const verifyMfa = async (req, res) => {
       },
     ]);
 
-    setAuthCookie(res, token, 7 * 24 * 60 * 60 * 1000);
+    // 🛡️ Issue short-lived access token + rotating refresh token pair.
+    await issueTokenPair(res, user);
 
     console.log('🔐 User logged in via MFA:', { email: user.email, ip: clientIp(req) });
 
@@ -1115,4 +1149,65 @@ module.exports = {
   verifyMfa,
   disableMfa,
   getMe,
+  refreshToken,
+  // Exported for reuse in googleAuth controller.
+  issueTokenPair,
 };
+
+/**
+ * 🛡️ SECURITY: Refresh token rotation endpoint.
+ *
+ * Flow:
+ *  1. Read the raw refresh token from the HttpOnly cookie.
+ *  2. Hash it and look up the user whose refreshTokenHash matches.
+ *  3. Verify the token has not expired.
+ *  4. Issue a brand-new access + refresh token pair (rotation).
+ *  5. The old hash is overwritten — any replay of the old refresh token
+ *     will fail to find a matching user (theft detection).
+ *
+ * If anything fails → clear both cookies and return 401 so the client
+ * knows to redirect to /login.
+ */
+async function refreshToken(req, res) {
+  try {
+    const raw = req.cookies?.[REFRESH_COOKIE_NAME];
+
+    if (!raw || typeof raw !== 'string') {
+      return res.status(401).json({ success: false, message: 'No refresh token provided.' });
+    }
+
+    const hashed = hashToken(raw);
+
+    // Find user by hashed refresh token and include the private fields.
+    const user = await User.findOne({ refreshTokenHash: hashed })
+      .select('+refreshTokenHash +refreshTokenExpiresAt');
+
+    // 🛡️ THEFT DETECTION: if no user found the token was already rotated —
+    // someone is replaying a stolen token. Clear cookies and force re-login.
+    if (!user) {
+      clearAuthCookie(res);
+      console.warn('🚨 Refresh token reuse detected — possible token theft:', {
+        ip: clientIp(req),
+        time: new Date().toISOString(),
+      });
+      return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
+    }
+
+    // Check expiry.
+    if (!user.refreshTokenExpiresAt || new Date() > user.refreshTokenExpiresAt) {
+      clearAuthCookie(res);
+      return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
+    }
+
+    // All good — rotate: issue a new pair (issueTokenPair writes the new hash to DB).
+    await issueTokenPair(res, user);
+
+    console.log('🔐 Token refreshed:', { email: user.email, ip: clientIp(req) });
+
+    return res.status(200).json({ success: true, message: 'Token refreshed.' });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
