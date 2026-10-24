@@ -27,7 +27,7 @@ services:
     container_name: balport-backend
     restart: unless-stopped
     ports:
-      - "0.0.0.0:5001:5001"
+      - "127.0.0.1:5001:5001"
     environment:
       - NODE_ENV=production
       - PORT=5001
