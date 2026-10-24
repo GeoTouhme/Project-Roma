@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:18 AS build
+FROM node:22.23.4 AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY . .
 
 # Keep only production dependencies in the final image
-FROM node:18-slim AS production
+FROM node:22.23.4-slim AS production
 
 WORKDIR /app
 
