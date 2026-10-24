@@ -2,7 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { createLimiter } = require('./middleware/rateLimiters');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -239,105 +239,13 @@ app.use(bodyParser.json({
 
 // Tiered rate limiting to balance customer browsing with abuse protection.
 // Limits are per user/IP per window. nginx sits in front as a single trusted proxy.
-
-// Client IP extraction is centralized in utils/getClientIp.js so rate limiters,
-// analytics, and any future features all agree on the real visitor IP behind
-// Cloudflare + nginx.
-
-// Decode the JWT (without verifying) to extract the user's role. Actual verification
-// is still done by verifyToken middleware on protected routes, so this only affects
-// rate-limit bucketing, not access control.
-function getTokenRole(token) {
-  try {
-    const decoded = jwt.decode(token);
-    if (decoded && typeof decoded.role === 'string') {
-      return decoded.role;
-    }
-  } catch {
-    // ignore malformed token
-  }
-  return null;
-}
-
-// Authenticated admin/super-admin users bypass rate limiting entirely.
-// Nginx -> Docker makes every request appear to come from the same proxy IP,
-// so non-admin authenticated users are bucketed by JWT token and unauthenticated
-// clients by the real client IP from X-Forwarded-For.
-const createLimiter = (baseMax, windowMinutes, messagePrefix) => {
-  const limiter = rateLimit({
-    windowMs: windowMinutes * 60 * 1000,
-    max: baseMax,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      success: false,
-      message: `${messagePrefix}. Please try again after ${windowMinutes} minutes.`,
-    },
-    keyGenerator: (req) => {
-      const token = req.cookies?.token;
-      if (token && token.length > 0) {
-        const role = getTokenRole(token);
-        // Admins and super admins get their own very high bucket so they never
-        // hit rate limits during normal admin panel use.
-        if (role === 'admin' || role === 'super admin') {
-          return `admin:${token}`;
-        }
-        return `user:${token}`;
-      }
-      return `ip:${ipKeyGenerator(getClientIp(req))}`;
-    },
-  });
-
-  return (req, res, next) => {
-    const token = req.cookies?.token;
-    if (token && token.length > 0) {
-      const role = getTokenRole(token);
-      if (role === 'admin' || role === 'super admin') {
-        return next();
-      }
-    }
-    return limiter(req, res, next);
-  };
-};
-
-// Auth routes: strict to prevent brute-force / OTP abuse.
-const authLimiterInternal = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many auth attempts. Please try again after 15 minutes.' },
-  keyGenerator: (req) => {
-    const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
-    const clientIp = getClientIp(req);
-    const ip = ipKeyGenerator(clientIp);
-    return email ? `auth:${email}:${ip}` : `auth:${ip}`;
-  },
-});
-
-const authLimiter = (req, res, next) => {
-  // Authenticated admin/super-admin users bypass auth rate limiting entirely.
-  const token = req.cookies?.token || req.cookies?.tempToken;
-  if (token && token.length > 0) {
-    const role = getTokenRole(token);
-    if (role === 'admin' || role === 'super admin') {
-      return next();
-    }
-  }
-  return authLimiterInternal(req, res, next);
-};
-
-// Public read routes: generous so customers can browse 100+ departments and paginated products.
+//
+// 🛡️ SECURITY (F6): all limiter role detection is centralized in
+// middleware/rateLimiters.js and uses jwt.verify (never jwt.decode), so
+// forged `token` cookies can no longer buy admin-tier or unlimited buckets.
 const publicReadLimiter = createLimiter(8000, 15, 'Too many requests');
-
-// Authenticated / mutating routes: generous for normal cart/order/wishlist/admin activity.
 const apiLimiter = createLimiter(6000, 15, 'Too many requests');
-
-// Admin-only routes: effectively unlimited for real admin work (50,000 / 15 min).
 const adminLimiter = createLimiter(50000, 15, 'Too many admin requests');
-
-// Polling endpoints (e.g. admin notification bell) need their own, higher limit
-// so they don't exhaust the shared apiLimiter bucket for active admin users.
 const pollLimiter = createLimiter(3000, 15, 'Too many notification polls');
 
 

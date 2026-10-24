@@ -1,74 +1,27 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const authController = require("../controllers/auth");
 const { refreshToken } = authController;
 const googleAuthController = require("../controllers/googleAuth");
 const verifyToken = require("../config/jwt");
-const { getClientIp } = require("../utils/getClientIp");
+const {
+  authLimiter,
+  registrationLimiter,
+} = require("../middleware/rateLimiters");
 
-// Helpers to decode role for rate-limit bucketing (access control still happens via verifyToken).
-function getTokenRole(token) {
-  try {
-    const decoded = jwt.decode(token);
-    if (decoded && typeof decoded.role === 'string') return decoded.role;
-  } catch {
-    // ignore
-  }
-  return null;
-}
+// NOTE (F6 remediation): limiter role detection lives in
+// middleware/rateLimiters.js and verifies JWT signatures before granting
+// admin-tier treatment. The old decode-only getTokenRole allowed any
+// unsigned {"role":"admin"} cookie to unlock the 1000-attempt auth tier
+// and a private token-keyed bucket.
 
 // Rate limit for auth endpoints to prevent brute-force / OTP abuse.
-// Behind Nginx+Docker all requests share the same proxy IP, so bucket by email
-// when provided and fall back to the real client IP from X-Forwarded-For.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: (req) => {
-    const role = getTokenRole(req.cookies?.token);
-    return role === 'admin' || role === 'super admin' ? 1000 : 100;
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many auth attempts. Please try again after 15 minutes.' },
-  keyGenerator: (req) => {
-    const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
-    // Admins and super admins get a separate, much higher bucket.
-    const token = req.cookies?.token;
-    const role = getTokenRole(token);
-    if (role === 'admin' || role === 'super admin') {
-      return `auth-admin:${token}`;
-    }
-    // Use the real client IP (Cloudflare-aware) instead of the Docker gateway IP.
-    const clientIp = getClientIp(req);
-    const ip = ipKeyGenerator(clientIp);
-    return email ? `auth:${email}:${ip}` : `auth:${ip}`;
-  },
-});
+// Bucketing and admin tiers are handled in middleware/rateLimiters.js:
+// verified admins get a generous finite tier; forged cookies get nothing.
 
-// 🛡️ SECURITY: strict registration limiter. The general authLimiter keys on
-// email:IP, so a fraudster rotating disposable emails gets a fresh bucket per
-// address — useless against mass fake-account creation. This limiter keys on
-// IP ONLY with a hard cap, so rotating throwaway addresses doesn't help.
-// 10 per 30 min: generous enough for shared-IP legit users (CGNAT, offices),
-// still throttles bulk signup; the disposable blocklist catches the rest.
-const registrationLimiter = rateLimit({
-  windowMs: 30 * 60 * 1000, // 30 minutes
-  max: 10, // max 10 new-account attempts per IP per 30 minutes
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many registration attempts from this network. Please try again later.',
-  },
-  keyGenerator: (req) => {
-    const role = getTokenRole(req.cookies?.token);
-    if (role === 'admin' || role === 'super admin') {
-      return `auth-admin:${req.cookies?.token}`;
-    }
-    return `register:${ipKeyGenerator(getClientIp(req))}`;
-  },
-});
+// 🛡️ SECURITY: strict registration limiter — definition lives in
+// middleware/rateLimiters.js. Keys on IP only with a hard 10/30min cap so
+// disposable-email rotation can't mass-create accounts.
 
 router.post("/auth/register", registrationLimiter, authLimiter, authController.registerUser);
 
