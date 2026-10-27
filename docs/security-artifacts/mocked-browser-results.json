@@ -1,0 +1,7 @@
+{
+  "storefrontForgotPassword": true,
+  "storefrontFragmentReset": true,
+  "adminMfaChallenge": true,
+  "uncaughtBrowserErrors": 0,
+  "allApiAndProviderTrafficMocked": true
+}

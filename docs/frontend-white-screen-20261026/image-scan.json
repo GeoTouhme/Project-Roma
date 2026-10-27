@@ -1,0 +1,5 @@
+{
+  "image": "project-roma-customer-panel:react-runtime-docker-fix-20261026",
+  "scanner": "Trivy 0.76.1",
+  "highCriticalFindings": 0
+}

@@ -277,7 +277,7 @@ const Deals = () => {
                   type="number"
                   min={1}
                   value={form.quantity}
-                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                  onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
                   required
                 />
               </div>

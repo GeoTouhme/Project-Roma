@@ -17,7 +17,6 @@ service.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.log("error = ", error);
     return Promise.reject(error);
   }
 );
@@ -87,12 +86,14 @@ service.interceptors.response.use(
 
     // 🛡️ Auto-refresh: on 401 attempt one silent token refresh then replay.
     // _retried guards against an infinite loop if /auth/refresh itself 401s.
+    const recoveryRequest = originalRequest?.url?.includes('/reset-password')
+      || originalRequest?.url?.includes('/forget-password');
     if (
       error.response?.status === 401 &&
       !originalRequest._retried &&
       // Never retry the refresh or login endpoints themselves.
       !originalRequest.url?.includes("/auth/refresh") &&
-      !originalRequest.url?.includes("/auth/login")
+      !originalRequest.url?.includes("/auth/login") && !recoveryRequest
     ) {
       originalRequest._retried = true;
 
@@ -111,7 +112,7 @@ service.interceptors.response.use(
     }
 
     const normalized = normalizeError(error);
-    console.log("API error:", normalized);
+    if (!recoveryRequest) console.log("API error:", normalized);
     return Promise.reject(normalized);
   }
 );

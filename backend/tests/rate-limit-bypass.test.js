@@ -18,11 +18,11 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const jwt = require('jsonwebtoken');
 
 const SECRET = 'test-jwt-secret-for-rate-limit-regression';
 process.env.JWT_SECRET = SECRET;
 process.env.NODE_ENV = 'test';
+const { signAccessToken, signMfaTempToken } = require('../src/utils/authTokens');
 
 const {
   getVerifiedTokenRole,
@@ -38,15 +38,15 @@ const ADMIN_ID = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const CUSTOMER_ID = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 
 function signAdminToken() {
-  return jwt.sign({ _id: ADMIN_ID, email: 'admin@balport.test', role: 'admin' }, SECRET, { expiresIn: '15m' });
+  return signAccessToken({ _id: ADMIN_ID, email: 'admin@balport.test', role: 'admin' });
 }
 
 function signSuperAdminToken() {
-  return jwt.sign({ _id: ADMIN_ID, email: 'root@balport.test', role: 'super admin' }, SECRET, { expiresIn: '15m' });
+  return signAccessToken({ _id: ADMIN_ID, email: 'root@balport.test', role: 'super admin' });
 }
 
 function signCustomerToken() {
-  return jwt.sign({ _id: CUSTOMER_ID, email: 'user@balport.test', role: 'user' }, SECRET, { expiresIn: '15m' });
+  return signAccessToken({ _id: CUSTOMER_ID, email: 'user@balport.test', role: 'user' });
 }
 
 /** The original F6 attack: unsigned { role: 'admin' } payload as a cookie. */
@@ -61,17 +61,20 @@ function forgedSuperAdminCookie() {
 
 /** Expired admin token signed with the CORRECT secret. */
 function expiredAdminToken() {
-  return jwt.sign({ _id: ADMIN_ID, email: 'admin@balport.test', role: 'admin' }, SECRET, { expiresIn: -600 });
+  const now = Date.now;
+  Date.now = () => now() - 60 * 60 * 1000;
+  try { return signAdminToken(); } finally { Date.now = now; }
 }
 
 /** Admin token signed with the WRONG secret — valid structure, bad signature. */
 function wrongSecretAdminToken() {
-  return jwt.sign({ _id: ADMIN_ID, email: 'admin@balport.test', role: 'admin' }, 'wrong-secret', { expiresIn: '15m' });
+  process.env.JWT_SECRET = 'wrong-secret';
+  try { return signAdminToken(); } finally { process.env.JWT_SECRET = SECRET; }
 }
 
 /** MFA temp token: validly signed but carries no role claim. */
 function mfaTempToken() {
-  return jwt.sign({ _id: ADMIN_ID, mfa: true }, SECRET, { expiresIn: '5m' });
+  return signMfaTempToken(ADMIN_ID);
 }
 
 function makeReq({ cookie } = {}) {

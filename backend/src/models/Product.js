@@ -109,6 +109,7 @@ const productSchema = new mongoose.Schema(
       },
     ],
 
+    restockedOrders: { type: [String], select: false, default: undefined },
     colors: [String],
     sizes: [String],
   },

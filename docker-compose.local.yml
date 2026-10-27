@@ -83,7 +83,7 @@ services:
     container_name: balport-customer-panel
     restart: unless-stopped
     ports:
-      - "0.0.0.0:3000:80"
+      - "127.0.0.1:3000:80"
     networks:
       - balport-network
 

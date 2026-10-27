@@ -12,7 +12,7 @@ const Deal = require('../models/Deal');
 const MixBundle = require('../models/MixBundle');
 const Settings = require('../models/settings');
 const { safeObjectId, safeNumber } = require('./validators');
-const { applyMixBundleDeals } = require('./mixBundle');
+const { applyMixBundleDeals, productMatchesBundle } = require('./mixBundle');
 
 const alcoholCategorySlugs = [
   'beer', 'brandy', 'gin', 'liqueur', 'rum', 'seltzers-and-more',
@@ -29,7 +29,7 @@ function round2(value) {
  * "Buy N for $X" deals on specific products.
  */
 async function applyBundleDealDiscounts(items) {
-  if (!Array.isArray(items) || items.length === 0) return 0;
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100 || items.some(item => !item || typeof item !== 'object')) return 0;
 
   const now = new Date();
   const deals = await Deal.find({
@@ -89,10 +89,19 @@ async function applyBundleDealDiscounts(items) {
  * @returns {Promise<Object>} Totals plus updatedItems and products for downstream use.
  */
 async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfillmentType = 'delivery', deliveryZip }) {
-  if (!Array.isArray(items) || items.length === 0) {
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100 || items.some(item => !item || typeof item !== 'object')) {
     throw new Error('Please Provide Item(s)');
   }
 
+  const quantityOf = value => {
+    const n = value === undefined ? 1 : Number(value);
+    if (!Number.isInteger(n) || n < 1 || n > 100) throw new Error('Invalid item quantity');
+    return n;
+  };
+  for (const item of items) {
+    quantityOf(item.quantity);
+    if (item.type === 'bundle' && (!Array.isArray(item.products) || !item.products.length || item.products.length > 100)) throw new Error('Invalid bundle contents');
+  }
   const bundleItems = items.filter((item) => item.type === 'bundle');
   const regularItems = items.filter((item) => item.type !== 'bundle');
   const bundleProductPids = bundleItems.flatMap((item) =>
@@ -103,7 +112,7 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
     .map((item) => {
       const rawPid = item.pid || item._id || item.id;
       const pid = safeObjectId(rawPid);
-      const quantity = Math.max(1, Math.floor(safeNumber(item.quantity, 1)));
+      const quantity = quantityOf(item.quantity);
       return { ...item, pid, quantity };
     })
     .filter((item) => item.pid);
@@ -161,7 +170,7 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
       name: item.name || product.name,
       brand: item.brand || product.brand,
       slug: item.slug || product.slug,
-      price: item.price ?? product.price,
+      price: product.price,
       priceSale: product.priceSale,
       available: product.available,
       size: item.size || product.size || null,
@@ -188,6 +197,8 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
     const rawBundleId = safeObjectId(bundle.pid || bundle._id || bundle.id);
     const bundleIdStr = rawBundleId?.toString();
     let authoritativeBundlePrice = null;
+    let definition;
+    let isMix = false;
     let bundleName = bundle.name || 'Bundle';
 
     const matchedDeal = dbDeals.find((d) => d._id.toString() === bundleIdStr);
@@ -197,6 +208,7 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
         (!matchedDeal.startAt || new Date(matchedDeal.startAt) <= now) &&
         (!matchedDeal.expiresAt || new Date(matchedDeal.expiresAt) >= now);
       if (isDealValid) {
+        definition = matchedDeal;
         authoritativeBundlePrice = safeNumber(matchedDeal.bundlePrice, 0);
         bundleName = matchedDeal.name || bundleName;
       }
@@ -210,6 +222,8 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
           (!matchedMixBundle.startAt || new Date(matchedMixBundle.startAt) <= now) &&
           (!matchedMixBundle.expiresAt || new Date(matchedMixBundle.expiresAt) >= now);
         if (isMixValid) {
+          definition = matchedMixBundle;
+          isMix = true;
           authoritativeBundlePrice = safeNumber(matchedMixBundle.bundlePrice, 0);
           bundleName = matchedMixBundle.name || bundleName;
         }
@@ -220,16 +234,20 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
       throw new Error(`Bundle is invalid or expired: ${bundle.name || bundle.pid || bundle.id}`);
     }
 
+    const selectedCount = bundle.products.reduce((sum, p) => sum + quantityOf(p.quantity), 0);
+    if (selectedCount !== (isMix ? definition.requiredQty : definition.quantity)) throw new Error('Incorrect bundle quantity');
     const bundleProducts = (bundle.products || [])
       .map((p) => {
         const product = products.find(
           (prod) => prod._id.toString() === safeObjectId(p.pid || p._id || p.id)?.toString()
         );
-        if (!product) return null;
+        if (!product || product.status === 'disabled' || product.status === 'inactive' || product.available <= 0) throw new Error('Bundle product unavailable');
+        if (isMix ? !productMatchesBundle(product, definition) : !definition.productIds.some(id => id.toString() === product._id.toString())) throw new Error('Product does not qualify for bundle');
         if (product.category && alcoholCategorySlugs.includes(product.category.slug)) {
           containsAlcohol = true;
         }
         return {
+          quantity: quantityOf(p.quantity),
           pid: product._id,
           name: product.name,
           slug: product.slug,
@@ -242,7 +260,7 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
       })
       .filter(Boolean);
 
-    const bundleQty = Math.max(1, Math.floor(safeNumber(bundle.quantity, 1)));
+    const bundleQty = quantityOf(bundle.quantity);
     const bundleLineTotal = round2(authoritativeBundlePrice * bundleQty);
 
     updatedItems.push({
@@ -257,6 +275,18 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
     });
   }
 
+  const requiredStock = new Map();
+  for (const item of updatedItems) {
+    for (const sub of item.type === 'bundle' ? item.products : [item]) {
+      const id = sub.pid.toString();
+      const qty = item.type === 'bundle' ? sub.quantity * item.quantity : item.quantity;
+      requiredStock.set(id, (requiredStock.get(id) || 0) + qty);
+    }
+  }
+  for (const [id, qty] of requiredStock) {
+    const product = products.find(p => p._id.toString() === id);
+    if (!product || qty > product.available) throw new Error('Insufficient inventory');
+  }
   const grandTotal = round2(updatedItems.reduce((acc, item) => acc + (item.total || 0), 0));
   const dealDiscount = round2(await applyBundleDealDiscounts(updatedItems));
   const mixDiscount = round2(await applyMixBundleDeals(updatedItems));

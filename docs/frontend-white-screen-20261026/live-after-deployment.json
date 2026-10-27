@@ -1,0 +1,329 @@
+{
+  "base": "https://balportliquors.com",
+  "checks": [
+    "homepage loading skeleton renders",
+    "desktop homepage renders real catalog products",
+    "mobile homepage renders real catalog products",
+    "/products renders",
+    "/deals renders",
+    "/login renders",
+    "/forgot-password renders"
+  ],
+  "productCards": 1,
+  "uncaughtErrors": [],
+  "apiResponses": [
+    {
+      "path": "/api/store/status",
+      "status": 200
+    },
+    {
+      "path": "/api/settings",
+      "status": 200
+    },
+    {
+      "path": "/api/home/categories",
+      "status": 200
+    },
+    {
+      "path": "/api/coupons/active",
+      "status": 200
+    },
+    {
+      "path": "/api/deals/active",
+      "status": 200
+    },
+    {
+      "path": "/api/mix-bundles/active",
+      "status": 200
+    },
+    {
+      "path": "/api/images/ChatGPT_Image_Aug_14_2026_03_43_28_PM_06568677.png",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Photoroom-20240703_121645_5ab5ab42.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/FINAL_4_2c3b8a81.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Lays-Classic-Potato-Chips-45g_0b3745fd.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Mixers_Aperol_6b276a73.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/008660007322_0_white.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/019649518005_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/reference-1-and-reference-2-are-the-exact-brand-ki_1__84658917.png",
+      "status": 200
+    },
+    {
+      "path": "/api/images/41508015_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/000002754154_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Gemini_Generated_Image_7otgg67otgg67otg_5ea0b429.png",
+      "status": 200
+    },
+    {
+      "path": "/api/home/products/best-selling",
+      "status": 200
+    },
+    {
+      "path": "/api/home/products/featured",
+      "status": 200
+    },
+    {
+      "path": "/api/home/products/deals",
+      "status": 200
+    },
+    {
+      "path": "/api/images/439-French-Red-Wine-Regions-Selection_edcc3a41.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/images_993b3e4d.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/images1_97f6f3d5.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/3f1e504a2af9a4d98edaa4984afa16c5_087163db.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100132453_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Lays-Classic-Potato-Chips-45g_0b3745fd.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/store/status",
+      "status": 200
+    },
+    {
+      "path": "/api/settings",
+      "status": 200
+    },
+    {
+      "path": "/api/home/categories",
+      "status": 200
+    },
+    {
+      "path": "/api/coupons/active",
+      "status": 200
+    },
+    {
+      "path": "/api/mix-bundles/active",
+      "status": 200
+    },
+    {
+      "path": "/api/deals/active",
+      "status": 200
+    },
+    {
+      "path": "/api/images/ChatGPT_Image_Aug_14_2026_03_43_28_PM_06568677.png",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Photoroom-20240703_121645_5ab5ab42.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/000002754154_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/41508015_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/019649518005_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/images1_97f6f3d5.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/images_993b3e4d.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/439-French-Red-Wine-Regions-Selection_edcc3a41.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/3f1e504a2af9a4d98edaa4984afa16c5_087163db.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Lays-Classic-Potato-Chips-45g_0b3745fd.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/008660007322_0_white.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/FINAL_4_2c3b8a81.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Gemini_Generated_Image_7otgg67otgg67otg_5ea0b429.png",
+      "status": 200
+    },
+    {
+      "path": "/api/images/Mixers_Aperol_6b276a73.webp",
+      "status": 200
+    },
+    {
+      "path": "/api/images/reference-1-and-reference-2-are-the-exact-brand-ki_1__84658917.png",
+      "status": 200
+    },
+    {
+      "path": "/api/home/products/best-selling",
+      "status": 200
+    },
+    {
+      "path": "/api/home/products/featured",
+      "status": 200
+    },
+    {
+      "path": "/api/home/products/deals",
+      "status": 200
+    },
+    {
+      "path": "/api/store/status",
+      "status": 200
+    },
+    {
+      "path": "/api/all-categories",
+      "status": 201
+    },
+    {
+      "path": "/api/coupons/active",
+      "status": 200
+    },
+    {
+      "path": "/api/products",
+      "status": 201
+    },
+    {
+      "path": "/api/images/8801100132453_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130961_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100132262_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130589_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130572_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130619_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130534_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130527_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130510_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100130503_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8801100129729_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/images/8437012218772_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/store/status",
+      "status": 200
+    },
+    {
+      "path": "/api/coupons/active",
+      "status": 200
+    },
+    {
+      "path": "/api/products",
+      "status": 201
+    },
+    {
+      "path": "/api/images/8801100132453_0.jpg",
+      "status": 200
+    },
+    {
+      "path": "/api/store/status",
+      "status": 200
+    },
+    {
+      "path": "/api/coupons/active",
+      "status": 200
+    },
+    {
+      "path": "/api/store/status",
+      "status": 200
+    }
+  ],
+  "blockedWrites": [
+    "/api/track-view",
+    "/api/track-view",
+    "/api/track-view",
+    "/api/track-view",
+    "/api/track-view"
+  ],
+  "consoleWarnings": [
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "[GSI_LOGGER]: Provided button width is invalid: 100%",
+    "Failed to load resource: net::ERR_FAILED"
+  ],
+  "apiResponsesMocked": false
+}

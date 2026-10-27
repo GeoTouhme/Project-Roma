@@ -19,7 +19,9 @@
  */
 
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../utils/authTokens');
+const { MongoRateStore } = require('./mongoRateStore');
+const persistent = prefix => process.env.NODE_ENV === 'production' ? { store: new MongoRateStore(prefix) } : {};
 const { getClientIp } = require('../utils/getClientIp');
 
 /**
@@ -34,7 +36,7 @@ const { getClientIp } = require('../utils/getClientIp');
 function getVerifiedTokenRole(token) {
   if (typeof token !== 'string' || token.length === 0) return null;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyAccessToken(token);
     if (decoded && typeof decoded.role === 'string') return decoded.role;
   } catch {
     // Invalid signature, expired, or malformed — no privileged treatment.
@@ -56,6 +58,7 @@ function isAdminRole(role) {
 //     Invalid tokens must NOT get per-token buckets: an attacker rotating
 //     garbage tokens would otherwise rotate buckets and evade the limit.
 const createLimiter = (baseMax, windowMinutes, messagePrefix) => rateLimit({
+  ...persistent(`api:${baseMax}:${windowMinutes}`),
   windowMs: windowMinutes * 60 * 1000,
   max: baseMax,
   standardHeaders: true,
@@ -86,6 +89,7 @@ const createLimiter = (baseMax, windowMinutes, messagePrefix) => rateLimit({
 // Verified admins get a 1000-attempt tier (generous for real admin tooling,
 // useless to forgers); everyone else gets 100 / 15 min.
 const authLimiter = rateLimit({
+  ...persistent("auth"),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: (req) => {
     const role = getVerifiedTokenRole(req.cookies?.token);
@@ -118,6 +122,7 @@ const authLimiter = rateLimit({
 // Forged admin cookies do NOT get a token-keyed bucket here — only verified
 // admin tokens do (admins rarely register accounts, and 10/30min is plenty).
 const registrationLimiter = rateLimit({
+  ...persistent("register"),
   windowMs: 30 * 60 * 1000, // 30 minutes
   max: 10, // max 10 new-account attempts per IP per 30 minutes
   standardHeaders: true,

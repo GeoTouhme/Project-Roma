@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -36,6 +36,17 @@ const GoogleSignInButton = ({ text = "signin_with" }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const buttonRef = useRef(null);
+  const [tempToken, setTempToken] = useState('');
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  const finishSignIn = useCallback((res) => {
+    if (!res.user) throw new Error('Login failed. Please try again.');
+    localStorage.setItem('user', JSON.stringify(res.user));
+    dispatch(login());
+    toast.success(res.message || 'Signed in with Google', { duration: 2000 });
+    navigate('/');
+  }, [dispatch, navigate]);
 
   const handleCredentialResponse = useCallback(
     async (response) => {
@@ -46,10 +57,12 @@ const GoogleSignInButton = ({ text = "signin_with" }) => {
           return;
         }
 
-        localStorage.setItem("user", JSON.stringify(res.user));
-        dispatch(login(res.token));
-        toast.success(res.message || "Signed in with Google", { duration: 2000 });
-        navigate("/");
+        if (res.mfaRequired) {
+          setTempToken(res.tempToken || '');
+          setCode('');
+          return;
+        }
+        finishSignIn(res);
       } catch (error) {
         console.error("Google sign-in error:", error);
         toast.error(error?.message || "Google sign-in failed. Please try again.", {
@@ -57,8 +70,22 @@ const GoogleSignInButton = ({ text = "signin_with" }) => {
         });
       }
     },
-    [dispatch, navigate]
+    [finishSignIn]
   );
+
+  const verifyMfa = async (event) => {
+    event.preventDefault();
+    setVerifying(true);
+    try {
+      const res = await AuthService.verifyMfa({ tempToken, code });
+      if (!res.success) throw new Error(res.message || 'Invalid MFA code');
+      finishSignIn(res);
+    } catch (error) {
+      toast.error(error.message || 'Unable to verify code. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
@@ -102,7 +129,16 @@ const GoogleSignInButton = ({ text = "signin_with" }) => {
     return null;
   }
 
-  return <div ref={buttonRef} className="w-full" />;
+  return <>
+    <div ref={buttonRef} className={tempToken ? 'hidden' : 'w-full'} />
+    {tempToken && <form onSubmit={verifyMfa} className="space-y-3">
+      <label className="block">Authenticator code
+        <input className="block w-full border rounded p-2" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ''))} />
+      </label>
+      <button className="w-full rounded bg-[#B5223B] text-white p-3 disabled:opacity-50" disabled={verifying || code.length !== 6} type="submit">{verifying ? 'Verifying…' : 'Verify code'}</button>
+      <button className="underline" type="button" onClick={() => { setTempToken(''); setCode(''); }}>Back to Google sign-in</button>
+    </form>}
+  </>;
 };
 
 export default GoogleSignInButton;

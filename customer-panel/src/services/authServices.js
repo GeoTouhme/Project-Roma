@@ -2,6 +2,9 @@ import fetch from "../interceptor/fetchInterceptor";
 
 const AuthService = {};
 
+AuthService.forgetPassword = data => fetch({ url: 'auth/forget-password', method: 'post', data });
+AuthService.resetPassword = data => fetch({ url: 'auth/reset-password', method: 'post', data });
+
 AuthService.login = function (data) {
   return fetch({
     url: "auth/login",

@@ -8,6 +8,7 @@ const sendEmail = require('../utils/mailer');
 const { emitToAdmins } = require('../utils/socketManager');
 const { assertAcceptableEmail } = require('../utils/emailGuard');
 const { getUser } = require('../config/getUser');
+const { signEmailVerificationToken } = require('../utils/authTokens');
 
 const getOneUser = async (req, res) => {
   try {
@@ -153,12 +154,7 @@ const updateUser = async (req, res) => {
     // address so the re-verification flow mirrors registration.
     if (normalizedNewEmail && normalizedNewEmail !== normalizedOldEmail) {
       try {
-        const jwt = require('jsonwebtoken');
-        const verificationToken = jwt.sign(
-          { email: normalizedNewEmail, purpose: 'email-verify' },
-          process.env.JWT_SECRET,
-          { expiresIn: '1h' }
-        );
+        const verificationToken = signEmailVerificationToken(normalizedNewEmail);
         const htmlFilePath = path.join(process.cwd(), 'src/email-templates', 'otp.html');
         let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
         const verificationLink = `${process.env.FRONTEND_URL || 'https://balportliquors.com'}/verify-email?token=${encodeURIComponent(verificationToken)}`;
@@ -255,13 +251,14 @@ const changePassword = async (req, res) => {
           .status(400)
           .json({ success: false, message: 'Please enter a new password' });
       }
+      if (typeof newPassword !== 'string' || newPassword.length < 8 || Buffer.byteLength(newPassword, 'utf8') > 72) return res.status(400).json({ success: false, message: 'Password must have at least 8 characters and at most 72 bytes.' });
       // Hash the new password before updating
       const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
       // Update the password with the hashed version
       const updatedUser = await User.findByIdAndUpdate(
         uid,
-        { password: hashedNewPassword },
+        { $set: { password: hashedNewPassword, refreshTokenHash: null, refreshTokenExpiresAt: null, refreshTokenVersion: 0 }, $unset: { authSessionId: '' } },
         {
           new: true,
           runValidators: true,

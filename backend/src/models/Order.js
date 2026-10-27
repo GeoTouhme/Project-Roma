@@ -55,7 +55,7 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'payment_failed', 'accepted', 'shipped', 'delivered', 'cancelled', 'disputed', 'refunded'],
+      enum: ['denied', 'pending', 'processing', 'payment_failed', 'accepted', 'shipped', 'delivered', 'cancelled', 'disputed', 'refunded'],
       default: 'pending',
     },
     paymentStatus: {
@@ -63,6 +63,8 @@ const OrderSchema = new mongoose.Schema(
       enum: ['pending', 'succeeded', 'failed', 'refunded', 'disputed'],
       default: 'pending',
     },
+    cancellationStartedAt: Date,
+    cancellationEffectsPending: { type: Boolean, default: false },
     refundedAmount: {
       type: Number,
       default: 0,

@@ -25,9 +25,7 @@ const Login = () => {
     setIsSubmitting(true);
     try {
       const result = await login(email, password);
-      console.log("[Login] login result:", JSON.stringify(result));
       if (result.mfaRequired && result.tempToken) {
-        console.log("[Login] MFA required — switching to code entry");
         setTempToken(result.tempToken);
         setShowMfa(true);
       }
@@ -40,7 +38,6 @@ const Login = () => {
     e.preventDefault();
     const code = mfaCode.replace(/\s/g, "");
     if (code.length !== 6) {
-      console.log("[Login] MFA code too short:", code.length);
       return;
     }
     setIsSubmitting(true);

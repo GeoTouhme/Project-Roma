@@ -1,0 +1,30 @@
+{
+  "backend": {
+    "image": "project-roma-backend:security-20261026-final",
+    "id": "sha256:085cfa2bf250402e3f8d685df33d52753a48127ca24cc07f54192163f7e36391",
+    "scanner": "Trivy 0.76.1",
+    "highCriticalFindings": 0,
+    "date": "2026-10-26"
+  },
+  "customer-panel": {
+    "image": "project-roma-customer-panel:security-20261026-final",
+    "id": "sha256:2f054b73b63d20ec35952910a7a115ff7c2274ed884f49d9ba277948636ca55f",
+    "scanner": "Trivy 0.76.1",
+    "highCriticalFindings": 0,
+    "date": "2026-10-26"
+  },
+  "admin-panel": {
+    "image": "project-roma-admin-panel:security-20261026-final",
+    "id": "sha256:b7ac2bebb2fc43724081fb83e553ef3988d71fd0108fd43b5fc65a6ddbc907f7",
+    "scanner": "Trivy 0.76.1",
+    "highCriticalFindings": 0,
+    "date": "2026-10-26"
+  },
+  "image-fallback": {
+    "image": "project-roma-image-fallback:security-20261026-final",
+    "id": "sha256:39a9d0cfa5e8e99964917786f6fec2fc106fb26ee6291abbc27b297ad3303b44",
+    "scanner": "Trivy 0.76.1",
+    "highCriticalFindings": 0,
+    "date": "2026-10-26"
+  }
+}

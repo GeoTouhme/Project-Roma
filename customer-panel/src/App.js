@@ -5,6 +5,7 @@ import "slick-carousel/slick/slick-theme.css";
 import "./App.css";
 import PublicRoutes from "./routes/PublicRoutes";
 import AuthenticatedRoutes from "./routes/AuthenticatedRoutes";
+import PasswordRecovery from "./pages/auth/PasswordRecovery";
 import { Provider, useSelector } from "react-redux";
 import store from "./redux/store";
 import { Toaster } from "react-hot-toast";
@@ -24,6 +25,7 @@ const PageTracker = () => {
 
   useEffect(() => {
     const path = location.pathname;
+    if (path === '/auth/reset-password' || path === '/forgot-password') return;
     let pageType = 'page';
     let slug = path;
 
@@ -60,6 +62,8 @@ const AppRoutes = () => {
     <>
       <PageTracker />
       <Routes>
+        <Route path="/forgot-password" element={<PasswordRecovery />} />
+        <Route path="/auth/reset-password" element={<PasswordRecovery />} />
         {isAuthenticated && <Route path="/*" element={<AuthenticatedRoutes />} />}
         <Route path="/*" element={<PublicRoutes />} />
       </Routes>

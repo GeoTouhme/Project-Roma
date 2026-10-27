@@ -77,6 +77,7 @@ const getOrdersByUid = async (req, res) => {
 
 const UpdateRoleByAdmin = async (req, res) => {
 	try {
+        if (req.user?.role !== "super admin") return res.status(403).json({ success: false, message: "Only a Super Admin can change user roles." });
 		const id = req.params.id;
 		const userToUpdate = await User.findById(id);
 
@@ -180,17 +181,10 @@ const updateUserByAdmin = async (req, res) => {
 			return res.status(403).json({ success: false, message: "Only a Super Admin can change user roles." });
 		}
 
-		// Prevent removing the last super admin
-		if (
-			data.role !== undefined &&
-			userToUpdate.role === "super admin" &&
-			data.role !== "super admin"
-		) {
-			const superAdminCount = await User.countDocuments({ role: "super admin" });
-			if (superAdminCount <= 1) {
-				return res.status(403).json({ success: false, message: "Cannot demote the last Super Admin." });
-			}
-		}
+        // Super-admin removal requires a separate controlled ownership-transfer procedure.
+        if (userToUpdate.role === 'super admin' && data.role !== undefined && data.role !== 'super admin') {
+            return res.status(403).json({ success: false, message: 'Super Admin demotion requires an ownership transfer.' });
+        }
 
 		const updatedUser = await User.findByIdAndUpdate(
 			id,

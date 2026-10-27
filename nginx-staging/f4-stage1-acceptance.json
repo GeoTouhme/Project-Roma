@@ -1,0 +1,258 @@
+[
+  {
+    "test": "public balportliquors.com",
+    "status": "403",
+    "challenge": true,
+    "exit": 0
+  },
+  {
+    "test": "direct balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "forged balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "public www.balportliquors.com",
+    "status": "403",
+    "challenge": true,
+    "exit": 0
+  },
+  {
+    "test": "direct www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "forged www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "public admin.balportliquors.com",
+    "status": "403",
+    "challenge": true,
+    "exit": 0
+  },
+  {
+    "test": "direct admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "forged admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "public api.balportliquors.com",
+    "status": "200",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "direct api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "forged api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed balportliquors.com -> balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed balportliquors.com -> www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed balportliquors.com -> admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed balportliquors.com -> api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed www.balportliquors.com -> balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed www.balportliquors.com -> www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed www.balportliquors.com -> admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed www.balportliquors.com -> api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed admin.balportliquors.com -> balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed admin.balportliquors.com -> www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed admin.balportliquors.com -> admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed admin.balportliquors.com -> api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed api.balportliquors.com -> balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed api.balportliquors.com -> www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed api.balportliquors.com -> admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed api.balportliquors.com -> api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed plutus.balportliquors.com -> balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed plutus.balportliquors.com -> www.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed plutus.balportliquors.com -> admin.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "mixed plutus.balportliquors.com -> api.balportliquors.com",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "direct unknown host",
+    "status": "403",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "public login",
+    "status": "403",
+    "challenge": true,
+    "exit": 0
+  },
+  {
+    "test": "public socket API",
+    "status": "200",
+    "challenge": false,
+    "exit": 0,
+    "body": "0{\"sid\":\"iJBI--xzgKmaSl_rAAAA\",\"upgrades\":[\"websocket\"],\"pingInterval\":25000,\"pingTimeout\":20000,\"maxPayload\":1000000}"
+  },
+  {
+    "test": "public socket storefront",
+    "status": "200",
+    "challenge": false,
+    "exit": 0,
+    "body": "0{\"sid\":\"K6JdJH0-_L12evkfAAAB\",\"upgrades\":[\"websocket\"],\"pingInterval\":25000,\"pingTimeout\":20000,\"maxPayload\":1000000}"
+  },
+  {
+    "test": "backend socket baseline",
+    "status": "200",
+    "challenge": false,
+    "exit": 0,
+    "body": "0{\"sid\":\"HuH0eD4tkk8L8RRLAAAC\",\"upgrades\":[\"websocket\"],\"pingInterval\":25000,\"pingTimeout\":20000,\"maxPayload\":1000000}"
+  },
+  {
+    "test": "public stripe webhook invalid signature",
+    "status": "200",
+    "challenge": false,
+    "exit": 0,
+    "body": "{\"received\":true}"
+  },
+  {
+    "test": "Plutus HTTPS",
+    "status": "200",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "Plutus ACME nonexistent HTTP",
+    "status": "301",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "backend status",
+    "status": "200",
+    "challenge": false,
+    "exit": 0
+  },
+  {
+    "test": "origin IPv6",
+    "status": "000",
+    "challenge": false,
+    "exit": 7
+  }
+]

@@ -1,0 +1,70 @@
+{
+  "time": "2026-10-26T09:53:16.428379+00:00",
+  "containers": {
+    "backend": {
+      "image": "sha256:085cfa2bf250402e3f8d685df33d52753a48127ca24cc07f54192163f7e36391",
+      "startedAt": "2026-10-26T09:38:22.268724084Z",
+      "user": "1000:1000",
+      "readOnlyRoot": true,
+      "capsDropped": [
+        "ALL"
+      ],
+      "ips": {
+        "project-roma_balport-network": "172.18.0.6",
+        "project-roma_database-private": "172.30.71.3"
+      }
+    },
+    "mongodb": {
+      "image": "sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3",
+      "startedAt": "2026-10-26T09:41:58.609363732Z",
+      "user": "999:999",
+      "readOnlyRoot": true,
+      "capsDropped": [
+        "ALL"
+      ],
+      "ips": {
+        "project-roma_database-private": "172.30.71.2"
+      }
+    },
+    "customer-panel": {
+      "image": "sha256:2f054b73b63d20ec35952910a7a115ff7c2274ed884f49d9ba277948636ca55f",
+      "startedAt": "2026-10-26T09:52:01.745716498Z",
+      "user": "",
+      "readOnlyRoot": true,
+      "capsDropped": [
+        "ALL"
+      ],
+      "ips": {
+        "project-roma_balport-network": "172.18.0.3"
+      }
+    },
+    "admin-panel": {
+      "image": "sha256:b7ac2bebb2fc43724081fb83e553ef3988d71fd0108fd43b5fc65a6ddbc907f7",
+      "startedAt": "2026-10-26T09:52:02.531707039Z",
+      "user": "",
+      "readOnlyRoot": true,
+      "capsDropped": [
+        "ALL"
+      ],
+      "ips": {
+        "project-roma_balport-network": "172.18.0.4"
+      }
+    },
+    "image-fallback": {
+      "image": "sha256:39a9d0cfa5e8e99964917786f6fec2fc106fb26ee6291abbc27b297ad3303b44",
+      "startedAt": "2026-10-26T09:52:03.241683753Z",
+      "user": "",
+      "readOnlyRoot": true,
+      "capsDropped": [
+        "ALL"
+      ],
+      "ips": {
+        "project-roma_balport-network": "172.18.0.5"
+      }
+    }
+  },
+  "backendTests": 84,
+  "frontendTests": 6,
+  "mongoVolumePreserved": true,
+  "sourceAndOriginConfigHashesVerified": true
+}

@@ -1,0 +1,29 @@
+{
+  "pausedAt": "2026-10-25T09:07:42Z",
+  "backendTests": 83,
+  "frontendTests": 6,
+  "rolloutStarted": false,
+  "images": {
+    "backend": {
+      "image": "project-roma-backend:security-candidate-20261025",
+      "id": "sha256:c2d957e428d71dfb7d6478235a7fd1ecfbe68236bf86a3a1fcadd5abfaadf157",
+      "highCriticalFindings": {},
+      "scanScope": "HIGH,CRITICAL",
+      "scanner": "Trivy 0.76.1"
+    },
+    "customer-panel": {
+      "image": "project-roma-customer-panel:security-candidate-20261025",
+      "id": "sha256:a3eae14b704b659d9c34791e8aa85861b5423e9325fa61219c9b4765e17db591",
+      "highCriticalFindings": {},
+      "scanScope": "HIGH,CRITICAL",
+      "scanner": "Trivy 0.76.1"
+    },
+    "admin-panel": {
+      "image": "project-roma-admin-panel:security-candidate-20261025",
+      "id": "sha256:6b2870e2386ca441f1c7e2b85b997f26789001da20acd3fe6e6564d0c6cb95f2",
+      "highCriticalFindings": {},
+      "scanScope": "HIGH,CRITICAL",
+      "scanner": "Trivy 0.76.1"
+    }
+  }
+}

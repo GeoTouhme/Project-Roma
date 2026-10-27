@@ -3,16 +3,16 @@
 # Or enable permanently in /etc/docker/daemon.json:
 #   { "features": { "buildkit": true } }
 #
-# Secrets are sourced from /etc/project-roma/.env (chmod 600, owned by root).
-# A symlink at /var/www/Project-Roma/.env points to that file so Docker Compose
-# automatically loads the variables for both substitution and container env.
-# For local dev: create .env.local in this directory and run:
-#   docker compose --env-file .env.local up --build
-# The backend/.env.example file lists every variable this compose file expects.
+# Production deploys use the protected environment and frozen image/hardening
+# manifests under /etc/project-roma:
+#   sudo /usr/local/sbin/roma-compose up -d --no-build --pull never
+# The existing production bridge is external in the hardening overlay so Compose
+# preserves its active endpoints. Development must use separate credentials.
 
 services:
   mongodb:
-    image: mongo:latest
+    image: mongo@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
+    command: ["mongod", "--auth", "--bind_ip_all"]
     container_name: balport-mongo
     restart: unless-stopped
     ports:
@@ -20,7 +20,8 @@ services:
     volumes:
       - mongodb_data:/data/db
     networks:
-      - balport-network
+      database-private:
+        ipv4_address: 172.30.71.2
 
   backend:
     build: ./backend
@@ -43,6 +44,7 @@ services:
       - CURRENCY=${CURRENCY:-usd}
       - JWT_SECRET=${JWT_SECRET}
       - MFA_SECRET_KEY=${MFA_SECRET_KEY:-${JWT_SECRET}}
+      - MFA_PREVIOUS_SECRET_KEY=${MFA_PREVIOUS_SECRET_KEY:-}
       - INITIAL_ADMIN_EMAIL=${INITIAL_ADMIN_EMAIL:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://balportliquors.com,https://www.balportliquors.com,https://admin.balportliquors.com}
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
@@ -68,9 +70,11 @@ services:
     volumes:
       - ./uploads:/usr/src/app/uploads
       - ./image-fallback/storage/images:/usr/src/app/image-fallback/storage/images
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - balport-network
+      balport-network:
+        ipv4_address: 172.18.0.6
+      database-private:
+        ipv4_address: 172.30.71.3
 
   customer-panel:
     build:
@@ -85,11 +89,12 @@ services:
     container_name: balport-customer-panel
     restart: unless-stopped
     ports:
-      - "0.0.0.0:3000:80"
+      - "127.0.0.1:3000:80"
     volumes:
       - ./image-fallback/storage/images:/usr/share/nginx/html/images:ro
     networks:
-      - balport-network
+      balport-network:
+        ipv4_address: 172.18.0.3
 
   admin-panel:
     build:
@@ -103,11 +108,43 @@ services:
     volumes:
       - /etc/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
     networks:
-      - balport-network
+      balport-network:
+        ipv4_address: 172.18.0.4
+
+  image-fallback:
+    build: ./image-fallback
+    container_name: balport-image-fallback
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./image-fallback/storage/images:/usr/share/nginx/html/images:ro
+    networks:
+      balport-network:
+        ipv4_address: 172.18.0.5
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "SETUID", "SETGID", "NET_BIND_SERVICE"]
+    tmpfs: ["/var/cache/nginx:rw,noexec,nosuid,size=32m", "/var/run:rw,noexec,nosuid,size=4m"]
+    mem_limit: 128m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
 
 networks:
+  database-private:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.71.0/24
   balport-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          gateway: 172.18.0.1
 
 volumes:
   mongodb_data:

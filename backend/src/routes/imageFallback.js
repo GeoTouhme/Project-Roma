@@ -7,7 +7,7 @@ const IMAGES_DIR = process.env.IMAGE_FALLBACK_DIR || path.join(__dirname, '../..
 
 router.get('/:filename', (req, res) => {
   const requested = req.params.filename;
-  if (!requested || /[\\/\u0000]/.test(requested)) {
+  if (!requested || !/\.(jpe?g|png|webp|gif|avif)$/i.test(requested) || /[\\/\u0000]/.test(requested)) {
     return res.status(400).end();
   }
   const filePath = path.join(IMAGES_DIR, requested);
@@ -17,6 +17,8 @@ router.get('/:filename', (req, res) => {
   if (!fs.existsSync(filePath)) {
     return res.status(404).end();
   }
+  res.set('Content-Security-Policy', "default-src 'none'; sandbox");
+  res.set('X-Content-Type-Options', 'nosniff');
   res.set('Cache-Control', 'public, max-age=31536000, immutable');
   res.set('Access-Control-Allow-Origin', '*');
   res.sendFile(filePath);

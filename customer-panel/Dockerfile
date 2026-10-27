@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:18-alpine as build
+FROM node:22.23.4-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 as build
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY package-lock.json ./
 # Install dependencies
 
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --force
+    npm ci --legacy-peer-deps
 
 COPY . .
 
@@ -50,7 +50,8 @@ ENV DISABLE_ESLINT_PLUGIN=true
 RUN npm run build
 
 # Serve Stage
-FROM nginx:alpine
+FROM nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
+RUN apk add --no-cache --upgrade brotli-libs=1.2.1-r0 curl=8.23.0-r0 libcurl=8.23.0-r0
 
 COPY --from=build /app/build /usr/share/nginx/html
 

@@ -1,6 +1,8 @@
 const CloudinaryService = require('../services/cloudinary.service');
 const { saveFile, getLocalBlurDataURL } = require('../utils/localImageStore');
 const path = require('path');
+const fs = require('fs');
+const { sanitizeImage } = require('../utils/safeImage');
 
 exports.uploadImage = async (req, res) => {
     try {
@@ -9,10 +11,12 @@ exports.uploadImage = async (req, res) => {
         }
 
         const { path: filePath, originalname } = req.file;
+        const safe = await sanitizeImage(fs.readFileSync(filePath), originalname, req.file.mimetype);
+        fs.writeFileSync(filePath, safe);
         console.log('📤 Starting upload for:', originalname);
 
         // 1. Save locally first
-        const local = saveFile(filePath, originalname, null, { removeSource: false });
+        const local = saveFile(filePath, 'image.webp', null, { removeSource: false });
         console.log('💾 Local image saved:', local.localUrl);
 
         // 2. Try Cloudinary as fallback (so we keep a copy + public_id for migrations)
@@ -47,6 +51,8 @@ exports.uploadImage = async (req, res) => {
 
     } catch (error) {
         console.error('Upload Controller Error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(400).json({ success: false, message: 'Invalid image upload' });
+    } finally {
+        if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch {} }
     }
 };

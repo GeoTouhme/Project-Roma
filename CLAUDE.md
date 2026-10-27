@@ -28,17 +28,17 @@
 
 1. **NEVER expose MongoDB port 27017 to the public internet.** It is bound to `127.0.0.1` only.
 2. **NEVER commit `.env.local` or any secrets to Git.** It is in `.gitignore`.
-3. **ALWAYS backup the database before risky operations:**
+3. **Create a verified encrypted backup before risky operations:**
    ```bash
-   cd /home/geo/projects/Project-Roma
-   docker compose --env-file .env.local exec mongodb bash -c 'mongodump --db=liquor_shop --archive' > /tmp/balport-$(date +%Y%m%d-%H%M%S).dump
+   sudo systemctl start roma-backup.service
    ```
+   Encrypted archives are root-only under `/var/backups/project-roma`. The read-only backup identity is supplied from the protected Mongo config. Off-host backup/key recovery is still awaiting an owner-selected destination.
 4. **Cloudinary account is at free-tier limit (31.21/25 credits).** Do not apply `e_background_removal,b_white` transformations on new image URLs.
 5. **Customer-facing APIs must only return products with real images.** Products with placeholder URLs are hidden.
 6. **Rebuild panels after changing `REACT_APP_API_URL` or `VITE_API_URL`:**
    ```bash
    cd /home/geo/projects/Project-Roma
-   docker compose --env-file .env.local up --build -d
+   sudo /usr/local/sbin/roma-compose up -d --no-build --pull never
    ```
 
 ---
@@ -49,7 +49,7 @@
 Project-Roma/
 ├── backend/          # Express.js REST API (Node.js, port 5001)
 ├── admin-panel/      # Admin dashboard (Vite + React + TypeScript + shadcn/ui, port 5173)
-├── customer-panel/   # Customer storefront (Create React App + Redux, port 3000)
+├── customer-panel/   # Customer storefront (Vite + Redux, port 3000)
 ├── docker-compose.yml
 └── package.json      # Root-level CRA (legacy, mostly unused — customer-panel is the real storefront)
 ```
@@ -60,7 +60,7 @@ Project-Roma/
 |---------|-----------|------|-----------|
 | Backend API | Express.js 4, Mongoose 8, Node.js | 5001 | `balport-backend` |
 | Admin Panel | Vite 5, React 18, TypeScript, TailwindCSS 3, shadcn/ui (Radix), TanStack Query | 5173 → nginx:80 | `balport-admin-panel` |
-| Customer Panel | CRA, React 19, Redux Toolkit, TailwindCSS 3, Stripe Elements, Framer Motion | 3000 → nginx:80 | `balport-customer-panel` |
+| Customer Panel | Vite, React 19, Redux Toolkit, TailwindCSS 3, Stripe Elements, Framer Motion | 3000 → nginx:80 | `balport-customer-panel` |
 | MongoDB | mongo:latest | 27017 | `balport-mongo` |
 
 ---
@@ -70,7 +70,7 @@ Project-Roma/
 ### Docker (Production)
 
 ```bash
-docker-compose up --build
+sudo /usr/local/sbin/roma-compose up -d --no-build --pull never
 ```
 
 Environment variables to set (or use defaults):
@@ -194,7 +194,7 @@ Optional (for daily automated log report):
 - `LOG_REPORT_RECIPIENTS` — comma-separated email addresses for the daily report (e.g. `gtouhme@gmail.com,aldakhlalla1996@gmail.com`)
 - `TZ` — report timezone (default: `America/Los_Angeles`)
 
-> **Note:** The backend container mounts `/var/run/docker.sock` read-only so it can read its own logs for the report. This is a convenience trade-off; for stricter isolation, run the report from host cron instead.
+> **Security operations:** The backend has no Docker socket or raw-log export workflow. Root-owned systemd timers provide local aggregate health checks and encrypted backups. Production secrets and release manifests are root-only under `/etc/project-roma`; deploy with `sudo /usr/local/sbin/roma-compose`.
 
 ### API Route Prefix
 
@@ -283,14 +283,14 @@ The system supports switching between DoorDash and Uber Direct via an admin togg
 - `/account` — admin profile
 
 ### Auth Pattern
-Uses `AuthContext` with `ProtectedRoute` and `RedirectIfAuthenticated` components. JWT stored client-side.
+Uses `AuthContext` with `ProtectedRoute` and `RedirectIfAuthenticated` components. Access and refresh tokens use HttpOnly cookies; authenticated requests validate the current database session.
 
 ---
 
 ## Customer Panel (`customer-panel/`)
 
 ### Tech Stack
-- **Create React App** (react-scripts 5) + **React 19**
+- **Vite 7** + **React 19**
 - **Redux Toolkit** — state management (slices: `authSlice`, `cartSlice`)
 - **TailwindCSS 3**
 - **Stripe Elements** (`@stripe/react-stripe-js`) — payment processing
@@ -334,7 +334,7 @@ Redux store with two slices:
 - All API calls go through Axios
 - Admin panel uses TanStack Query for caching/invalidation
 - Customer panel uses direct Axios calls + Redux for state
-- JWT tokens sent via Authorization header
+- Access and refresh tokens are sent in HttpOnly cookies and checked against the current server-side session
 
 ### Image Handling
 - All product/category images uploaded to **Cloudinary**
@@ -456,3 +456,6 @@ cd backend
 # Ensure MONGODB_URI is set in .env or environment
 node scripts/seed-products.js
 ```
+
+
+Production security rollout status and remaining acceptance items: [SECURITY_REMEDIATION_2026-10-26.md](SECURITY_REMEDIATION_2026-10-26.md).

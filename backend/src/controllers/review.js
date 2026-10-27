@@ -13,7 +13,7 @@ const getReviewsbyPid = async (req, res) => {
 			product: pid,
 		}).populate({
 			path: "user",
-			select: ["firstName", "lastName", "cover", "orders"],
+			select: ["firstName", "lastName", "cover"],
 		});
 		const product = await Products.findById(pid).select('slug status available');
 		if (!product || product.status === 'disabled' || product.status === 'inactive' || product.available <= 0) {

@@ -5,14 +5,15 @@ const trackView = async (req, res) => {
   try {
     const { productSlug, productName, sessionId, pageType } = req.body;
 
-    if (!productSlug) {
+    if (typeof productSlug !== 'string' || !productSlug.length || productSlug.length > 256
+      || [productName, sessionId, pageType].some(x => x !== undefined && x !== null && (typeof x !== 'string' || x.length > 256))) {
       return res.status(400).json({
         success: false,
         message: 'productSlug is required',
       });
     }
 
-    const referrer = req.get('Referer') || req.body.referrer || '';
+    const referrer = String(req.get('Referer') || '').slice(0, 512);
     let source = 'direct';
     if (referrer) {
       if (referrer.includes('google')) source = 'google';
@@ -26,7 +27,7 @@ const trackView = async (req, res) => {
       productSlug,
       productName: productName || '',
       ip: req.realIp || getClientIp(req),
-      userAgent: req.get('User-Agent') || '',
+      userAgent: (req.get('User-Agent') || '').slice(0, 512),
       referrer,
       source,
       sessionId: sessionId || null,

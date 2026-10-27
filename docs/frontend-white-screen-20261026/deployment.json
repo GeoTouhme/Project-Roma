@@ -1,0 +1,12 @@
+{
+  "deployedAt": "2026-10-26T10:31:56.758907+00:00",
+  "image": "project-roma-customer-panel:react-runtime-docker-fix-20261026",
+  "imageId": "sha256:46843c7adf4b1b4d82916b4a72b3beae61d6d2f7f444c90f5c4baf88bca3f90e",
+  "asset": "/static/index-CiPbZdvq.js",
+  "assetSha256": "a84d0441fc26a0d3036bb6348fd317deae98fe259ccb4840d27dcdce73bcd7b3",
+  "startedAt": "2026-10-26T10:31:56.320974607Z",
+  "nginxUnchanged": true,
+  "otherServicesUnchanged": true,
+  "protectedFilesUnchanged": true,
+  "rollbackDirectory": "/root/roma-frontend-react-fix-20261026T102735Z"
+}

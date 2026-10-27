@@ -5,3 +5,9 @@ build
 dist
 npm-debug.log
 Dockerfile
+
+.env*
+!.env.example
+*.dump
+*.pem
+*.key

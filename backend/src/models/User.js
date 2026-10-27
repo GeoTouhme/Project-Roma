@@ -81,15 +81,18 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
     otp: {
+      select: false,
       type: String,
       // Google-authenticated users are verified by Google; no local OTP is needed.
       default: null,
     },
     // 🛡️ OTP security: expiration and failed-attempt lockout.
     otpExpiresAt: {
+      select: false,
       type: Date,
     },
     otpAttempts: {
+      select: false,
       type: Number,
       default: 0,
     },
@@ -101,15 +104,18 @@ const UserSchema = new mongoose.Schema(
     },
     // AES-256-GCM encrypted TOTP secret (base32)
     mfaSecret: {
+      select: false,
       type: String,
       default: null,
     },
     // Temporary secret while enrollment is in progress (not active until confirmed)
     mfaTempSecret: {
+      select: false,
       type: String,
       default: null,
     },
     lastOtpSentAt: {
+      select: false,
       type: Date,
     },
 
@@ -124,9 +130,15 @@ const UserSchema = new mongoose.Schema(
       select: false, // never returned in normal queries
     },
     refreshTokenExpiresAt: {
+      select: false,
       type: Date,
       default: null,
     },
+    // Reject refresh sessions created before purpose-separated authentication.
+    authSessionId: { type: String, select: false },
+    refreshTokenVersion: { type: Number, default: 0, select: false },
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetTokenExpiresAt: { type: Date, select: false },
 
     role: {
       type: String,
@@ -136,6 +148,10 @@ const UserSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { transform(doc, ret) {
+      for (const key of ['authSessionId', 'password', 'otp', 'otpExpiresAt', 'otpAttempts', 'lastOtpSentAt', 'mfaSecret', 'mfaTempSecret', 'refreshTokenHash', 'refreshTokenExpiresAt', 'refreshTokenVersion', 'passwordResetTokenHash', 'passwordResetTokenExpiresAt']) delete ret[key];
+      return ret;
+    } },
   }
 );
 

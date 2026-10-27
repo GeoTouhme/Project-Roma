@@ -1,0 +1,17 @@
+[
+  {
+    "host": "api.balportliquors.com",
+    "response": "HTTP/1.1 101 Switching Protocols",
+    "challenge": false
+  },
+  {
+    "host": "balportliquors.com",
+    "response": "HTTP/1.1 101 Switching Protocols",
+    "challenge": false
+  },
+  {
+    "host": "admin.balportliquors.com",
+    "response": "HTTP/1.1 401 Unauthorized",
+    "challenge": false
+  }
+]

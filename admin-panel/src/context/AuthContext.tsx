@@ -75,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login(email, password);
-      console.log("[login] response:", response.status, response.data);
 
       if (response.data.success) {
         // 🛡️ MFA: credentials valid but TOTP code still required.
@@ -113,7 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const verifyMfa = async (tempToken: string, code: string) => {
     try {
       const response = await authAPI.verifyMfa(tempToken, code);
-      console.log("[verifyMfa] response:", response.status, response.data);
 
       if (response.data.success) {
         const userData = response.data.user;

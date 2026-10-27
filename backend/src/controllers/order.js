@@ -10,6 +10,8 @@ const Settings = require('../models/settings');
 const sendEmail = require('../utils/mailer');
 const Category = require('../models/Category');
 const { safeObjectId, safeNumber } = require('../utils/validators');
+const { checkoutHash } = require('../utils/checkoutBinding');
+const Checkout = require('../models/Checkout');
 const { calculateOrderTotals } = require('../utils/orderCalculator');
 const { applyMixBundleDeals } = require('../utils/mixBundle');
 const { emitToAdmins } = require('../utils/socketManager');
@@ -86,21 +88,35 @@ async function processStripeRefund(order) {
   const refund = await stripe.refunds.create({
     payment_intent: order.paymentId,
     amount: refundAmountCents,
-  });
+  }, { idempotencyKey: `roma-cancel-refund-${order._id}` });
 
   return { refundId: refund.id, amount: order.total };
 }
 
-async function restockInventory(items) {
-  if (!items || !items.length) return;
-  const restockUpdates = items.map((item) =>
-    Products.findByIdAndUpdate(
-      item.pid,
-      { $inc: { available: item.quantity, sold: -item.quantity } },
-      { new: true, runValidators: true }
-    ).exec()
-  );
-  await Promise.all(restockUpdates);
+async function restockInventory(order) {
+  const quantities = new Map();
+  for (const item of order.items || []) {
+    for (const sub of item.type === 'bundle' ? (item.products || []) : [item]) {
+      const id = String(sub.pid);
+      const qty = item.type === 'bundle' ? (sub.quantity || 1) * item.quantity : item.quantity;
+      if (!safeObjectId(id) || !Number.isInteger(qty) || qty <= 0) throw new Error('Invalid stored inventory line');
+      quantities.set(id, (quantities.get(id) || 0) + qty);
+    }
+  }
+  for (const [pid, qty] of quantities) {
+    // Marker and stock increment commit in the same document, including crash/retry paths.
+    await Products.updateOne({ _id: pid, restockedOrders: { $ne: String(order._id) } }, {
+      $inc: { available: qty, sold: -qty }, $addToSet: { restockedOrders: String(order._id) },
+    });
+  }
+}
+
+async function claimCancellation(order, status, allowed) {
+  const claimed = await Orders.findOneAndUpdate({ _id: order._id, status: { $in: allowed }, cancellationStartedAt: { $exists: false } }, {
+    $set: { status, cancellationStartedAt: new Date(), cancellationEffectsPending: true },
+  }, { new: true });
+  if (!claimed) throw new Error('Order state changed or cancellation already started');
+  return claimed;
 }
 
 const createOrder = async (req, res) => {
@@ -158,6 +174,9 @@ const createOrder = async (req, res) => {
     // Issue 2: Idempotency - check if order with this paymentId already exists
     const existingOrder = await Orders.findOne({ paymentId });
     if (existingOrder) {
+      if (!existingOrder.user?._id || existingOrder.user._id.toString() !== req.user?._id?.toString()) {
+        return res.status(403).json({ success: false, message: "Payment belongs to another checkout." });
+      }
       return res.status(200).json({
         success: true,
         message: 'Order already placed',
@@ -217,6 +236,13 @@ const createOrder = async (req, res) => {
       });
     }
 
+    const currency = (process.env.CURRENCY || 'usd').toLowerCase();
+    const cartHash = checkoutHash(totals, currency);
+    const binding = paymentIntent.metadata;
+    if (!binding || binding.ownerId !== req.user._id.toString() || binding.cartHash !== cartHash || paymentIntent.currency !== currency
+      || !await Checkout.exists({ _id: binding.checkoutId, owner: req.user._id, paymentId, cartHash })) {
+      return res.status(400).json({ success: false, message: 'Payment does not match this checkout. Contact the store if already charged.' });
+    }
     if (paymentIntent.amount !== expectedAmountCents) {
       return res.status(400).json({
         success: false,
@@ -258,6 +284,11 @@ const createOrder = async (req, res) => {
     // so multi-document transactions are not supported ("replica set member or mongos"
     // error). We perform the steps sequentially and attempt a best-effort rollback
     // if any step fails, so stock changes are not left dangling.
+    const checkoutClaim = require('crypto').randomUUID();
+    const claimedCheckout = await Checkout.findOneAndUpdate({ _id: binding.checkoutId, owner: req.user._id, paymentId, claimedAt: { $exists: false } }, {
+      $set: { claimedAt: new Date(), claimToken: checkoutClaim },
+    }, { new: true });
+    if (!claimedCheckout) return res.status(409).json({ success: false, message: 'Checkout is already being processed. Contact the store if it does not complete.' });
     let orderCreated;
     const stockAdjustments = [];
     try {
@@ -281,7 +312,7 @@ const createOrder = async (req, res) => {
           continue;
         }
 
-        const product = products.find((p) => p._id.toString() === item.pid);
+        const product = products.find((p) => p._id.toString() === String(item.pid));
         const stockResult = await Products.findOneAndUpdate(
           { _id: item.pid, available: { $gte: item.quantity } },
           { $inc: { available: -item.quantity, sold: item.quantity } },
@@ -296,6 +327,8 @@ const createOrder = async (req, res) => {
       orderCreated = await Orders.create({
         paymentMethod,
         paymentId,
+        // The verified succeeded intent is authoritative even if its webhook preceded this order.
+        paymentStatus: 'succeeded',
         discount,
         tip: sanitizedTip,
         tax,
@@ -315,6 +348,8 @@ const createOrder = async (req, res) => {
         status: 'pending',
         clientIp: req.realIp || '',
       });
+
+      await Checkout.updateOne({ _id: binding.checkoutId, claimToken: checkoutClaim }, { $set: { orderId: orderCreated._id } });
 
       await User.findByIdAndUpdate(
         req.user._id,
@@ -342,21 +377,19 @@ const createOrder = async (req, res) => {
         );
       }
     } catch (orderError) {
-      // Best-effort rollback: restore stock that was already decremented.
-    for (const item of stockAdjustments) {
-      try {
-        await Products.findByIdAndUpdate(
-          item.pid,
-          { $inc: { available: item.quantity, sold: -item.quantity } }
-        );
-      } catch (rollbackErr) {
-        console.error(`❌ Failed to rollback stock for ${item.pid}:`, rollbackErr.message);
+      if (orderCreated) {
+        // Persisted orders retain their stock reservation even if ancillary metadata fails.
+        console.error('Order persisted; ancillary metadata requires reconciliation.');
+      } else {
+        let restored = true;
+        for (const item of stockAdjustments) {
+          try { await Products.findByIdAndUpdate(item.pid, { $inc: { available: item.quantity, sold: -item.quantity } }); }
+          catch { restored = false; }
+        }
+        // A crash/failed compensation deliberately leaves the checkout claimed for staff recovery.
+        if (restored) await Checkout.updateOne({ _id: binding.checkoutId, claimToken: checkoutClaim }, { $unset: { claimedAt: '', claimToken: '' } });
+        return res.status(400).json({ success: false, message: 'Order could not be completed. Please contact the store if already charged.' });
       }
-    }
-      return res.status(400).json({
-        success: false,
-        message: orderError.message || 'Order could not be completed. Please try again.'
-      });
     }
 
 
@@ -518,7 +551,7 @@ const getOrderById = async (req, res) => {
     // 🛡️ AUTHORIZATION: Ensure customers can only read their own orders.
     const orderUserId = orderGet.user?._id?.toString();
     const authUserId = req.user?._id?.toString();
-    if (orderUserId && orderUserId !== authUserId) {
+    if (!orderUserId || !authUserId || orderUserId !== authUserId) {
       return res.status(403).json({ success: false, message: 'You are not authorized to view this order.' });
     }
 
@@ -622,6 +655,16 @@ const updateOrderByAdmin = async (req, res) => {
     const id = req.params.id;
     const data = await req.body;
 
+    if (data.status === 'cancelled') return cancelDelivery(req, res);
+    if (data.status === 'denied') return denyOrderByAdmin(req, res);
+    if (data.status === 'processing') return acceptOrderByAdmin(req, res);
+    const stateFilter = { _id: id };
+    if (data.status !== undefined) {
+      const allowedFrom = { shipped: ['processing', 'accepted'], delivered: ['processing', 'accepted', 'shipped'] };
+      if (!allowedFrom[data.status]) return res.status(400).json({ success: false, message: 'Unsupported state transition.' });
+      stateFilter.status = { $in: allowedFrom[data.status] };
+      stateFilter.cancellationStartedAt = { $exists: false };
+    }
     // 🛡️ SECURITY: Whitelist only the fields admins are allowed to update.
     // Passing raw req.body allows injection of Mongo operators ($set, $inc, etc.)
     // or overwriting sensitive fields like paymentId, user._id, total.
@@ -631,8 +674,8 @@ const updateOrderByAdmin = async (req, res) => {
       if (data[field] !== undefined) safeData[field] = data[field];
     }
 
-    const order = await Orders.findByIdAndUpdate(
-      id,
+    const order = await Orders.findOneAndUpdate(
+      stateFilter,
       { $set: safeData },
       {
         new: true,
@@ -665,6 +708,8 @@ const deleteOrderByAdmin = async (req, res) => {
         message: 'Order Not Found',
       });
     }
+
+    if (order.paymentId || order.cancellationEffectsPending) return res.status(409).json({ success: false, message: 'Paid orders must be retained for payment and inventory reconciliation.' });
 
     // Delete the order from the Orders collection
     await Orders.findByIdAndDelete(orderId);
@@ -862,6 +907,8 @@ const cancelDelivery = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
+    await claimCancellation(order, 'cancelled', ['pending', 'processing', 'accepted']);
+
     // Cancel delivery if order has been dispatched automatically
     // Check terminal statuses for both DoorDash and Uber Direct
     const terminalStatuses = ['DELIVERY_CANCELLED', 'DASHER_DROPPED_OFF', 'canceled', 'delivered', 'returned'];
@@ -877,7 +924,7 @@ const cancelDelivery = async (req, res) => {
     }
 
     // Restock inventory for cancelled orders
-    await restockInventory(order.items);
+    await restockInventory(order);
 
     // Attempt Stripe refund for cancelled orders
     let refundResult = null;
@@ -901,6 +948,7 @@ const cancelDelivery = async (req, res) => {
       updateFields.refundError = refundError;
     }
 
+    updateFields.cancellationEffectsPending = Boolean(refundError);
     await Orders.findByIdAndUpdate(id, { $set: updateFields });
 
     return res.status(200).json({
@@ -935,7 +983,7 @@ const acceptOrderByAdmin = async (req, res) => {
 
     const adminUser = await User.findById(req.user._id).select('firstName lastName');
 
-    await Orders.findByIdAndUpdate(id, {
+    const accepted = await Orders.findOneAndUpdate({ _id: id, status: 'pending', cancellationStartedAt: { $exists: false } }, {
       $set: {
         status: 'processing',
         staffAcceptedAt: new Date(),
@@ -945,6 +993,8 @@ const acceptOrderByAdmin = async (req, res) => {
         },
       },
     });
+
+    if (!accepted) return res.status(409).json({ success: false, message: 'Order state changed.' });
 
     return res.status(200).json({
       success: true,
@@ -980,8 +1030,10 @@ const denyOrderByAdmin = async (req, res) => {
       });
     }
 
+    await claimCancellation(order, 'denied', ['pending']);
+
     // Restock inventory for denied orders
-    await restockInventory(order.items);
+    await restockInventory(order);
 
     // Attempt Stripe refund for denied orders
     let refundResult = null;
@@ -1012,6 +1064,7 @@ const denyOrderByAdmin = async (req, res) => {
       updateFields.refundError = refundError;
     }
 
+    updateFields.cancellationEffectsPending = Boolean(refundError);
     await Orders.findByIdAndUpdate(id, { $set: updateFields });
 
     return res.status(200).json({
@@ -1049,14 +1102,16 @@ const cancelOrderByCustomer = async (req, res) => {
     // Verify the order belongs to the authenticated customer
     const authUser = req.user;
     if (
-      order.user?._id?.toString() !== authUser?._id?.toString() &&
-      order.user?.email !== authUser?.email
+      !order.user?._id || !authUser?._id ||
+      order.user._id.toString() !== authUser._id.toString()
     ) {
       return res.status(403).json({ success: false, message: 'You are not authorized to cancel this order.' });
     }
 
+    await claimCancellation(order, 'cancelled', ['pending']);
+
     // Restock inventory
-    await restockInventory(order.items);
+    await restockInventory(order);
 
     // Attempt Stripe refund
     let refundResult = null;
@@ -1080,6 +1135,7 @@ const cancelOrderByCustomer = async (req, res) => {
       updateFields.refundError = refundError;
     }
 
+    updateFields.cancellationEffectsPending = Boolean(refundError);
     await Orders.findByIdAndUpdate(id, { $set: updateFields });
 
     // Notify staff about the customer cancellation
@@ -1109,6 +1165,22 @@ const cancelOrderByCustomer = async (req, res) => {
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
+};
+
+const retryCancellation = async (req, res) => {
+  try {
+    const order = await Orders.findById(req.params.id);
+    if (!order || !order.cancellationEffectsPending || !['cancelled', 'denied'].includes(order.status)) {
+      return res.status(409).json({ success: false, message: 'No pending cancellation to reconcile.' });
+    }
+    await restockInventory(order);
+    const refund = order.refundId ? { refundId: order.refundId, amount: order.refundAmount } : await processStripeRefund(order);
+    await Orders.updateOne({ _id: order._id, cancellationEffectsPending: true }, {
+      $set: { cancellationEffectsPending: false, ...(refund ? { refundId: refund.refundId, refundAmount: refund.amount } : {}) },
+      $unset: { refundError: '' },
+    });
+    return res.status(200).json({ success: true, message: 'Cancellation reconciled.' });
+  } catch { return res.status(503).json({ success: false, message: 'Cancellation remains pending; retry or reconcile with the payment provider.' }); }
 };
 
 const refreshDeliveryStatus = async (req, res) => {
@@ -1152,7 +1224,7 @@ const refreshDeliveryStatus = async (req, res) => {
       if (delivery.delivery_status === 'DELIVERY_RETURNED') updateFields.status = 'returned';
     }
 
-    await Orders.findByIdAndUpdate(id, { $set: updateFields });
+    await Orders.updateOne({ _id: id, status: { $nin: ['cancelled', 'denied', 'refunded', 'delivered'] } }, { $set: updateFields });
 
     return res.status(200).json({
       success: true,
@@ -1178,4 +1250,5 @@ module.exports = {
   cancelDelivery,
   cancelOrderByCustomer,
   refreshDeliveryStatus,
+  retryCancellation,
 };

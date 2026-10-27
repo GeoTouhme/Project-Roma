@@ -16,3 +16,9 @@ scripts/*.txt
 scripts/*.csv
 *.zip
 *.tar.gz
+
+.env*
+!.env.example
+*.dump
+*.pem
+*.key

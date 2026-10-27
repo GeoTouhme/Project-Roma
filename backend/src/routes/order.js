@@ -21,6 +21,7 @@ router.put('/admin/orders/:id/accept', verifyToken, adminCheck, orderRoutes.acce
 router.put('/admin/orders/:id/deny', verifyToken, adminCheck, orderRoutes.denyOrderByAdmin);
 router.delete('/admin/orders/:id', verifyToken, adminCheck, orderRoutes.deleteOrderByAdmin);
 router.put('/admin/orders/:id/cancel', verifyToken, adminCheck, orderRoutes.cancelDelivery);
+router.post('/admin/orders/:id/retry-cancellation', verifyToken, adminCheck, orderRoutes.retryCancellation);
 router.get('/admin/orders/:id/delivery-status', verifyToken, adminCheck, orderRoutes.refreshDeliveryStatus);
 
 module.exports = router;

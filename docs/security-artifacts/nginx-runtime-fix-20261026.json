@@ -1,0 +1,14 @@
+{
+  "customer-panel": {
+    "image": "project-roma-customer-panel:security-20261026-final",
+    "highCriticalFindings": {}
+  },
+  "admin-panel": {
+    "image": "project-roma-admin-panel:security-20261026-final",
+    "highCriticalFindings": {}
+  },
+  "image-fallback": {
+    "image": "project-roma-image-fallback:security-20261026-final",
+    "highCriticalFindings": {}
+  }
+}

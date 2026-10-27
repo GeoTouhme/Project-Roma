@@ -41,7 +41,7 @@ router.post("/auth/resend-otp", authLimiter, authController.resendOtp);
 
 // router.get("/profile", verifyToken, userController.getProfile);
 
-router.post("/auth/logout", verifyToken, authController.logoutUser);
+router.post("/auth/logout", authLimiter, authController.logoutUser);
 
 // 🛡️ Return current authenticated user from HttpOnly cookie.
 router.get("/auth/me", verifyToken, authController.getMe);

@@ -1,7 +1,11 @@
 // controllers/userController.js
 const User = require('../models/User');
 const Products = require('../models/Product');
-const jwt = require('jsonwebtoken');
+const {
+  signAccessToken, verifyAccessToken, signMfaTempToken, verifyMfaTempToken,
+  signEmailVerificationToken, verifyEmailVerificationToken,
+  signPasswordResetToken, verifyPasswordResetToken, passwordResetLink,
+} = require('../utils/authTokens');
 const bcrypt = require('bcryptjs');
 const otpGenerator = require('otp-generator');
 const nodemailer = require('nodemailer');
@@ -104,94 +108,43 @@ function hashToken(raw) {
  * Call this from any auth flow that completes successfully (login, MFA verify,
  * email verify, token refresh).
  */
-async function issueTokenPair(res, user) {
-  // Short-lived access token — carries identity for every API request.
-  const accessToken = jwt.sign(
-    { _id: user._id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '15m' }
-  );
+async function issueTokenPair(res, user, { mfaVerified = false, refreshHash } = {}) {
+  if (!user.isVerified || ['disabled', 'inactive', 'blocked'].includes(user.status) || (user.mfaEnabled && !mfaVerified)) {
+    throw new Error('Authentication is incomplete');
+  }
+  const authSessionId = refreshHash ? user.authSessionId : crypto.randomBytes(32).toString("hex");
+  if (!authSessionId) throw new Error("Session expired");
+  const accessToken = signAccessToken({ ...user.toObject?.(), ...user, authSessionId });
 
   // Long-lived refresh token — opaque random bytes, not a JWT.
   // We hash it before storing so the raw value is never in the DB.
   const rawRefresh = crypto.randomBytes(40).toString('hex');
   const refreshExpiry = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
-  await User.findByIdAndUpdate(user._id, {
+  const filter = refreshHash ? { _id: user._id, refreshTokenHash: refreshHash, authSessionId, refreshTokenExpiresAt: { $gt: new Date() } } : { _id: user._id };
+  const issued = await User.findOneAndUpdate(filter, {
+    authSessionId,
     refreshTokenHash: hashToken(rawRefresh),
     refreshTokenExpiresAt: refreshExpiry,
+    refreshTokenVersion: 1,
   });
 
+  if (!issued) throw Object.assign(new Error("Session expired"), { code: "SESSION_EXPIRED" });
   setAuthCookie(res, accessToken, ACCESS_TOKEN_TTL_MS);
   setRefreshCookie(res, rawRefresh, REFRESH_TOKEN_TTL_MS);
 }
 
 
-// 🛡️ MFA: deterministic 32-byte AES key derived from a dedicated env secret.
-// Using a dedicated MFA_SECRET_KEY lets JWT rotation happen without invalidating MFA enrollments.
-const MFA_KEY = crypto.scryptSync(
-  process.env.MFA_SECRET_KEY || process.env.JWT_SECRET || 'project-roma-mfa-fallback-key',
-  'project-roma-mfa',
-  32
-);
-const MFA_ALGORITHM = 'aes-256-gcm';
+const { encryptMfaSecret, decryptMfaSecret } = require('../utils/mfaCipher');
 
-function encryptMfaSecret(plaintext) {
-  if (!plaintext) return null;
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(MFA_ALGORITHM, MFA_KEY, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  return Buffer.concat([iv, authTag, encrypted]).toString('base64');
-}
-
-function decryptMfaSecret(encryptedBase64) {
-  if (!encryptedBase64) return null;
-  const buffer = Buffer.from(encryptedBase64, 'base64');
-  const iv = buffer.subarray(0, 16);
-  const authTag = buffer.subarray(16, 32);
-  const encrypted = buffer.subarray(32);
-  const decipher = crypto.createDecipheriv(MFA_ALGORITHM, MFA_KEY, iv);
-  decipher.setAuthTag(authTag);
-  return decipher.update(encrypted) + decipher.final('utf8');
-}
-
-function signMfaTempToken(userId) {
-  return jwt.sign(
-    { _id: userId.toString(), mfa: true },
-    process.env.JWT_SECRET,
-    { expiresIn: '5m' }
-  );
-}
-
-function verifyMfaTempToken(token) {
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded || decoded.mfa !== true) return null;
-    return decoded;
-  } catch {
-    return null;
-  }
-}
-
-const EMAIL_VERIFY_PURPOSE = 'email-verify';
-
-function signEmailVerificationToken(email) {
-  return jwt.sign(
-    { email, purpose: EMAIL_VERIFY_PURPOSE },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
-}
-
-function verifyEmailVerificationToken(token) {
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded || decoded.purpose !== EMAIL_VERIFY_PURPOSE) return null;
-    return decoded;
-  } catch {
-    return null;
-  }
+// Every path that has proved the first factor must complete local MFA too.
+function sendMfaChallenge(res, user) {
+  if (!user.mfaEnabled) return false;
+  res.status(200).json({
+    success: true, message: 'MFA code required', mfaRequired: true,
+    tempToken: signMfaTempToken(user._id),
+  });
+  return true;
 }
 
 const registerUser = async (req, res) => {
@@ -217,7 +170,7 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ success: false, message: guardError.message });
     }
 
-    const existingUser = await User.findOne({ email: safeEmail });
+    const existingUser = await User.findOne({ email: safeEmail }).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret');
 
     if (existingUser) {
       console.warn('🚫 Registration attempted with existing email:', { email: safeEmail, ip: clientIp(req) });
@@ -334,7 +287,7 @@ const loginUser = async (req, res) => {
     const safeEmail = email.toLowerCase().trim();
 
     const user = await User.findOne({ email: safeEmail }).select(
-      '+password'
+      '+password +otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret'
     );
 
     // 🛡️ SECURITY: uniform response for unknown email / wrong password —
@@ -371,15 +324,7 @@ const loginUser = async (req, res) => {
     }
 
     // 🛡️ MFA: if TOTP is enabled, require a second factor before issuing the auth cookie.
-    if (user.mfaEnabled) {
-      const tempToken = signMfaTempToken(user._id);
-      return res.status(200).json({
-        success: true,
-        message: 'MFA code required',
-        mfaRequired: true,
-        tempToken,
-      });
-    }
+    if (sendMfaChallenge(res, user)) return;
 
     const products = await Products.aggregate([
       {
@@ -467,11 +412,14 @@ const forgetPassword = async (req, res) => {
 
     console.log('🔐 Password reset link requested:', { email: user.email, ip: clientIp(req) });
 
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
+    const token = signPasswordResetToken(user._id);
+    const resetPasswordLink = passwordResetLink(token);
+    await User.findByIdAndUpdate(user._id, {
+      $set: {
+        passwordResetTokenHash: hashToken(token),
+        passwordResetTokenExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
     });
-    // Constructing the link with the token
-    const resetPasswordLink = `${request.origin}/auth/reset-password/${token}`;
 
     // Path to the HTML file
     const htmlFilePath = path.join(
@@ -483,11 +431,7 @@ const forgetPassword = async (req, res) => {
     // Read HTML file content
     let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
 
-    // Replace the href attribute of the <a> tag with the reset password link
-    // htmlContent = htmlContent.replace(
-    //   /href="javascript:void\(0\);"/g,
-    //   `href="${resetPasswordLink}"`
-    // )
+    // The link comes only from server configuration, never from request origin/Host.
     htmlContent = htmlContent.replace(
       /href="javascript:void\(0\);"/g,
       `href="${resetPasswordLink}"`
@@ -502,7 +446,7 @@ const forgetPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'A password reset link has been sent to your email address.',
+      message: 'If an account exists for this email, a password reset link has been sent.',
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -510,60 +454,44 @@ const forgetPassword = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
+  const invalidReset = () => res.status(400).json({
+    success: false, message: 'Invalid or expired reset link. Please request a new one.',
+  });
   try {
-    const { token, newPassword } = await req.body;
-
-    // Verify the token
+    const { token, newPassword } = req.body || {};
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid Or Expired Token. Please Request A New One.',
-      });
+      decoded = verifyPasswordResetToken(token);
+    } catch {
+      return invalidReset();
     }
-
-    // Find the user by ID from the token
-    const user = await User.findById(decoded._id).select('password');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User Not Found ',
-      });
+    if (typeof newPassword !== 'string' || newPassword.length < 8
+        || Buffer.byteLength(newPassword, 'utf8') > 72) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters and no more than 72 UTF-8 bytes.' });
     }
-    if (!newPassword || !user.password) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Invalid Data. Both NewPassword And User Password Are Required.',
-      });
+    const filter = {
+      _id: decoded._id,
+      passwordResetTokenHash: hashToken(token),
+      passwordResetTokenExpiresAt: { $gt: new Date() },
+    };
+    const user = await User.findOne(filter).select('+password');
+    if (!user || !user.password) return invalidReset();
+    if (await bcrypt.compare(newPassword, user.password)) {
+      return res.status(400).json({ success: false, message: 'New password must be different from the old password.' });
     }
-
-    // Check if the new password is the same as the old password
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'New Password Must Be Different From The Old Password.',
-      });
-    }
-    // Update the user's password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await User.findByIdAndUpdate(user._id, {
-      password: hashedPassword,
-    });
-
+    // Atomically consume the reset credential: concurrent requests cannot reuse it.
+    const updated = await User.findOneAndUpdate({ ...filter, passwordResetTokenExpiresAt: { $gt: new Date() } }, {
+      $set: { password: hashedPassword, refreshTokenHash: null, refreshTokenExpiresAt: null, refreshTokenVersion: 0 },
+      $unset: { passwordResetTokenHash: '', passwordResetTokenExpiresAt: '', authSessionId: '' },
+    }, { new: true, runValidators: true });
+    if (!updated) return invalidReset();
+    clearAuthCookie(res);
     console.log('🔐 Password reset completed:', { email: user.email, ip: clientIp(req) });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Password Updated Successfully.',
-    });
+    return res.status(200).json({ success: true, message: 'Password updated successfully. Please log in again.' });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message });
+    console.error('Password reset failed:', error.message);
+    return res.status(500).json({ success: false, message: 'Unable to reset password. Please try again.' });
   }
 };
 
@@ -577,7 +505,7 @@ const verifyOtp = async (req, res) => {
     const safeEmail = email.toLowerCase().trim();
 
     // Find the user with the provided email
-    const user = await User.findOne({ email: safeEmail }).maxTimeMS(30000).exec();
+    const user = await User.findOne({ email: safeEmail }).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret').maxTimeMS(30000).exec();
 
     // 🛡️ SECURITY: generic 400 for unknown emails — consistent with the
     // "Invalid OTP" failure path so the OTP flow can't be used to probe
@@ -634,6 +562,8 @@ const verifyOtp = async (req, res) => {
 
       await user.save();
 
+      if (sendMfaChallenge(res, user)) return;
+
       // After verification, issue access + refresh token pair.
       await issueTokenPair(res, user);
 
@@ -670,7 +600,7 @@ const resendOtp = async (req, res) => {
     const safeEmail = email.toLowerCase().trim();
 
     // Find the user with the provided email
-    const user = await User.findOne({ email: safeEmail }).maxTimeMS(30000).exec();
+    const user = await User.findOne({ email: safeEmail }).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret').maxTimeMS(30000).exec();
 
     // 🛡️ SECURITY: generic failure for unknown emails — the resend flow
     // must not reveal which addresses hold accounts.
@@ -787,7 +717,8 @@ const verifyEmailToken = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid verification link.' });
     }
 
-    const decoded = verifyEmailVerificationToken(token);
+    let decoded;
+    try { decoded = verifyEmailVerificationToken(token); } catch { decoded = null; }
     if (!decoded || !decoded.email) {
       return res.status(400).json({
         success: false,
@@ -796,7 +727,7 @@ const verifyEmailToken = async (req, res) => {
     }
 
     const safeEmail = decoded.email.toLowerCase().trim();
-    const user = await User.findOne({ email: safeEmail }).maxTimeMS(30000).exec();
+    const user = await User.findOne({ email: safeEmail }).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret').maxTimeMS(30000).exec();
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User Not Found' });
@@ -825,6 +756,8 @@ const verifyEmailToken = async (req, res) => {
 
     console.log('🔐 Email verified via signed link:', { email: user.email, ip: clientIp(req) });
 
+    if (sendMfaChallenge(res, user)) return;
+
     // Issue access + refresh token pair after email verification.
     await issueTokenPair(res, user);
 
@@ -847,6 +780,18 @@ const verifyEmailToken = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
+    const raw = req.cookies?.refreshToken;
+    let access;
+    try { access = verifyAccessToken(req.cookies?.token); } catch {}
+    const matches = [];
+    if (typeof raw === 'string' && raw.length <= 256) matches.push({ refreshTokenHash: hashToken(raw) });
+    if (access?.sid) matches.push({ _id: access._id, authSessionId: access.sid });
+    if (matches.length) {
+      await User.findOneAndUpdate(matches.length === 1 ? matches[0] : { $or: matches }, {
+        $set: { refreshTokenHash: null, refreshTokenExpiresAt: null, refreshTokenVersion: 0 },
+        $unset: { authSessionId: '' },
+      });
+    }
     clearAuthCookie(res);
     return res.status(200).json({
       success: true,
@@ -865,7 +810,7 @@ const setupMfa = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User Not Found' });
     }
@@ -905,7 +850,7 @@ const confirmMfaSetup = async (req, res) => {
       return res.status(400).json({ success: false, message: 'MFA code is required' });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User Not Found' });
     }
@@ -957,12 +902,13 @@ const verifyMfa = async (req, res) => {
       return res.status(400).json({ success: false, message: 'MFA code is required' });
     }
 
-    const decoded = verifyMfaTempToken(tempToken);
+    let decoded;
+    try { decoded = verifyMfaTempToken(tempToken); } catch { decoded = null; }
     if (!decoded) {
       return res.status(401).json({ success: false, message: 'Invalid or expired MFA session' });
     }
 
-    const user = await User.findById(decoded._id);
+    const user = await User.findById(decoded._id).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User Not Found' });
     }
@@ -985,16 +931,6 @@ const verifyMfa = async (req, res) => {
     if (!verified) {
       return res.status(400).json({ success: false, message: 'Invalid MFA code' });
     }
-
-    const token = jwt.sign(
-      {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
 
     const products = await Products.aggregate([
       {
@@ -1036,7 +972,7 @@ const verifyMfa = async (req, res) => {
     ]);
 
     // 🛡️ Issue short-lived access token + rotating refresh token pair.
-    await issueTokenPair(res, user);
+    await issueTokenPair(res, user, { mfaVerified: true });
 
     console.log('🔐 User logged in via MFA:', { email: user.email, ip: clientIp(req) });
 
@@ -1075,7 +1011,7 @@ const disableMfa = async (req, res) => {
       return res.status(400).json({ success: false, message: 'MFA code is required' });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+otp +otpExpiresAt +otpAttempts +lastOtpSentAt +mfaSecret +mfaTempSecret');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User Not Found' });
     }
@@ -1152,6 +1088,7 @@ module.exports = {
   refreshToken,
   // Exported for reuse in googleAuth controller.
   issueTokenPair,
+  sendMfaChallenge,
 };
 
 /**
@@ -1180,7 +1117,7 @@ async function refreshToken(req, res) {
 
     // Find user by hashed refresh token and include the private fields.
     const user = await User.findOne({ refreshTokenHash: hashed })
-      .select('+refreshTokenHash +refreshTokenExpiresAt');
+      .select('+refreshTokenHash +refreshTokenExpiresAt +refreshTokenVersion +authSessionId');
 
     // 🛡️ THEFT DETECTION: if no user found the token was already rotated —
     // someone is replaying a stolen token. Clear cookies and force re-login.
@@ -1194,18 +1131,20 @@ async function refreshToken(req, res) {
     }
 
     // Check expiry.
-    if (!user.refreshTokenExpiresAt || new Date() > user.refreshTokenExpiresAt) {
+    if (!user.authSessionId || user.refreshTokenVersion !== 1 || !user.isVerified
+        || !user.refreshTokenExpiresAt || new Date() > user.refreshTokenExpiresAt) {
       clearAuthCookie(res);
       return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
     }
 
     // All good — rotate: issue a new pair (issueTokenPair writes the new hash to DB).
-    await issueTokenPair(res, user);
+    await issueTokenPair(res, user, { mfaVerified: true, refreshHash: hashed });
 
     console.log('🔐 Token refreshed:', { email: user.email, ip: clientIp(req) });
 
     return res.status(200).json({ success: true, message: 'Token refreshed.' });
   } catch (error) {
+    if (error.code === 'SESSION_EXPIRED') { clearAuthCookie(res); return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' }); }
     console.error('Refresh token error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }

@@ -1,0 +1,12 @@
+[Unit]
+Description=Balport aggregate health check
+After=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/libexec/roma-security/health-check.py
+User=root
+Group=root
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true

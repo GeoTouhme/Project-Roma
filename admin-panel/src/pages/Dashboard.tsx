@@ -334,7 +334,7 @@ const Dashboard = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <Table
+            <Table<{ id: string; name: string; sold: number; revenue: string }>
               data={topSellingProducts}
               columns={[
                 {

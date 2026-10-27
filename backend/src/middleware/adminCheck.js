@@ -12,6 +12,7 @@ module.exports = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Access Denied: Admins Only' });
         }
 
+        req.user = { ...req.user, role: user.role };
         next();
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });

@@ -1,121 +1,59 @@
+'use strict';
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Orders = require('../models/Order');
-const Notifications = require('../models/Notification');
-const { emitToAdmins } = require('../utils/socketManager');
+const Events = require('../models/StripeEvent');
 
-/**
- * Verify Stripe webhook signature and construct the event.
- * The raw body buffer is preserved by the body-parser verify hook in index.js.
- */
-function constructEvent(req) {
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  const signature = req.headers['stripe-signature'];
-
-  if (!endpointSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
+async function applyEvent(event) {
+  if (!event.paymentId) return;
+  const filter = { paymentId: event.paymentId };
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      // Payment confirmation must never move fulfillment backwards.
+      await Orders.updateOne({ ...filter, paymentStatus: { $in: ['pending', 'failed'] } }, { $set: { paymentStatus: 'succeeded' } });
+      break;
+    case 'payment_intent.payment_failed':
+      await Orders.updateOne({ ...filter, paymentStatus: 'pending' }, { $set: { paymentStatus: 'failed' } });
+      break;
+    case 'charge.refunded':
+      // amount_refunded is cumulative. $max is replay-safe and order-independent.
+      await Orders.updateOne(filter, { $max: { refundedAmount: event.amountRefunded },
+        ...(event.fullyRefunded ? { $set: { paymentStatus: 'refunded' } } : {}) });
+      break;
+    case 'charge.dispute.created':
+      await Orders.updateOne({ ...filter, paymentStatus: { $ne: 'refunded' } }, { $set: { paymentStatus: 'disputed' } });
+      break;
   }
-
-  if (!signature) {
-    throw new Error('Missing stripe-signature header');
-  }
-
-  return stripe.webhooks.constructEvent(req.rawBody, signature, endpointSecret);
 }
 
 async function handleStripeWebhook(req, res) {
   let event;
-
   try {
-    event = constructEvent(req);
-  } catch (err) {
-    // 🛡️ PRODUCTION: Always return 200 to Stripe to prevent retry storms,
-    // even when the signature is invalid. Stripe retries 400s aggressively,
-    // so an attacker could spam the endpoint and exhaust the rate-limit bucket.
-    // We log the failure locally instead.
-    console.error('Stripe webhook signature verification failed:', err.message);
-    return res.status(200).json({ received: true });
+    if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error('Missing configuration');
+    event = stripe.webhooks.constructEvent(req.rawBody, req.headers['stripe-signature'], process.env.STRIPE_WEBHOOK_SECRET);
+  } catch {
+    return res.status(400).json({ received: false });
   }
-
-  // Always acknowledge receipt quickly to prevent Stripe retries.
-  res.status(200).json({ received: true });
-
   try {
-    switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        await Orders.findOneAndUpdate(
-          { paymentId: paymentIntent.id },
-          { $set: { paymentStatus: 'succeeded', status: 'pending' } },
-          { new: true }
-        );
-        break;
-      }
-
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object;
-        const order = await Orders.findOneAndUpdate(
-          { paymentId: paymentIntent.id },
-          { $set: { paymentStatus: 'failed', status: 'payment_failed' } },
-          { new: true }
-        );
-
-        if (order) {
-          const paymentFailedNotification = await Notifications.create({
-            opened: false,
-            title: `Payment failed for order #${order.orderNo}`,
-            paymentMethod: order.paymentMethod,
-            orderId: order._id,
-            city: order.user?.city || '',
-          });
-          emitToAdmins('notification:new', paymentFailedNotification);
-        }
-        break;
-      }
-
-      case 'charge.refunded': {
-        const charge = event.data.object;
-        const paymentIntentId = charge.payment_intent;
-        const refundAmount = charge.amount_refunded / 100;
-
-        if (paymentIntentId) {
-          await Orders.findOneAndUpdate(
-            { paymentId: paymentIntentId },
-            { $set: { paymentStatus: 'refunded', status: 'cancelled' }, $inc: { refundedAmount: refundAmount } },
-            { new: true }
-          );
-        }
-        break;
-      }
-
-      case 'charge.dispute.created': {
-        const dispute = event.data.object;
-        const order = await Orders.findOneAndUpdate(
-          { paymentId: dispute.payment_intent },
-          { $set: { paymentStatus: 'disputed', status: 'disputed' } },
-          { new: true }
-        );
-
-        if (order) {
-          const disputeNotification = await Notifications.create({
-            opened: false,
-            title: `Dispute opened for order #${order.orderNo}`,
-            paymentMethod: order.paymentMethod,
-            orderId: order._id,
-            city: order.user?.city || '',
-          });
-          emitToAdmins('notification:new', disputeNotification);
-        }
-        break;
-      }
-
-      default:
-        // Unhandled event type — safe to ignore.
-        break;
+    const object = event.data.object;
+    const summary = {
+      type: event.type,
+      paymentId: event.type.startsWith('payment_intent.') ? object.id : (typeof object.payment_intent === 'string' ? object.payment_intent : object.payment_intent?.id),
+      amountRefunded: Math.max(0, Number(object.amount_refunded) || 0) / 100,
+      fullyRefunded: object.refunded === true,
+    };
+    // _id's unique constraint is present even before additional indexes are built.
+    try { await Events.updateOne({ _id: event.id }, { $setOnInsert: summary }, { upsert: true }); }
+    catch (error) { if (error.code !== 11000) throw error; }
+    const saved = await Events.findById(event.id);
+    if (!saved.processedAt) {
+      // Mutations are themselves idempotent: retries after a crash/concurrent delivery are safe.
+      await applyEvent(saved);
+      await Events.updateOne({ _id: event.id }, { $set: { processedAt: new Date() } });
     }
-  } catch (handlerError) {
-    // Log but do not return an error response; Stripe already received 200.
-    console.error('Stripe webhook handler error:', handlerError.message);
+    return res.status(200).json({ received: true });
+  } catch {
+    // Stripe retains responsibility for retries until persistence and processing succeed.
+    return res.status(503).json({ received: false });
   }
 }
-
-module.exports = { handleStripeWebhook };
+module.exports = { handleStripeWebhook, applyEvent };

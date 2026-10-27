@@ -1,0 +1,1 @@
+{"startup": true, "nonroot": true, "noDockerSocket": true, "paymentAuth": true, "inflateDenied": true, "paginationBounded": true, "analyticsValidated": true, "rotatingEmailLimited": true, "limiterRestartPersistence": true}

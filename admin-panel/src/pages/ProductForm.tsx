@@ -435,7 +435,7 @@ const ProductForm = () => {
                                     className="w-24 h-24 object-cover rounded border bg-gray-100"
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
-                                        const fallback = e.target.nextElementSibling as HTMLElement;
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                                         if (fallback) fallback.style.display = 'flex';
                                     }}
                                 />

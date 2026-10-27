@@ -13,7 +13,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 const socketAuth = require('./config/socketAuth');
 const { setIO } = require('./utils/socketManager');
-const { getClientIp } = require('./utils/getClientIp');
+const {
+  getClientIp,
+  TRUST_PROXY_CONFIG,
+} = require('./utils/getClientIp');
 const { startDailyLogReportJob } = require('./jobs/dailyLogReport');
 // Load environment variables from .env file
 dotenv.config();
@@ -21,8 +24,10 @@ dotenv.config();
 // Start daily automated log analysis report in production.
 startDailyLogReportJob();
 
-// Cloudflare IP ranges — used to set Express trust proxy so req.ip resolves to the
-// real client IP when Cloudflare is in front of nginx. Updated 2026-08-01.
+// Cloudflare IP ranges (fetched 2026-10-24 from cloudflare.com/ips-v4 + ips-v6)
+// — used ONLY by nginx realip config (W1), NOT for Express trust proxy.
+// After F1 (loopback binding) no Cloudflare edge ever connects to Express
+// directly, so the ranges below are documentation for the nginx boundary.
 const CLOUDFLARE_IP_RANGES = [
   '173.245.48.0/20',
   '103.21.244.0/22',
@@ -74,6 +79,19 @@ io.use(socketAuth);
 io.on('connection', (socket) => {
   if (socket.user) {
     socket.join('admin');
+    // Revoked sessions and demoted staff lose existing connections as well.
+    const check = async () => {
+      try {
+        const { verifyAccessToken } = require('./utils/authTokens');
+        const { authenticateSession } = require('./utils/authSession');
+        const user = await authenticateSession(verifyAccessToken(socket.accessToken));
+        if (!['admin', 'super admin'].includes(user.role)) throw new Error('Forbidden');
+      } catch { socket.disconnect(true); }
+    };
+    const timer = setInterval(check, 15000);
+    timer.unref();
+    socket.on('disconnect', () => clearInterval(timer));
+    socket.use(async (packet, next) => { await check(); if (socket.connected) next(); });
   }
 });
 setIO(io);
@@ -83,10 +101,13 @@ setIO(io);
 // The 'simple' parser (Node's built-in querystring) treats all values as plain strings.
 app.set('query parser', 'simple');
 
-// 🛡️ SECURITY: Enable trust proxy to support rate limiting behind Nginx + Cloudflare.
-// Trust Cloudflare's IP ranges plus localhost. Using a specific IP list is more secure
-// than a hop count because Express only trusts X-Forwarded-For from these sources.
-app.set('trust proxy', [...CLOUDFLARE_IP_RANGES, '127.0.0.1']);
+// 🛡️ SECURITY (F2): trust ONLY our exact reverse proxies — host nginx
+// (loopback / bridge gateway) and the two panel nginx containers (static
+// bridge IPs). The boundary is defined once, in utils/getClientIp.js, and
+// consumed by both getClientIp() and Express's trust proxy. No blanket
+// RFC1918/Docker-subnet trust: mongo and image-fallback share this bridge
+// and must never be able to inject a client identity.
+app.set('trust proxy', TRUST_PROXY_CONFIG);
 
 // 🛡️ SECURITY: Restrict CORS to known origins — fixes VULN reported in pentest.
 // origin:true accepts ANY domain with credentials, enabling cross-site request forgery.
@@ -178,7 +199,7 @@ if (process.env.NODE_ENV === 'production') {
 app.use(helmet({
   // HSTS is already set by host nginx (max-age=63072000). Disable here to avoid
   // duplicate headers with mismatched max-age values.
-  hsts: false,
+  hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000 } : false,
   contentSecurityPolicy: {
     useDefaults: false,
     directives: helmetDirectives,
@@ -228,8 +249,25 @@ app.use((req, res, next) => {
 // Preserve raw body buffer for webhook signature verification
 app.use(cookieParser());
 
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const ipBudget = (max, windowMs) => rateLimit({
+  ...(process.env.NODE_ENV === 'production' ? { store: new (require('./middleware/mongoRateStore').MongoRateStore)(`ip:${max}:${windowMs}`) } : {}), windowMs, limit: max, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: req => ipKeyGenerator(getClientIp(req)) });
+app.use('/api/auth', ipBudget(200, 15 * 60 * 1000));
+app.use('/api/track-view', ipBudget(120, 60 * 1000));
+app.use('/api/payment-intents', ipBudget(30, 60 * 1000));
+app.use('/api/orders', ipBudget(300, 60 * 1000));
+app.use('/api', (req, res, next) => {
+  for (const [key, max] of [['limit', 100], ['page', 10000]]) {
+    if (req.query[key] !== undefined && (!/^\d+$/.test(req.query[key]) || Number(req.query[key]) < 1 || Number(req.query[key]) > max)) {
+      return res.status(400).json({ success: false, message: `Invalid ${key}` });
+    }
+  }
+  next();
+});
 app.use(bodyParser.json({
-  limit: '10mb',
+  inflate: false,
+  limit: '1mb',
   verify: (req, res, buf) => {
     if (req.originalUrl.startsWith('/api/webhooks/')) {
       req.rawBody = buf;

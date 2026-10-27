@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../utils/authTokens');
 
 function parseCookies(cookieHeader) {
   if (!cookieHeader) return {};
@@ -19,7 +19,9 @@ function parseCookies(cookieHeader) {
  * @param {import('socket.io').Socket} socket
  * @param {(err?: Error) => void} next
  */
-function socketAuth(socket, next) {
+const { authenticateSession } = require('../utils/authSession');
+
+async function socketAuth(socket, next) {
   try {
     const cookies = parseCookies(socket.request.headers.cookie || '');
     const token = cookies.token;
@@ -28,20 +30,14 @@ function socketAuth(socket, next) {
       return next(new Error('Authentication error: no token'));
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return next(new Error('Authentication error: invalid token'));
-      }
-
-      const role = decoded?.role;
-      if (role !== 'admin' && role !== 'super admin') {
-        return next(new Error('Authentication error: admin required'));
-      }
-
-      // Attach decoded user to the socket for later use
-      socket.user = decoded;
-      next();
-    });
+    const decoded = await authenticateSession(verifyAccessToken(token));
+    socket.accessToken = token;
+    const role = decoded.role;
+    if (role !== 'admin' && role !== 'super admin') {
+      return next(new Error('Authentication error: admin required'));
+    }
+    socket.user = decoded;
+    next();
   } catch (error) {
     next(new Error('Authentication error'));
   }

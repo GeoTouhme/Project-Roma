@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 // File filter (images only)
 const fileFilter = (req, file, cb) => {
     console.log('Multer Filter:', file.originalname, file.mimetype);
-    if (file.mimetype.startsWith('image/')) {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype) && /\.(jpe?g|png|webp)$/i.test(file.originalname)) {
         cb(null, true);
     } else {
         console.error('Multer Rejected:', file.mimetype);
@@ -34,6 +34,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
+        files: 1, fields: 10, parts: 11,
         fileSize: 10 * 1024 * 1024 // 10MB limit
     }
 });

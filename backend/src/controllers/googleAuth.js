@@ -7,7 +7,7 @@ const { emitToAdmins } = require('../utils/socketManager');
 const { isDisposableEmail } = require('../utils/emailGuard');
 // 🛡️ Reuse the shared token-pair issuer so Google login participates in
 // refresh token rotation exactly like email/password login.
-const { issueTokenPair } = require('./auth');
+const { issueTokenPair, sendMfaChallenge } = require('./auth');
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -158,6 +158,11 @@ const googleAuth = async (req, res) => {
         console.error('Failed to emit admin notification for Google sign-up:', notifyErr.message);
       }
     }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ success: false, message: 'Please verify your email before logging in.' });
+    }
+    if (sendMfaChallenge(res, user)) return;
 
     // 🛡️ Issue short-lived access token + rotating refresh token pair.
     await issueTokenPair(res, user);

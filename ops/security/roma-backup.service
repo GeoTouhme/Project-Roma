@@ -1,0 +1,14 @@
+[Unit]
+Description=Balport verified encrypted database backup
+After=docker.service
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/libexec/roma-security/backup-db.py
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/project-roma
+PrivateTmp=true
