@@ -169,3 +169,11 @@ The running backend's 144 source files match the current working tree byte-for-b
 The source-proof build targets only the build stage under a separate tag; it does not rebuild or replace the running production images. A first offline full-image attempt stopped at Alpine package-index access, so the successful reproduction deliberately omitted the unrelated nginx packaging stage. Existing running image IDs, pinned tags and rollback tags were left unchanged.
 
 `PRICING_SOURCE_PROVENANCE_2026-10-29.json` records deployed/full-worktree hashes separately from pricing-only index hashes for mixed files. The deployed images contain pre-existing unrelated work; the pricing-only commit must not be misrepresented as a byte-identical clean snapshot of the entire deployment. It captures the verified pricing delta independently, without absorbing that other work.
+
+## Git commit record
+
+- Pricing remediation commit: `e4b0013f9927d267938acf1b86752da558bde905`.
+- Subject: `[verified] fix(pricing): restore selling prices and refresh anonymous carts`.
+- Scope: 32 files, including pricing-only source hunks, regression tests, this report and the source-provenance manifest. Unrelated changes remain in the working tree.
+- Independent pre-commit review approved the pricing implementation with no blocking security, logic, dependency or partial-staging findings. Non-blocking fake-timer coverage suggestions remain follow-up work; expiry-forwarding adapters were included before commit. Existing CRLF conventions were preserved.
+- This record is added in a separate documentation-only commit because a commit cannot embed its own SHA. Neither commit was pushed. No deployment, production-data writes, payment enablement or rollback-tag changes accompanied either commit.
