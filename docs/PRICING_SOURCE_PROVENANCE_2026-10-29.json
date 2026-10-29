@@ -1,0 +1,138 @@
+{
+  "scope": "Read-only running-image verification plus separate network-disabled build-stage reproduction; no redeploy. The pricing-only commit excludes unrelated deployed work, so mixed-file index hashes intentionally differ from full deployed source hashes.",
+  "sourceChecks": {
+    "backend": {
+      "matchedFileCount": 144,
+      "missing": [],
+      "mismatched": []
+    },
+    "customer-panel": {
+      "matchedFileCount": 110,
+      "missing": [],
+      "mismatched": []
+    }
+  },
+  "compiledAssetCount": 6,
+  "compiledAssetsSha256": {
+    "Billing-Csf_APuY.js": "a4be3ecb8603dae7ba11f474b9ab84a5a8c70867c5498fb4a558763200d1d9f8",
+    "Logo-BMunMxNx.png": "1c8b6f8b22044115f17aecdd72b617cba0bfe5fdd23b80da944bf0966fc354af",
+    "ajax-loader-BcnMEykj.gif": "e7b44c86b050fca766a96ddac2d0932af0126da6f2305280342d909168dcce6b",
+    "index-DQlrdoLU.js": "23f37a2bf1005ce93cafabb34ec3f35d1944841c8ed0aa5c608c85e002d7dba0",
+    "index-DUNn6zLj.css": "902a9e8bd1f519400f51e21ee294a3815562f17bfaa2010544329db68a141c64",
+    "slick-BlzDm7g2.svg": "12459f221a0b787bf1eaebf2e4c48fca2bd9f8493f71256c3043e7a0c7e932f6"
+  },
+  "publicBundle": "https://balportliquors.com/static/index-DQlrdoLU.js",
+  "publicBundleSha256": "23f37a2bf1005ce93cafabb34ec3f35d1944841c8ed0aa5c608c85e002d7dba0",
+  "buildRecordRef": "hwmlosxudc8w2383osktzeox9",
+  "images": {
+    "backend": {
+      "tag": "project-roma-backend:policies-20261029",
+      "imageId": "sha256:a429246bc813da61789862434bdba7c3c5ce998334eae17f6b423c17a8b5f655",
+      "rollbackTag": "project-roma-backend:rollback-optionc-pre-20261029T165316Z",
+      "rollbackImageId": "sha256:8e9863e649604d5c024172e2f9e27ae329cf0c813498d69cc0a9e42a3339b3a2"
+    },
+    "customer-panel": {
+      "tag": "project-roma-customer-panel:policies-20261029",
+      "imageId": "sha256:53ad57d4cd25016cf4739e9fb1b1abf3f748522b2f8a27332ceca1d9cf504472",
+      "rollbackTag": "project-roma-customer-panel:rollback-optionc-pre-20261029T165316Z",
+      "rollbackImageId": "sha256:56e2f3150cde83fdb3dfe7735d84eb5ba30ca46f4a7b4fdfc7fd18e53aef7023"
+    }
+  },
+  "pricingSourceFiles": {
+    "backend/src/controllers/cart.js": {
+      "deployedWorktreeSha256": "297ce29bf7c6286f2ccce7516c0b9887c40168fa47fa8975b8b08e4f81a7751f",
+      "pricingOnlyIndexSha256": "297ce29bf7c6286f2ccce7516c0b9887c40168fa47fa8975b8b08e4f81a7751f",
+      "wholeFileEqual": true
+    },
+    "backend/src/controllers/order.js": {
+      "deployedWorktreeSha256": "b2ab0ec669a3ae710d4611539de66900bd73c7f9a79ef745217655de8c0b2c7d",
+      "pricingOnlyIndexSha256": "00e014061fed8e8663d544ccf75bcc15ebf1ab69e3fb66461b9b2b7eb824f988",
+      "wholeFileEqual": false
+    },
+    "backend/src/controllers/product.js": {
+      "deployedWorktreeSha256": "23ad47237acee46f7896b0523f30b7c15f6c03303012a1c0d82db3d3f4894796",
+      "pricingOnlyIndexSha256": "a64a6beec1e79c861dcd5f1584f2b5abc8dc2503c303ff762beae08d84885d53",
+      "wholeFileEqual": false
+    },
+    "backend/src/utils/mixBundle.js": {
+      "deployedWorktreeSha256": "58667c4bea23b014652b16399c91b264b0ae38c87d7d5d09de5662554ecbef0b",
+      "pricingOnlyIndexSha256": "58667c4bea23b014652b16399c91b264b0ae38c87d7d5d09de5662554ecbef0b",
+      "wholeFileEqual": true
+    },
+    "backend/src/utils/orderCalculator.js": {
+      "deployedWorktreeSha256": "6cf37e0abd72754356d8b675e572a396bc66a7a04035cc6d263b95001f6b7ba7",
+      "pricingOnlyIndexSha256": "90f2945d48dfa8d8eb2265939894a750621977bcf4657c28e523518c9c50dd64",
+      "wholeFileEqual": false
+    },
+    "backend/src/utils/salePricing.js": {
+      "deployedWorktreeSha256": "19a12d62e4c0c4d66e423038c0c52b5bbb3d508f49a32d53ec695ef47b250dd0",
+      "pricingOnlyIndexSha256": "19a12d62e4c0c4d66e423038c0c52b5bbb3d508f49a32d53ec695ef47b250dd0",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/components/deal-card/index.jsx": {
+      "deployedWorktreeSha256": "4de1db3ba3dda347462601edcad2a400680feee5edbef2d1d2862effc577569e",
+      "pricingOnlyIndexSha256": "4de1db3ba3dda347462601edcad2a400680feee5edbef2d1d2862effc577569e",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/components/product-card/index.jsx": {
+      "deployedWorktreeSha256": "f6800368bcb3abb209f5be5384135464ed14e228d704f8818f8cac057bf586ae",
+      "pricingOnlyIndexSha256": "3ce7c8114597f1fffac6c51547db14d0bd7d90a6992bfffb5574513621cd6dc1",
+      "wholeFileEqual": false
+    },
+    "customer-panel/src/pages/Billing/Billing.jsx": {
+      "deployedWorktreeSha256": "a0744e386545af25d1c123bb38327878e72c42c6f6da008dc7bc10ec24cf6bc6",
+      "pricingOnlyIndexSha256": "21ea0fd308d6b7d8ca5d1639be0bdd32c33f06255142e70512fb338369ee83b1",
+      "wholeFileEqual": false
+    },
+    "customer-panel/src/pages/cart/Cart.jsx": {
+      "deployedWorktreeSha256": "946d57bb2ef1e6473244b803c38e488d3f6524b472820f71632491c9d0da14f4",
+      "pricingOnlyIndexSha256": "f42dbf4f7ed011dec3fa5d44a40480157e76d810348842920eaa8ccdb211e158",
+      "wholeFileEqual": false
+    },
+    "customer-panel/src/pages/product/index.jsx": {
+      "deployedWorktreeSha256": "a1e14d5bdfaaff9738c3e5495e7a870019bbd80135759bf1f24f1c96f52b5aea",
+      "pricingOnlyIndexSha256": "d890eabb9f0b0c2db5945f787cb77830095ed28bef5c320f46e5721d330eab55",
+      "wholeFileEqual": false
+    },
+    "customer-panel/src/redux/cartSlice.js": {
+      "deployedWorktreeSha256": "86ae79ae4312eac54e2ea0feb4268e7f2dea7a86d97045e6bb4bfcb84d2aab38",
+      "pricingOnlyIndexSha256": "86ae79ae4312eac54e2ea0feb4268e7f2dea7a86d97045e6bb4bfcb84d2aab38",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/utils/cartRepricing.js": {
+      "deployedWorktreeSha256": "60975506d6fc04f57ae61337693edd836d0fd0a3a9b4b46e2a4756d337ed9ce5",
+      "pricingOnlyIndexSha256": "60975506d6fc04f57ae61337693edd836d0fd0a3a9b4b46e2a4756d337ed9ce5",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/utils/salePricing.js": {
+      "deployedWorktreeSha256": "306638558e184b7ca2dd02676454398d8dca570b09ab67ca8b03cef65f91caab",
+      "pricingOnlyIndexSha256": "306638558e184b7ca2dd02676454398d8dca570b09ab67ca8b03cef65f91caab",
+      "wholeFileEqual": true
+    },
+    "backend/src/controllers/home.js": {
+      "deployedWorktreeSha256": "b238a1f4394523e75602194ded66a1adb932102837fa65f57560789bc2459814",
+      "pricingOnlyIndexSha256": "28e7134d5cac74c02451817724eda09654e7c42717f4b6af824efcba03852419",
+      "wholeFileEqual": false
+    },
+    "backend/src/controllers/wishlist.js": {
+      "deployedWorktreeSha256": "0afd65411db4935c45641531bb0461f7291fed8a5407e6893770d8aa6d087b34",
+      "pricingOnlyIndexSha256": "0afd65411db4935c45641531bb0461f7291fed8a5407e6893770d8aa6d087b34",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/pages/collections/index.jsx": {
+      "deployedWorktreeSha256": "ea5c2a59f62b7dcf844f58222f3e2a5acbcc1c333333c18b2b5dfc4f0d53cfcf",
+      "pricingOnlyIndexSha256": "ea5c2a59f62b7dcf844f58222f3e2a5acbcc1c333333c18b2b5dfc4f0d53cfcf",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/pages/wishlist/index.jsx": {
+      "deployedWorktreeSha256": "cdd599324f90930b13400956ab9674de03f619ec8d00863bc034d6f38df76356",
+      "pricingOnlyIndexSha256": "cdd599324f90930b13400956ab9674de03f619ec8d00863bc034d6f38df76356",
+      "wholeFileEqual": true
+    },
+    "customer-panel/src/pages/home/index.jsx": {
+      "deployedWorktreeSha256": "67f0f2fc25b85d33355f04603ed97be9e4307cdce03a93a23022791ad8ec05af",
+      "pricingOnlyIndexSha256": "560b2d6f617fa984bf43539501af3e302e20cd0877ebea6902b2702f84eaf4d5",
+      "wholeFileEqual": false
+    }
+  }
+}

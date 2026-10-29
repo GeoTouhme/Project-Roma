@@ -22,11 +22,10 @@ const cartSlice = createSlice({
         addToCart: (state, action) => {
             const item = action.payload;
 
-            // Normalize price: If item has no base price but has a sale price, use sale price as base price
-            // This fixes issues where admin sets price to null but provides a sale price
-            if ((!item.price || item.price === 0) && item.priceSale) {
-                item.price = item.priceSale;
-            }
+            // Keep raw price fields untouched — pricing semantics (null base price
+            // with sale-only price, active flash sales) are resolved by
+            // sellingPrice() at render/total time and recalculated from the DB
+            // server-side at checkout. Never mutate price here.
 
             // Check if product already exists in cart
             const existing = state.cartItems.find(i => i.id === item.id);
@@ -37,6 +36,7 @@ const cartSlice = createSlice({
                 existing.price = item.price; // Will now hold the normalized valid price
                 existing.priceSale = item.priceSale;
                 existing.salePrice = item.salePrice;
+                existing.saleEndsAt = item.saleEndsAt;
                 existing.image = item.image;
                 existing.name = item.name;
             } else {
@@ -64,6 +64,17 @@ const cartSlice = createSlice({
             state.cartItems = [];
             localStorage.removeItem("cartItems");
         },
+        applyPriceRefresh: (state, action) => {
+            const allowedFields = ['price', 'priceSale', 'salePrice', 'saleEndsAt', 'name', 'slug', 'image', 'available', 'pricingStatus'];
+            action.payload.forEach(update => {
+                state.cartItems.filter(item => item.id === update.id).forEach(item => {
+                    allowedFields.forEach(field => {
+                        if (Object.prototype.hasOwnProperty.call(update, field)) item[field] = update[field];
+                    });
+                });
+            });
+            localStorage.setItem("cartItems", JSON.stringify(state.cartItems));
+        },
         updateQuantity: (state, action) => {
             const { id, quantity } = action.payload;
             const item = state.cartItems.find((i) => i.id === id);
@@ -73,5 +84,5 @@ const cartSlice = createSlice({
     },
 });
 
-export const { addToCart, addBundleToCart, removeFromCart, clearCart, updateQuantity } = cartSlice.actions;
+export const { addToCart, addBundleToCart, removeFromCart, clearCart, updateQuantity, applyPriceRefresh } = cartSlice.actions;
 export default cartSlice.reducer;

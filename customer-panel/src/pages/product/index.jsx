@@ -1,3 +1,4 @@
+import { normalizePricing } from "../../utils/salePricing";
 import React, { useCallback, useEffect, useState } from "react";
 import Slider from "react-slick";
 import { Star } from "lucide-react";
@@ -110,7 +111,7 @@ const ProductPage = () => {
     ProductService.getProductBySlug(slug)
       .then((response) => {
         if (response.success) {
-          setProduct(response.data);
+          setProduct(normalizePricing(response.data));
           fetchReviews(response.data?._id);
 
           // Track product view
@@ -210,6 +211,7 @@ const ProductPage = () => {
       price: product.price,
       priceSale: product.priceSale,
       salePrice: product.priceSale,
+      saleEndsAt: product.saleEndsAt,
       image: product.images?.[0],
       quantity,
     };
@@ -236,6 +238,7 @@ const ProductPage = () => {
         price: product.price,
         priceSale: product.priceSale,
         salePrice: product.priceSale,
+      saleEndsAt: product.saleEndsAt,
         image: product.images?.[0],
         quantity,
       };
@@ -315,12 +318,20 @@ const ProductPage = () => {
                     <span className="ml-2 text-gray-600">Reviews ({product?.reviews?.length})</span>
                   </div>
 
-                  {/* Price */}
+                  {/* Price — CSV products carry their only price in priceSale; never render $0 */}
                   <div className="mt-2 flex items-center space-x-4">
-                    <span className="text-gray-500 line-through text-lg">${product?.price}</span>
-                    <span className="text-[#B5223B] text-2xl font-bold ml-2">${product?.priceSale}</span>
+                    {product?.purchasable ? (
+                      <>
+                        {product?.discount > 0 && (
+                          <span className="text-gray-500 line-through text-lg">${product?.price?.toFixed(2)}</span>
+                        )}
+                        <span className="text-[#B5223B] text-2xl font-bold ml-2">${(product?.priceSale ?? product?.price).toFixed(2)}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-500 text-lg">Price unavailable</span>
+                    )}
 
-                    {!ORDERING_DISABLED && (
+                    {!ORDERING_DISABLED && product?.purchasable && (
                       /* Quantity Selector */
                       <div className="flex items-center border border-[#CECECE] rounded-lg overflow-hidden">
                         <button
@@ -362,8 +373,8 @@ const ProductPage = () => {
                       </a>
                     ) : (
                       <>
-                        <button className="w-full px-6 py-2 bg-[#B5223B] text-white" onClick={handleAddToCart}>Add To Cart</button>
-                        <button className="w-full px-6 py-2 border border-[#B5223B] text-[#B5223B]" onClick={() => handleBillingNavigate()}>Buy Now</button>
+                        <button className="w-full px-6 py-2 bg-[#B5223B] text-white disabled:bg-gray-400 disabled:cursor-not-allowed" onClick={handleAddToCart} disabled={!product?.purchasable}>Add To Cart</button>
+                        <button className="w-full px-6 py-2 border border-[#B5223B] text-[#B5223B] disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed" onClick={() => handleBillingNavigate()} disabled={!product?.purchasable}>Buy Now</button>
                       </>
                     )}
                   </div>

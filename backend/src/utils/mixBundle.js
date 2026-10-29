@@ -1,6 +1,7 @@
 const Products = require('../models/Product');
 const MixBundle = require('../models/MixBundle');
 const { safeObjectId, safeNumber } = require('./validators');
+const { sellingPrice } = require('./salePricing');
 
 function round2(value) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -122,8 +123,8 @@ async function applyMixBundleDeals(items) {
 
     const regularTotal = matchingItems.reduce((sum, { item }) => {
       const product = productMap.get(safeObjectId(item.pid || item._id || item.id)?.toString());
-      const unitPrice = product?.priceSale || product?.price || 0;
-      return sum + Math.max(1, safeNumber(item.quantity, 1)) * unitPrice;
+      const unitPrice = product ? sellingPrice(product) : null;
+      return sum + Math.max(1, safeNumber(item.quantity, 1)) * (unitPrice ?? 0);
     }, 0);
 
     const bundleCount = Math.floor(totalQty / bundle.requiredQty);

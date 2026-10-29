@@ -803,6 +803,17 @@ const getCartSummary = async (req, res) => {
         couponDiscount: totals.couponDiscount,
         discount: totals.discount,
         fulfillmentType: totals.fulfillmentType,
+        // Authoritative per-item prices so stale client-side cart data (e.g.
+        // priceSale:0 from the pre-fix bundle) is recalculated for display.
+        items: (totals.updatedItems || []).map((item) => ({
+          pid: item.pid,
+          name: item.name,
+          type: item.type || 'product',
+          quantity: item.quantity,
+          unitPrice: item.unitPrice ?? item.bundlePrice ?? null,
+          priceSale: item.priceSale ?? null,
+          total: item.total,
+        })),
       },
     });
   } catch (error) {

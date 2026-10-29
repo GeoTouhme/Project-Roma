@@ -1,3 +1,4 @@
+import { normalizePricing } from "../../utils/salePricing";
 // src/components/product-card/index.jsx
 import { useState } from "react";
 import { useDispatch } from "react-redux";
@@ -12,9 +13,14 @@ import { ORDERING_DISABLED } from "../../config/orderingConfig";
 import SaleBadge from "../sale-badge";
 import CountdownTimer from "../countdown-timer";
 
-const ProductCard = ({ product, wishListDone }) => {
+const ProductCard = ({ product: rawProduct, wishListDone }) => {
+  const product = normalizePricing(rawProduct);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const dispatch = useDispatch();
+
+  // CSV-import products carry their only price in priceSale; a genuine sale
+  // requires a real regular price. Never fall back to $0 for unpriced products.
+  const hasSale = product.discount > 0;
 
   const handleAddToCart = () => {
     const cartItem = {
@@ -24,6 +30,7 @@ const ProductCard = ({ product, wishListDone }) => {
       price: product?.price,
       priceSale: product?.priceSale,
       salePrice: product?.priceSale,
+      saleEndsAt: product?.saleEndsAt,
       quantity: 1,
       slug: product?.slug
     };
@@ -49,8 +56,6 @@ const ProductCard = ({ product, wishListDone }) => {
         }
       })
   }
-
-  const hasSale = product.priceSale > 0 && product.price > 0 && product.priceSale < product.price;
 
   return (
     <div
@@ -115,20 +120,26 @@ const ProductCard = ({ product, wishListDone }) => {
 
         <div className="product_price_cart flex items-end justify-between mt-auto pt-2">
           <div className="product_grid_price">
-            <p className="text-primary font-semibold md:text-[22px]/[22px] text-[18px]/[18px]">
-              {hasSale ? (
-                <>
-                  <span className="text-gray-400 font-normal text-sm line-through mr-2">
-                    ${product.price.toFixed(2)}
-                  </span>
-                  <span>${product.priceSale.toFixed(2)}</span>
-                </>
-              ) : (
-                <span>${product.price > 0 ? product.price.toFixed(2) : product.priceSale?.toFixed(2)}</span>
-              )}
-            </p>
+            {product.purchasable ? (
+              <p className="text-primary font-semibold md:text-[22px]/[22px] text-[18px]/[18px]">
+                {hasSale ? (
+                  <>
+                    <span className="text-gray-400 font-normal text-sm line-through mr-2">
+                      ${product.price.toFixed(2)}
+                    </span>
+                    <span>${product.priceSale.toFixed(2)}</span>
+                  </>
+                ) : (
+                  <span>${(product.priceSale ?? product.price).toFixed(2)}</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-gray-400 font-medium text-sm" aria-label="Price unavailable">
+                Price unavailable
+              </p>
+            )}
           </div>
-          {!ORDERING_DISABLED && (
+          {!ORDERING_DISABLED && product.purchasable && (
             <button
               className="product_grid_cart_btn w-11 h-11 md:w-12 md:h-12 bg-black rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
               onClick={handleAddToCart}

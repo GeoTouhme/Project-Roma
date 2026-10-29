@@ -1,3 +1,4 @@
+const { sellingPrice, hasValidPricing } = require('../utils/salePricing');
 const Products = require('../models/Product');
 const Deal = require('../models/Deal');
 
@@ -17,9 +18,9 @@ const applyBundleDeals = async (items) => {
     const totalQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
     if (totalQty < deal.quantity) continue;
 
-    // Use each item's own price (priceSale preferred) instead of one price for all.
+    // Use each item's own authoritative price (priceSale preferred) instead of one price for all.
     const regularTotal = matchingItems.reduce((sum, item) => {
-      const unitPrice = item.priceSale || item.price || 0;
+      const unitPrice = item.unitPrice || item.priceSale || item.price || 0;
       return sum + item.quantity * unitPrice;
     }, 0);
 
@@ -52,7 +53,7 @@ const getCart = async (request, response) => {
         'slug',
         'available',
         'price',
-        'priceSale',
+        'priceSale', 'saleEndsAt',
         'status',
       ]);
 
@@ -61,6 +62,11 @@ const getCart = async (request, response) => {
           .status(400)
           .json({ success: false, message: 'Product is unavailable or out of stock.' });
       }
+      if (!hasValidPricing(product)) {
+        return response
+          .status(400)
+          .json({ success: false, message: `Product is missing a valid price: ${product.name || item.pid}` });
+      }
       const { quantity, color, size, sku } = item;
       if (product.available < quantity) {
         return response
@@ -68,11 +74,12 @@ const getCart = async (request, response) => {
           .json({ success: false, message: 'No Products in Stock' });
       }
 
-      const unitPrice = product.priceSale || product.price;
+      // Authoritative selling price from the DB — never trust client-submitted prices.
+      const unitPrice = sellingPrice(product);
       const subtotal = unitPrice * quantity;
       const { ...others } = product.toObject();
       cartItems.push({
-        ...others,
+        ...others, priceSale: unitPrice, unitPrice,
         pid: item.pid,
         quantity,
         size,

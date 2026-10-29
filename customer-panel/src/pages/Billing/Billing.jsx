@@ -1,3 +1,4 @@
+import { sellingPrice } from "../../utils/salePricing";
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PaymentService from "../../services/paymentService";
@@ -64,6 +65,15 @@ const BillingForm = () => {
   const googleMapsKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
 
   const [summaryError, setSummaryError] = useState(null);
+  // A successful authenticated summary can repair legacy local prices too.
+  // Persisted flags alone must neither authorize checkout nor veto a fresh
+  // database-authoritative quote for the same product.
+  const hasUnavailablePricing = cartItems.some(item => {
+    const unitPrice = cartSummary.items?.find(line => String(line.pid) === String(item.id))?.unitPrice;
+    const serverPriced = !summaryError && Number.isFinite(Number(unitPrice)) && Number(unitPrice) > 0;
+    return !serverPriced && (item.pricingStatus === 'unavailable' ||
+      (item.type !== 'bundle' && sellingPrice(item) === null));
+  });
 
   const displayTotal = useMemo(() => {
     const fee = fulfillmentType === 'pickup' ? 0 : deliveryFee;
@@ -315,7 +325,7 @@ const BillingForm = () => {
       .sort((a, b) => (a.id || "").localeCompare(b.id || ""))
       .map(
         (item) =>
-          `${item.id}:${item.quantity}:${item.priceSale || item.salePrice || item.price || 0}`
+          `${item.id}:${item.quantity}:${sellingPrice(item) ?? 0}`
       )
       .join("|");
     const timeBucket = Math.floor(Date.now() / 30000);
@@ -330,6 +340,10 @@ const BillingForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (hasUnavailablePricing) {
+      setCheckoutError('Price unavailable. Please return to your cart to retry prices.');
+      return;
+    }
     const newErrors = {};
 
     if (!firstName.trim()) newErrors.firstName = "First name is required";
@@ -410,7 +424,7 @@ const BillingForm = () => {
           })),
         };
       }
-      const effectivePrice = item.priceSale || item.salePrice || item.price || 0;
+      const effectivePrice = sellingPrice(item) ?? 0;
       return {
         _id: item.id,
         name: item.name,
@@ -518,6 +532,17 @@ const BillingForm = () => {
       setProcessing(false);
     }
   };
+
+  // Keep this guard after every hook so cart updates preserve hook order.
+  if (hasUnavailablePricing) {
+    return (
+      <div className="container py-20 text-center" role="alert">
+        <h2 className="text-2xl font-semibold">Price unavailable</h2>
+        <p className="my-4">We couldn't confirm pricing for an item in your cart. Please retry prices before checking out.</p>
+        <a href="/cart" className="underline font-semibold">Return to cart to retry prices</a>
+      </div>
+    );
+  }
 
   return (
     <div className="container md:pb-[100px] pb-[40px]">
@@ -798,7 +823,7 @@ const BillingForm = () => {
                   <p className="font-semibold text-sm text-right flex-shrink-0">
                     ${item.type === 'bundle'
                       ? (Number(item.bundlePrice) * item.quantity).toFixed(2)
-                      : ((item.priceSale || item.salePrice || item.price || 0) * item.quantity).toFixed(2)}
+                      : ((cartSummary.items?.find(line => String(line.pid) === String(item.id))?.unitPrice ?? sellingPrice(item)) * item.quantity).toFixed(2)}
                   </p>
                 </div>
               ))}
@@ -1080,7 +1105,7 @@ const Billing = () => {
       if (item.type === "bundle") {
         return total + Number(item.bundlePrice || 0) * item.quantity;
       }
-      return total + (item.priceSale || item.salePrice || item.price || 0) * item.quantity;
+      return total + (sellingPrice(item) ?? 0) * item.quantity;
     }, 0);
     return Math.max(50, Math.round(sub * 100));
   }, [cartItems]);

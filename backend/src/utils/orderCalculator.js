@@ -1,3 +1,4 @@
+const { activeSalePrice, sellingPrice } = require('./salePricing');
 /**
  * 🛡️ orderCalculator.js — Server-side cart total calculator
  *
@@ -55,9 +56,9 @@ async function applyBundleDealDiscounts(items) {
     );
     if (totalQty < deal.quantity) continue;
 
-    // Use each item's own price (already set from authoritative DB in updatedItems)
+    // Use each item's own authoritative unit price (set from the DB in updatedItems)
     const regularTotal = matchingItems.reduce((sum, item) => {
-      const unitPrice = safeNumber(item.priceSale, 0) || safeNumber(item.price, 0) || 0;
+      const unitPrice = safeNumber(item.unitPrice, 0) || safeNumber(item.priceSale, 0) || safeNumber(item.price, 0) || 0;
       return sum + Math.max(1, safeNumber(item.quantity, 1)) * unitPrice;
     }, 0);
 
@@ -162,7 +163,13 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
       containsAlcohol = true;
     }
 
-    const price = product.priceSale || product.price || 0;
+    // 🛡️ Authoritative selling price: active flash-sale price, else the regular
+    // price, else the sale-only (CSV-import) price. A product with none of
+    // those must never be purchasable — reject the cart instead of charging $0.
+    const price = sellingPrice(product);
+    if (price === null) {
+      throw new Error(`Product is missing a valid price and cannot be purchased: ${product.name || product._id}`);
+    }
     const total = price * item.quantity;
 
     updatedItems.push({
@@ -171,7 +178,8 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
       brand: item.brand || product.brand,
       slug: item.slug || product.slug,
       price: product.price,
-      priceSale: product.priceSale,
+      priceSale: activeSalePrice(product) || price,
+      unitPrice: price,
       available: product.available,
       size: item.size || product.size || null,
       color: item.color || null,
@@ -253,7 +261,7 @@ async function calculateOrderTotals({ items, tip, couponCode, userEmail, fulfill
           slug: product.slug,
           sku: product.sku,
           price: product.price,
-          priceSale: product.priceSale,
+          priceSale: activeSalePrice(product) || sellingPrice(product),
           imageUrl: product.images?.[0]?.url || '',
           size: product.size || null,
         };

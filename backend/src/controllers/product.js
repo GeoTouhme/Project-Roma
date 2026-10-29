@@ -84,15 +84,13 @@ const getProducts = async (req, res) => {
     const maxPrice = safePrices ? safeNumber(safePrices.split('_')[1], 10000000) : 10000000;
     productSearchQuery.priceSale = { $gte: minPrice, $lte: maxPrice };
 
-    // 7. Handle ids filter (comma-separated product IDs)
-    if (query.ids) {
-      const ids = query.ids
-        .split(',')
+    // 7. Handle ids filter (first 100 comma-separated IDs; aggregation needs BSON IDs).
+    if (Object.prototype.hasOwnProperty.call(query, 'ids')) {
+      const ids = (typeof query.ids === 'string' ? query.ids.split(',', 100) : [])
         .map((id) => safeObjectId(id))
-        .filter(Boolean);
-      if (ids.length > 0) {
-        productSearchQuery._id = { $in: ids };
-      }
+        .filter(Boolean)
+        .map((id) => new mongoose.Types.ObjectId(id));
+      productSearchQuery._id = { $in: ids };
     }
 
     // 7.6 Handle category/brands/sizes/tags comma filters from mix bundles
@@ -177,7 +175,7 @@ const getProducts = async (req, res) => {
           colors: 1,
           discount: 1,
           likes: 1,
-          priceSale: 1,
+          priceSale: 1, saleEndsAt: 1,
           price: 1,
           averageRating: 1,
           available: 1,
@@ -378,7 +376,7 @@ const getProductsByAdmin = async (request, response) => {
           sku: 1,
           code: 1,
           available: 1,
-          priceSale: 1,
+          priceSale: 1, saleEndsAt: 1,
           price: 1,
           category: 1,
           subCategory: 1,
@@ -783,7 +781,7 @@ const relatedProducts = async (req, res) => {
           available: 1,
           discount: 1,
           likes: 1,
-          priceSale: 1,
+          priceSale: 1, saleEndsAt: 1,
           price: 1,
           averageRating: 1,
           isBestSeller: 1,

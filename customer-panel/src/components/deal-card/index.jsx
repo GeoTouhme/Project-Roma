@@ -2,6 +2,7 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import { getProductCardImage } from "../../utils/cloudinary";
 import { addBundleToCart } from "../../redux/cartSlice";
+import { sellingPrice } from "../../utils/salePricing";
 import { toast } from "react-hot-toast";
 import { ShoppingCart } from "lucide-react";
 
@@ -21,14 +22,17 @@ const DealCard = ({ deal }) => {
         price: Number(deal.bundlePrice),
         priceSale: Number(deal.bundlePrice),
         image: products[0]?.images?.[0]?.url || "",
-        products: products.map((p) => ({
-          id: p._id,
-          name: p.name,
-          slug: p.slug,
-          image: p.images?.[0]?.url || "",
-          price: p.price || p.priceSale || 0,
-          priceSale: p.priceSale || p.price || 0,
-        })),
+        products: products.map((p) => {
+          const effective = sellingPrice(p);
+          return {
+            id: p._id,
+            name: p.name,
+            slug: p.slug,
+            image: p.images?.[0]?.url || "",
+            price: effective ?? 0,
+            priceSale: effective ?? 0,
+          };
+        }),
         dealQuantity: Number(deal.quantity),
       })
     );

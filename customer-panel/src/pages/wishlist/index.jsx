@@ -58,7 +58,7 @@ const WishlistPage = () => {
                                 slug: product.slug,
                                 title: product.name,
                                 image: product.image,
-                                priceSale: product.priceSale,
+                                priceSale: product.priceSale, saleEndsAt: product.saleEndsAt,
                                 price: product.price,
                                 rating: product.averageRating || 0,
                                 isWishlisted: true,
