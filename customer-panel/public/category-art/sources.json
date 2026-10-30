@@ -1,0 +1,122 @@
+[
+  {
+    "slug": "wine",
+    "category": "Wine",
+    "source": "Graphic/wine.png",
+    "asset": "/category-art/wine-graphic-a4d628b15977.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 29546,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "beer",
+    "category": "Beer",
+    "source": "Graphic/beer.png",
+    "asset": "/category-art/beer-graphic-e942bea5e55a.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 37564,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "spirits",
+    "category": "Spirits",
+    "source": "Graphic/spirits.png",
+    "asset": "/category-art/spirits-graphic-7cf7a62e4440.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 35614,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "ready-to-drink-seltzers",
+    "category": "Ready-to-Drink & Seltzers",
+    "source": "Graphic/rtd.png",
+    "asset": "/category-art/ready-to-drink-seltzers-graphic-16c36de9a762.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 30880,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "non-alcoholic-drinks",
+    "category": "Non-Alcoholic Drinks",
+    "source": "Graphic/non-alcoholic.png",
+    "asset": "/category-art/non-alcoholic-drinks-graphic-4a7e34ba7a46.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 32076,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "snacks-food",
+    "category": "Snacks & Food",
+    "source": "Graphic/snacks.png",
+    "asset": "/category-art/snacks-food-graphic-a551f39d8cfb.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 33228,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "health-wellness",
+    "category": "Health & Wellness",
+    "source": "Graphic/health.png",
+    "asset": "/category-art/health-wellness-graphic-dc9d141a496e.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 27652,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "tobacco-nicotine",
+    "category": "Tobacco & Nicotine",
+    "source": "Graphic/tobacco.png",
+    "asset": "/category-art/tobacco-nicotine-graphic-617e359e6fc7.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 34498,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "mixers",
+    "category": "Mixers",
+    "source": "Graphic/mixers.png",
+    "asset": "/category-art/mixers-graphic-67a5d3d28cfb.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 32404,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "accessories-more",
+    "category": "Accessories & More",
+    "source": "Graphic/accessories.png",
+    "asset": "/category-art/accessories-more-graphic-1120e54695ff.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 32396,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "water",
+    "category": "Water",
+    "source": "Graphic/water.png",
+    "asset": "/category-art/water-graphic-2bc735c3a59f.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 37430,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  },
+  {
+    "slug": "sparkling-water",
+    "category": "Sparkling Water",
+    "source": "Graphic/sparkling-water.png",
+    "asset": "/category-art/sparkling-water-graphic-f8c80e547fcf.webp",
+    "width": 480,
+    "height": 480,
+    "bytes": 34918,
+    "changes": "Resized and converted to WebP. Original colors and framing preserved."
+  }
+]
