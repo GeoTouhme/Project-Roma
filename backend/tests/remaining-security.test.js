@@ -9,6 +9,8 @@ process.env.JWT_SECRET = 'isolated-test-key-never-used-in-production';
 process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock';
 process.env.NODE_ENV = 'test';
+const policySettings = { timezone: 'UTC', operatingHours: Array.from({ length: 7 }, (_, dayOfWeek) => ({ dayOfWeek, isOpen: true, open: '06:00', close: '02:00' })) };
+const policyMock = { ...require('../src/utils/checkoutPolicy'), validateCheckout: options => require('../src/utils/checkoutPolicy').validateCheckout({ ...options, date: new Date('2026-10-29T12:00:00Z') }) };
 const A = 'a'.repeat(24), B = 'b'.repeat(24), D = 'd'.repeat(24);
 function load(file, mocks = {}) {
   const filename = path.resolve(__dirname, '../src', file), mod = new Module(filename, module);
@@ -111,7 +113,7 @@ test('R08 signature rejection and durable failure return non-2xx; retries do not
   }, async findById(){ return saved; } };
   const controller=load('controllers/stripeWebhook.js', { stripe: () => ({ webhooks: { constructEvent(){ if(!event)throw new Error('bad signature');return event; } } }), '../models/StripeEvent':events,'../models/Order':{async updateOne(){applies++;}} });
   let res=response();await controller.handleStripeWebhook({ headers:{} },res);assert.equal(res.statusCode,400);
-  event={ id:'evt_mock',type:'payment_intent.succeeded',data:{object:{id:'pi_mock'}} };
+  event={ id:'evt_mock',livemode:false,type:'payment_intent.succeeded',data:{object:{id:'pi_mock'}} };
   durableFailure=true;res=response();await controller.handleStripeWebhook({headers:{}},res);assert.equal(res.statusCode,503);assert.equal(applies,0);
   durableFailure=false;
   for(let i=0;i<2;i++){ res=response();await controller.handleStripeWebhook({headers:{}},res);assert.equal(res.statusCode,200); }
@@ -143,7 +145,7 @@ test('R09 concurrent cancellation has one winner, counts bundle units, and uses 
     '../models/Product':{async updateOne(filter,change){stock.push({filter,change});}},
     '../models/Notification':{async create(){return {}; }},
     '../utils/socketManager':{emitToAdmins(){}},
-    stripe:()=>({refunds:{async create(payload,options){refunds.push({payload,options});return{id:'re_mock'};}}}),
+    stripe:()=>({refunds:{async list(){return {data:[]};},async create(payload,options){refunds.push({payload,options});return{id:'re_mock',status:'succeeded'};}}}),
   });
   const req={params:{id:D},body:{reason:'fixture'},user:{_id:A}};
   const responses=[response(),response()];
@@ -185,14 +187,15 @@ test('R11 MFA key rollover preserves enrollments with an independent encryption 
 
 test('R18 intent creation binds owner and canonical cart; caller keys cannot share another owner namespace', async () => {
   const calls=[];const writes=[];
-  const totals={expectedAmountCents:1000,fulfillmentType:'pickup',updatedItems:[{pid:A,quantity:1,price:10}]};
+  const totals={expectedAmountCents:1000,fulfillmentType:'pickup',updatedItems:[{pid:A,quantity:1,price:10}],products:[{category:{slug:'wine'}}]};
   const controller=load('controllers/payment-intents.js',{
     stripe:function(){return{paymentIntents:{async create(options,request){calls.push({options,request});return{id:'pi_mock',client_secret:'synthetic_secret'};}}};},
     '../models/Checkout':{async updateOne(filter,change){writes.push({filter,change});}},
     '../utils/orderCalculator':{async calculateOrderTotals(){return totals;}},
+    '../models/settings':{async findOneOrCreate(){return policySettings;}}, '../utils/checkoutPolicy':policyMock,
   });
   for(const owner of [A,B]){
-    const res=response();await controller.payment_intents({user:{_id:owner},body:{items:[],fulfillmentType:'pickup',idempotencyKey:'same-client-key'}},res);
+    const res=response();await controller.payment_intents({user:{_id:owner},body:{items:[],fulfillmentType:'pickup',ageAcknowledged:true,termsAccepted:true,policyVersions:require('../src/config/policyVersions.json'),user:{firstName:'Test',lastName:'Recipient',phone:'0000000000'},idempotencyKey:'same-client-key'}},res);
     assert.equal(res.statusCode,200);
   }
   assert.equal(calls[0].options.metadata.ownerId,A);assert.equal(calls[1].options.metadata.ownerId,B);
@@ -208,7 +211,7 @@ test('R18 existing paid-order responses require immutable owner identity before 
 
 test('R08 an order records the verified settled payment even when the success webhook arrived first', async () => {
   const totals={expectedAmountCents:1000,orderTotal:10,grandTotal:10,discount:0,tax:0,markupTotal:0,sanitizedTip:0,deliveryFee:0,fulfillmentType:'pickup',
-    updatedItems:[{pid:A,quantity:1,price:10,priceSale:10,total:10}],products:[{_id:A,name:'Fixture',price:10,available:2}]};
+    updatedItems:[{pid:A,quantity:1,price:10,priceSale:10,total:10}],products:[{_id:A,name:'Fixture',price:10,available:2,category:{slug:'wine'}}]};
   const {checkoutHash}=require('../src/utils/checkoutBinding');let saved;
   const orders={async updateOne(){return{matchedCount:0};},async findOne(){return null;},async create(value){saved={_id:D,...value};return saved;}};
   const early=load('controllers/stripeWebhook.js',{stripe:()=>({}),'../models/Order':orders,'../models/StripeEvent':{}});
@@ -217,10 +220,25 @@ test('R08 an order records the verified settled payment even when the success we
     '../models/Order':orders,'../models/Product':{async findOneAndUpdate(){return{_id:A};}},
     '../models/Checkout':{async exists(){return true;},async findOneAndUpdate(){return{_id:D};},async updateOne(){}},
     '../models/User':{async findByIdAndUpdate(){}},'../models/Notification':{async create(){return[{_id:B}];}},
+    '../models/settings':{async findOneOrCreate(){return policySettings;}},'../utils/checkoutPolicy':policyMock,
     '../utils/orderCalculator':{async calculateOrderTotals(){return totals;}},'../utils/mailer':async()=>{},'../utils/socketManager':{emitToAdmins(){}},
     fs:{readFileSync:()=>'<div>{{items}}</div>'},
     stripe:()=>({paymentIntents:{async retrieve(){return{id:'pi_fixture',status:'succeeded',currency:'usd',amount:1000,metadata:{ownerId:A,checkoutId:D,cartHash:checkoutHash(totals,'usd')}};}}}),
   });
-  const res=response();await controller.createOrder({user:{_id:A,email:'fixture@example.test'},body:{items:[{pid:A,quantity:1}],paymentMethod:'Stripe',paymentId:'pi_fixture',fulfillmentType:'pickup',user:{firstName:'Test',lastName:'Fixture',phone:'0000000000'}}},res);
+  const res=response();await controller.createOrder({user:{_id:A,email:'fixture@example.test'},body:{items:[{pid:A,quantity:1}],paymentMethod:'Stripe',paymentId:'pi_fixture',fulfillmentType:'pickup',ageAcknowledged:true,termsAccepted:true,policyVersions:require('../src/config/policyVersions.json'),user:{firstName:'Test',lastName:'Fixture',phone:'0000000000'}}},res);
   assert.equal(res.statusCode,201);assert.equal(saved.paymentStatus,'succeeded');assert.equal(saved.status,'pending');
+});
+
+
+test('pending cancellation refunds remain durable and retry confirms the same refund without a second payment call', async () => {
+  let state={_id:D,status:'pending',items:[],user:{_id:A},paymentMethod:'Stripe',paymentId:'pi_mock',total:9,orderNo:'TEST'}, creates=0, refund={id:'re_pending',status:'pending',amount:900,metadata:{orderId:D}};
+  const controller=load('controllers/order.js',{
+    '../models/Order':{async findById(){return structuredClone(state);},async findOneAndUpdate(filter,change){Object.assign(state,change.$set);return structuredClone(state);},async findByIdAndUpdate(id,change){Object.assign(state,change.$set);},async updateOne(filter,change){Object.assign(state,change.$set);}},
+    '../models/Product':{async updateOne(){}},'../models/Notification':{async create(){return{};}},'../utils/socketManager':{emitToAdmins(){}},
+    stripe:()=>({refunds:{async list(){return{data:[]};},async retrieve(id){assert.equal(id,refund.id);return refund;},async create(){creates++;return refund;}}}),
+  });
+  const req={params:{id:D},body:{reason:'Fixture'},user:{_id:A}};
+  let res=response();await controller.cancelOrderByCustomer(req,res);assert.equal(res.statusCode,200);assert.equal(state.cancellationEffectsPending,true);assert.equal(state.refundId,'re_pending');assert.equal(state.refundStatus,'pending');
+  res=response();await controller.retryCancellation(req,res);assert.equal(res.statusCode,503);assert.equal(state.cancellationEffectsPending,true);assert.equal(creates,1);
+  refund.status='succeeded';res=response();await controller.retryCancellation(req,res);assert.equal(res.statusCode,200);assert.equal(state.cancellationEffectsPending,false);assert.equal(state.paymentStatus,'refunded');assert.equal(creates,1);
 });
