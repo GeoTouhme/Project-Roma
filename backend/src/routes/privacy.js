@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const verify = require('../config/jwt');
+const admin = require('../middleware/adminCheck');
+const controller = require('../controllers/privacy');
+router.use((req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
+router.post('/privacy/requests', verify, controller.submit);
+router.get('/privacy/requests', verify, controller.listOwn);
+router.get('/privacy/export', verify, controller.exportOwn);
+router.get('/admin/privacy/requests', verify, admin, controller.listAdmin);
+router.patch('/admin/privacy/requests/:id', verify, admin, controller.review);
+router.get('/admin/privacy/retention', verify, admin, controller.retention);
+module.exports = router;
